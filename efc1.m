@@ -4,8 +4,8 @@ clc;
 
 % iMac
 cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/efc1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/efc1')
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
 addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
