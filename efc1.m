@@ -3,7 +3,7 @@ close all;
 clc;
 
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/efc1');
+cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
 addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/efc1/functions');
 addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/efc1')
 addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
@@ -14,13 +14,13 @@ addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin'
 % addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
 % addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
-efc1_analyze('all_subj');
+% efc1_analyze('all_subj');
 
 % temporary analysis:
 
 % loading data
 % analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/efc1/analysis';  % iMac
+analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = cell(size(matFiles));
