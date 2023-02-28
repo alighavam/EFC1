@@ -229,6 +229,9 @@ legend(legNames)
 xlabel("num active fingers")
 ylabel("average medRT")
 
+%% test github commit
+zeros(1,100)
+
 %% Features Correlation
 close all;
 clc;
