@@ -1,3 +1,4 @@
+%% Loading and initialization
 clear;
 close all;
 clc;
@@ -14,8 +15,6 @@ addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin'
 % addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
 % addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
-% efc1_analyze('all_subj');
-
 % temporary analysis:
 
 % loading data
@@ -23,101 +22,28 @@ addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin'
 analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
-data = cell(size(matFiles));
+data = cell(length(matFiles),2);
 for i = 1:length(matFiles)
-    data{i} = load(matFiles(i).name);
+    data{i,1} = load(matFiles(i).name);
+    data{i,2} = matFiles(i).name(6:11);
 end
 
-%% lineplots
-close all;
+
+%% analysis
 clc;
-% lineplot subplot
-figure;
-for i = 1:length(data)
-    tmpData = data{i};
-    idx = tmpData.RT~=0;
-    subplot(3,2,i)
-    lineplot(tmpData.BN(idx),tmpData.RT(idx)-600);
-    xlabel("Block")
-    ylabel("RT(ms)")
-    title(sprintf("%s",matFiles(i).name(6:11)))
-%     ylim([0,7000])
-end
+clearvars -except data
 
-% lineplot with one plot
-figure
-colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
-    [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
-legNames = {};
-for i = 1:length(data)
-    tmpData = data{i};
-    idx = tmpData.RT~=0;
-    lineplot(tmpData.BN(idx),tmpData.RT(idx)-600,...
-        'markercolor',colors(i,:),'linecolor',colors(i,:),'errorbars',{''});
-    xlabel("Block")
-    ylabel("RT(ms)")
-    title("all subjects")
-    hold on
-    legNames{i} = matFiles(i).name(6:11);
-end
-legend(legNames)
+% DATA PREP:
+% efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
 
-%% Med RT
-close all;
-clc;
-
-% visualizing median RTs
-subNum = 1;
-medRT = calcMedRT(data{subNum});
-chordVec = generateAllChords();
-chordVecSep = sepChordVec(chordVec);
+% ANALISYS:
+% efc1_analyze('RT_vs_run',data,'plotfcn','median');
 corrMethod = 'spearman';
+rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod);
+rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod);
+rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod);
 
-% randomSelection = chordVec(randperm(length(chordVec)));
-% randomSelection = randomSelection(1:30);
-% for i = 1:length(randomSelection)
-%     tmpChord = randomSelection(i);
-%     index = find([medRT{:}] == tmpChord);
-%     tmpMedRT = medRT{index,2};
-%     subplot(6,5,i)
-%     scatter(1:length(tmpMedRT),tmpMedRT,'filled','k');
-%     hold on
-%     plot(1:length(tmpMedRT),tmpMedRT,'k','LineWidth',0.5)
-%     ylabel("median RT")
-%     xlabel("Block")
-%     title(sprintf("subj0%d , %d",subNum,tmpChord))
-%     ylim([0,10000])
-% end
 
-% correlation of median RT within participants
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        disp(['subj' num2str(data{i}.subNum(1))])
-        medRT = calcMedRT(data{i});
-        medRT = cell2mat(medRT);
-        medRT = medRT(:,2:end);
-        rho = corr(medRT,'type',corrMethod)
-    end
-end
-
-% correlation of median RT across participants
-lastSess = [];
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        disp(['subj' num2str(data{i}.subNum(1))])
-        medRT = calcMedRT(data{i});
-        medRT = cell2mat(medRT);
-        medRT = medRT(:,2:end);
-        lastSess = [lastSess , medRT(:,end)];
-    end
-end
-disp("across subjects:")
-rho = corr(lastSess,'type',corrMethod)
-
-lastSess = [lastSess,mean(lastSess,2)];
-disp("corr of subjects with global mean")
-rho = corr(lastSess,'type',corrMethod);
-rho(end,1:end-1)
 
 
 %% Scatter plots within subject runs
@@ -132,9 +58,9 @@ colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.494
 % scatter plots within subjects:
 j = 1;
 figure;
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i}));
+for i = 1:size(data,1)
+    if (length(data{i,1}.BN) >= 2420)
+        medRT = cell2mat(calcMedRT(data{i,1}));
         last2Runs = medRT(:,end-1:end);
         subplot(3,2,j)
         for numActiveFing = 1:size(chordVecSep,1)
@@ -142,7 +68,7 @@ for i = 1:length(data)
             hold on
         end
         legend(["activeFinger 1","activeFinger 2","activeFinger 3","activeFinger 4","activeFinger 5"])
-        title(sprintf("last two runs MedRTs, %s",matFiles(i).name(6:11)))
+        title(sprintf("last two runs MedRTs, %s",data{i,2}))
         ylabel("Last Run, Med RT(ms)")
         xlabel("One Run Before Last, Med RT(ms)")
         j = j+1;
@@ -152,9 +78,9 @@ end
 % ranked in one plot within subjects
 j = 1;
 figure;
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i}));
+for i = 1:size(data,1)
+    if (length(data{i,1}.BN) >= 2420)
+        medRT = cell2mat(calcMedRT(data{i,1}));
         last2Runs = medRT(:,end-1:end);
         [~,i1] = sort(last2Runs(:,1));
         [~,i2] = sort(last2Runs(:,2));
@@ -165,7 +91,7 @@ for i = 1:length(data)
             hold on
         end
         legend(["activeFinger 1","activeFinger 2","activeFinger 3","activeFinger 4","activeFinger 5"])
-        title(sprintf("last two runs MedRTs ranked, %s",matFiles(i).name(6:11)))
+        title(sprintf("last two runs MedRTs ranked, %s",data{i,2}))
         ylabel("Last Run, Med RT(ms)")
         xlabel("One Run Before Last, Med RT(ms)")
         j = j+1;
