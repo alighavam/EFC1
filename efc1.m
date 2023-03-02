@@ -32,6 +32,7 @@ end
 %% analysis
 clc;
 clearvars -except data
+close all;
 
 % DATA PREP:
 % efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
@@ -42,61 +43,8 @@ corrMethod = 'spearman';
 rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod);
 rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod);
 rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod);
-
-
-
-
-%% Scatter plots within subject runs
-close all;
-clc;
-
-chordVec = generateAllChords();
-chordVecSep = sepChordVec(chordVec);
-colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
-    [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
-
-% scatter plots within subjects:
-j = 1;
-figure;
-for i = 1:size(data,1)
-    if (length(data{i,1}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i,1}));
-        last2Runs = medRT(:,end-1:end);
-        subplot(3,2,j)
-        for numActiveFing = 1:size(chordVecSep,1)
-            scatter(last2Runs(chordVecSep{numActiveFing,2},1),last2Runs(chordVecSep{numActiveFing,2},2),30,"MarkerFaceColor",colors(numActiveFing,:))
-            hold on
-        end
-        legend(["activeFinger 1","activeFinger 2","activeFinger 3","activeFinger 4","activeFinger 5"])
-        title(sprintf("last two runs MedRTs, %s",data{i,2}))
-        ylabel("Last Run, Med RT(ms)")
-        xlabel("One Run Before Last, Med RT(ms)")
-        j = j+1;
-    end
-end
-
-% ranked in one plot within subjects
-j = 1;
-figure;
-for i = 1:size(data,1)
-    if (length(data{i,1}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i,1}));
-        last2Runs = medRT(:,end-1:end);
-        [~,i1] = sort(last2Runs(:,1));
-        [~,i2] = sort(last2Runs(:,2));
-        last2Runs_ranked = [i1,i2];
-        subplot(3,2,j)
-        for numActiveFing = 1:size(chordVecSep,1)
-            scatter(last2Runs_ranked(chordVecSep{numActiveFing,2},1),last2Runs_ranked(chordVecSep{numActiveFing,2},2),30,"MarkerFaceColor",colors(numActiveFing,:))
-            hold on
-        end
-        legend(["activeFinger 1","activeFinger 2","activeFinger 3","activeFinger 4","activeFinger 5"])
-        title(sprintf("last two runs MedRTs ranked, %s",data{i,2}))
-        ylabel("Last Run, Med RT(ms)")
-        xlabel("One Run Before Last, Med RT(ms)")
-        j = j+1;
-    end
-end
+% efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
+efc1_analyze('plot_scatter_across_subj',data,'transform_type','no_transform')
 
 
 %% scatter plots across subjects last runs:
@@ -110,9 +58,9 @@ colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.494
 
 % Med RTs:
 lastRuns = [];
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i}));
+for i = 1:size(data,1)
+    if (length(data{i,1}.BN) >= 2420)
+        medRT = cell2mat(calcMedRT(data{i,1}));
         lastRuns = [lastRuns medRT(:,end)];
     end
 end
@@ -140,12 +88,11 @@ for i = 1:size(lastRuns,2)
     end
 end
 
-
 % Ranked Med RTs:
 lastRuns_ranked = [];
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i}));
+for i = 1:size(data,1)
+    if (length(data{i,1}.BN) >= 2420)
+        medRT = cell2mat(calcMedRT(data{i,1}));
         [~,idx] = sort(medRT(:,end));
         lastRuns_ranked = [lastRuns_ranked idx];
     end
