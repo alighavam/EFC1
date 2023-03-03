@@ -111,43 +111,46 @@ switch (what)
             [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
         
         % Med RTs:
-        lastRuns = [];
+        lastRuns = {};
+        k = 1;  % index for last runs.
         for i = 1:size(data,1)
             if (length(data{i,1}.BN) >= 2420)
                 medRT = cell2mat(calcMedRT(data{i,1}));
                 if (strcmp(dataTransform,'no_transform'))   % not transform option
-                    lastRuns = [lastRuns medRT(:,end)];
+                    lastRuns{k,1} = medRT(:,end);
                 elseif (strcmp(dataTransform,'ranked'))     % rank transform option
                     [~,idx] = sort(medRT(:,end));
-                    lastRuns = [lastRuns idx];
+                    lastRuns{k,1} = idx;
                 end
+                lastRuns{k,2} = data{i,2};
+                k = k+1;
             end
         end
         
-        % plot
-        col1 = repelem(1:size(lastRuns,2),size(lastRuns,2));
-        col2 = repmat(1:5,1,size(lastRuns,2));
-        C = [col1',col2'];
-        C(C(:,1)==C(:,2),:) = [];
+        % plotting each subject vs all others
         subplotCols = 2;
-        subplotRows = round((size(lastRuns,2)-1)/subplotCols);
-        for i = 1:size(lastRuns,2)
+        subplotRows = round((size(lastRuns,1)-1)/subplotCols);
+        for i = 1:size(lastRuns,1)
             figure;
-            for j = 1:subplotRows*subplotCols
-                subplot(subplotRows,subplotCols,j)
+            yDataIdx = setdiff(1:size(lastRuns,1),i);   % subjects other than subject i
+            subplotIdx = 1:subplotRows*subplotCols;
+            k = 1;  % index for subplotIdx
+            for j = yDataIdx
+                subplot(subplotRows,subplotCols,subplotIdx(k))
                 for numActiveFing = 1:size(chordVecSep,1)
-                    scatter(lastRuns(chordVecSep{numActiveFing,2},C((i-1)*(size(lastRuns,2)-1)+j,1)),lastRuns(chordVecSep{numActiveFing,2},C((i-1)*(size(lastRuns,2)-1)+j,2)),...
+                    scatter(lastRuns{i,1}(chordVecSep{numActiveFing,2}),lastRuns{j,1}(chordVecSep{numActiveFing,2}),...
                         30,"MarkerFaceColor",colors(numActiveFing,:))
                     hold on
                 end
-                title(sprintf("%s vs %s",data{i,2},data{C((i-1)*(size(lastRuns,2)-1)+j,2),2}))
-                xlabel(sprintf("%s medRT(ms)",data{C((i-1)*(size(lastRuns,2)-1)+j,1),2}))
-                ylabel(sprintf("%s medRT(ms)",data{C((i-1)*(size(lastRuns,2)-1)+j,2),2}))
+                title(sprintf("subjects last run scatter"))
+                xlabel(sprintf("%s medRT(ms)",lastRuns{i,2}))
+                ylabel(sprintf("%s medRT(ms)",lastRuns{j,2}))
                 legend(["activeFinger 1","activeFinger 2","activeFinger 3","activeFinger 4","activeFinger 5"])
                 axis equal
-                maxLim = max(max(last2Runs_cell{i,1}(:,1)),max(last2Runs_cell{i,1}(:,2)));
+                maxLim = max(max(lastRuns{i,1}),max(lastRuns{j,1}));
                 xlim([0,maxLim])
                 ylim([0,maxLim])
+                k = k+1;
             end
         end
 
