@@ -3,7 +3,7 @@ function varargout=efc1_analyze(what, data, varargin)
 addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 %GLOBALS:
-subjName = {'subj07'};
+subjName = {'subj05','subj09'};
 
 switch (what)
     % =====================================================================

@@ -2,3 +2,5 @@
 *.mat
 .DS_Store
 *.asv
+*.mov
+*.dat

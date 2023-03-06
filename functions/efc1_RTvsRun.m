@@ -1,10 +1,12 @@
 function efc1_RTvsRun(data,plotfcn)
 
 figure;
+colSubplot = 2;
+rowSubplot = ceil(size(data,1)/colSubplot); 
 for i = 1:size(data,1)  
     tmpData = data{i,1};             % first column of 'data' is the data for each subject
     idx = tmpData.trialPoint~=-1;    % trials without planning error
-    subplot(3,2,i)
+    subplot(rowSubplot,colSubplot,i)
     lineplot(tmpData.BN(idx),tmpData.RT(idx)-600,'plotfcn',plotfcn);
     xlabel("Run Number")
     ylabel(sprintf("%s RT(ms)",plotfcn))
