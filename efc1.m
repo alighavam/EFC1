@@ -28,6 +28,42 @@ for i = 1:length(matFiles)
     data{i,2} = matFiles(i).name(6:11);
 end
 
+% temporary RT correction:
+for i = 1:size(data,1)  % loop on subjects
+    for i_t = 1:length(data{i,1}.BN)  % loop on trials
+        if (data{i,1}.trialErrorType(i_t) == 2)
+            data{i,1}.RT(i_t) = 0;
+        end
+    end
+end
+
+% setting the RT type before any analysis:
+RTtype = 'full'; % RT type
+
+if (strcmp(RTtype,'full'))
+    disp('RT type = full')
+end
+if (strcmp(RTtype,'firstRT'))
+    disp('RT type = firstRT')
+    for i = 1:size(data,1)  % loop on subjects
+        disp(i)
+        for i_t = 1:length(data{i,1}.BN)  % loop on trials
+            [firstRT,~] = getSeparateRT(getrow(data{i,1},i_t));
+            data{i,1}.RT(i_t) = firstRT+600;
+        end
+    end
+end
+if (strcmp(RTtype,'execRT'))
+    disp('RT type = execRT')
+    for i = 1:size(data,1)  % loop on subjects
+        disp(i)
+        for i_t = 1:length(data{i,1}.BN)  % loop on trials
+            [~,execRT] = getSeparateRT(getrow(data{i,1},i_t));
+            data{i,1}.RT(i_t) = execRT+600;
+        end
+    end
+end
+
 
 %% analysis
 clc;
@@ -45,11 +81,6 @@ rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod
 rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod);
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
-
-
-
-
-
 
 
 %% Scatter plots ranked separate numActiveFing
@@ -122,73 +153,81 @@ legend(legNames)
 xlabel("num active fingers")
 ylabel("average medRT")
 
-%% test github commit
-zeros(1,100)
-ones(1,100)
 
 %% Features Correlation
-close all;
 clc;
+clearvars -except data
+close all;
+
 
 chordVec = generateAllChords();
 chordVecSep = sepChordVec(chordVec);
 
 % features
-numFeatures = 0;
-f1 = zeros(length(chordVec),1); % num active fing
-numFeatures = numFeatures+1;
-for i = 1:length(chordVec)
-    f1(i) = 5-sum(num2str(chordVec(i))=='9');
+% num active fingers - continuous:
+f1 = zeros(size(chordVec));
+for i = 1:size(chordVecSep,1)
+    f1(chordVecSep{i,2}) = i;
+end
+% num active fingers - one hot:
+% f1 = zeros(size(chordVec,1),5);
+% for i = 1:size(chordVecSep,1)
+%     f1(chordVecSep{i,2},i) = 1;
+% end
+
+% each finger flexed or not:
+f2 = zeros(size(chordVec,1),5);
+for i = 1:size(chordVec,1)
+    chord = num2str(chordVec(i));
+    f2(i,:) = (chord == '2');
 end
 
-f2 = zeros(length(chordVec),1); % ring fing up
-numFeatures = numFeatures+1;
-for i = 1:length(chordVec)
-    strChord = num2str(chordVec(i));
-    if (strChord(4) == '1')
-        f2(i) = 1;
+% each finger extended or not:
+f3 = zeros(size(chordVec,1),5);
+for i = 1:size(chordVec,1)
+    chord = num2str(chordVec(i));
+    f3(i,:) = (chord == '1');
+end
+
+% second level interactions of finger combinations:
+f4Base = [f2,f3];
+f4 = [];
+for i = 1:size(f4Base,2)-1
+    for j = i+1:size(f4Base,2)
+        f4 = [f4, f4Base(:,i) .* f4Base(:,j)];
     end
 end
 
-f3 = zeros(length(chordVec),1); % ring fing up, little up
-numFeatures = numFeatures+1;
-for i = 1:length(chordVec)
-    strChord = num2str(chordVec(i));
-    if (strChord(4) == '1' && strChord(5) == '1')
-        f3(i) = 1;
-    end
+% linear regression:
+features = [f1,f2,f3,f4];
+medRT = cell2mat(calcMedRT(data{1,1}));
+estimated = medRT(:,end);
+mdl = fitlm(features,estimated)
+
+%% analysis tmp
+clc;
+clearvars -except data
+close all;
+
+forceData = cell(size(data));
+for i = 1:size(data,1)
+    forceData{i,1} = extractDiffForce(data{i,1});
+    forceData{i,2} = data{i,2};
 end
 
-f4 = zeros(length(chordVec),1); % ring fing up, little down
-numFeatures = numFeatures+1;
-for i = 1:length(chordVec)
-    strChord = num2str(chordVec(i));
-    if (strChord(4) == '1' && strChord(5) == '2')
-        f4(i) = 1;
-    end
-end
+%%
+clc;
+close all;
+clearvars -except data forceData
 
-f5 = zeros(length(chordVec),1); % specific pattern
-numFeatures = numFeatures+1;
-for i = 1:length(chordVec)
-    strChord = num2str(chordVec(i));
-    if (strChord(4) == '1' && strChord(3) == '2' && strChord(5) == '2')
-        f5(i) = 1;
-    end
-end
+sigTmp = forceData{1,1}{1};
+plot(sigTmp(:,2),sigTmp(:,3:end))
+legend({"1","2","3","4","5"})
 
-% correlation
-vec = [];
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i}));
-        vec = [vec , medRT(:,end)];
-    end
-end
+% [firstRT,execRT] = getSeparateRT(getrow(data{1,1},1));
 
-vec = [vec f1 f2 f3 f4 f5];
-fprintf("num active fingers:")
-rho = corr(vec,'type','Pearson');
-rho(end-numFeatures+1:end,1:end-numFeatures)
+
+
+
 
 
