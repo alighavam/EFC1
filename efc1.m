@@ -4,22 +4,22 @@ close all;
 clc;
 
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary analysis:
 
 % loading data
-% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -159,7 +159,7 @@ xlabel("num active fingers")
 ylabel("average medRT")
 
 
-%% Features Correlation
+%% Linear Regression
 clc;
 clearvars -except data
 close all;
@@ -219,8 +219,17 @@ for i = 1:size(data,1)
         tmpMedRT = cell2mat(calcMedRT(data{j,1}));
         estimated = [estimated ; tmpMedRT(:,end)];
     end
-    fprintf('subj %s out:\n',num2str(i))
+    fprintf('subj %s out:\n',data{i,2})
     mdl = fitlm(fullFeatures,estimated)
+
+    % testing model:
+    pred = predict(mdl,features);
+    medRTOut = cell2mat(calcMedRT(data{i,1}));
+    medRTOut = medRTOut(:,end);
+    SST = sum((medRTOut-mean(medRTOut)).^2);
+    SSE = sum((medRTOut - pred).^2);
+    rSquaredOut = 1 - (SSE/SST);
+    fprintf('\ncross-validated R-Squared = %.4f , %s out\n',rSquaredOut,data{i,2})
 end
 
 %% analysis tmp
