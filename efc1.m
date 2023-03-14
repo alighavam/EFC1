@@ -146,11 +146,11 @@ for i = 1:size(chordVecSep,1)
     activeVec(chordVecSep{i,2}) = i;
 end
 
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i}));
+for i = 1:size(data,1)
+    if (length(data{i,1}.BN) >= 2420)
+        medRT = cell2mat(calcMedRT(data{i,1}));
         lineplot(activeVec,medRT(:,end),'linecolor',colors(i,:),'errorbars',{''})
-        legNames{i} = matFiles(i).name(6:11);
+        legNames{i} = data{i,2};
         hold on
     end
 end
