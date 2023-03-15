@@ -23,32 +23,44 @@ switch (what)
     
     % =====================================================================
     case 'corr_within_subj_runs'
-        corrMethod = 'pearson';    % default correlation method
+        corrMethod = 'pearson';     % default correlation method
+        excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};   % setting 'plotfcn' option for lineplot()
-        end    
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'plotfcn' option for lineplot()
+        end   
+        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
+            excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
+        end  
         % correlation of median RT within subject runs
-        rhoWithinSubject = efc1_corr_within_subj_runs(data,corrMethod);
+        rhoWithinSubject = efc1_corr_within_subj_runs(data,corrMethod,excludeVec);
         varargout{1} = rhoWithinSubject;
     
     % =====================================================================
     case 'corr_across_subj'
-        corrMethod = 'pearson';    % default correlation method
+        corrMethod = 'pearson';     % default correlation method
+        excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};   % setting 'plotfcn' option for lineplot()
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'plotfcn' option for lineplot()
         end
+        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
+            excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
+        end  
         % correlation of median RT across subjects
-        rhoAcrossSubjects = efc1_corr_across_subj(data,corrMethod);
+        rhoAcrossSubjects = efc1_corr_across_subj(data,corrMethod,excludeVec);
         varargout{1} = rhoAcrossSubjects;
 
     % =====================================================================
     case 'corr_avg_model'
-        corrMethod = 'pearson';    % default correlation method
+        corrMethod = 'pearson';     % default correlation method
+        excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};   % setting 'plotfcn' option for lineplot()
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'plotfcn' option for lineplot()
+        end
+        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
+            excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
         end
         % correlation of median RT across subjects
-        rhoAvgModel = efc1_corr_avg_model(data,corrMethod);
+        rhoAvgModel = efc1_corr_avg_model(data,corrMethod,excludeVec);
         varargout{1} = rhoAvgModel;
     
     % =====================================================================

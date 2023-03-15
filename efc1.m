@@ -4,22 +4,22 @@ close all;
 clc;
 
 % iMac
-% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary analysis:
 
 % loading data
-analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -81,9 +81,9 @@ close all;
 % ANALISYS:
 % efc1_analyze('RT_vs_run',data,'plotfcn','median');
 corrMethod = 'pearson';
-rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod);
-rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod);
-rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod);
+rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
+rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod,'excludeChord',[1]);
+rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[]);
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 % efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
 
