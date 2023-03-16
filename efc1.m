@@ -243,13 +243,19 @@ for i = 1:size(data,1)
     forceData{i,2} = data{i,2};
 end
 
+
 %%
 clc;
 close all;
 clearvars -except data forceData
 
-sigTmp = forceData{1,1}{1};
-plot(sigTmp(:,2),sigTmp(:,3:end))
+subj = 1;
+trial = 18;
+sigTmp = forceData{subj,1}{trial};
+fGain4 = data{subj,1}.fGain4(trial);
+fGain5 = data{subj,1}.fGain5(trial);
+plot(sigTmp(:,2),[sigTmp(:,3:5),fGain4*sigTmp(:,6),fGain5*sigTmp(:,7)])
+xline(500,'r','LineWidth',1.5)
 legend({"1","2","3","4","5"})
 
 % [firstRT,execRT] = getSeparateRT(getrow(data{1,1},1));
