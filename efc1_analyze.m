@@ -3,7 +3,7 @@ function varargout=efc1_analyze(what, data, varargin)
 addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 %GLOBALS:
-subjName = {'subj05','subj08'};
+subjName = {'subj09'};
 
 switch (what)
     % =====================================================================
@@ -67,15 +67,23 @@ switch (what)
     case 'thetaExp_vs_thetaStd'
         durAfterActive = 200;   % default duration after first finger passed the baseline threshld in ms
         plotfcn = 1;            % default is to plot
-        firstTrial = 2;         % default is 2
+        firstTrial = 2;         % default is 2 , The first trial of the chord is usually very different from others which impacts the variance a lot. This is an option to ignore the first trial if wanted.
+        onlyActiveFing = 0;     % default is 0 , option to caclculate the angle only for active fingers
+        selectRun = -1;         % default run to do the analysis is the last run. you can select run 1,2,3 or -1(last)
         if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))
             durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};     % setting 'durAfterActive' option
         end
         if (~isempty(find(strcmp(varargin,'plotfcn'),1)))
-            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};                % setting 'plotfcn' option
+            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};                   % setting 'plotfcn' option
         end
         if (~isempty(find(strcmp(varargin,'firstTrial'),1)))
-            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};                % setting 'firstTrial' option
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};             % setting 'firstTrial' option
+        end
+        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))    
+            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1};     % setting 'onlyActiveFing' option
+        end
+        if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
+            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};          % setting 'selectRun' option
         end
         
         forceData = cell(size(data));
@@ -89,27 +97,42 @@ switch (what)
             thetaCell{subj,2} = data{subj,2};
             chordVec = generateAllChords();  % all chords
             subjData = data{subj,1};
-            uniqueBN = unique(subjData.BN);
+            uniqueBN = [0 ; unique(subjData.BN)];
+            idxBN = find(mod(uniqueBN,12)==0)-1;
+            idxBN(1) = 1;
             subjForceData = forceData{subj,1};
             thetaCellSubj = cell(length(chordVec),2);
             for i = 1:length(chordVec)
                 thetaCellSubj{i,1} = chordVec(i);
-                trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN >= uniqueBN(end-11));
-                thetaTmp = [];
+                if (selectRun == -1)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(end-1)+1) & subjData.BN <= uniqueBN(idxBN(end)+1));
+                elseif (selectRun > length(idxBN)-1)
+                    error("Error with <selectRun> option , " + data{subj,2} + " does not have run number " + num2str(selectRun))
+                elseif (selectRun == 1)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(selectRun)) & subjData.BN <= uniqueBN(idxBN(selectRun+1)+1));
+                else
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(selectRun)+1) & subjData.BN <= uniqueBN(idxBN(selectRun+1)+1));
+                end
+                
+%                 fprintf("%s\n",data{subj,2})
+%                 fprintf("trialIdx: %d\n",trialIdx)
+
                 if (~isempty(trialIdx))
                     chordTmp = num2str(chordVec(i));
                     for trial_i = 1:length(trialIdx)
                         forceTmp = [];
                         tVec = subjForceData{trialIdx(trial_i)}(:,2); % time vector in trial
                         tGoCue = subjData.planTime(trialIdx(trial_i));
+                        fGainVec = [subjData.fGain1(trialIdx(trial_i)) subjData.fGain2(trialIdx(trial_i)) subjData.fGain3(trialIdx(trial_i)) subjData.fGain4(trialIdx(trial_i)) subjData.fGain5(trialIdx(trial_i))];
                         for j = 1:5     % thresholded force of the fingers after "Go Cue"
                             if (chordTmp(j) == '1') % extension
-                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                             elseif (chordTmp(j) == '2') % flexion
-                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                             end
                         end
             
+                        tmpIdx = [];
                         for k = 1:size(forceTmp,2)
                             tmpIdx(k) = find(forceTmp(:,k),1);
                         end
@@ -126,6 +149,10 @@ switch (what)
                             if (chordTmp(j) == '2')
                                 idealVec(j) = -1;
                             end
+                        end
+                        if (onlyActiveFing) % if only wanted to find the angle between active fingers
+                            forceVec(idealVec==0) = [];
+                            idealVec(idealVec==0) = [];
                         end
                         thetaCellSubj{i,2} = [thetaCellSubj{i,2} vectorAngle(forceVec,idealVec)];
                     end

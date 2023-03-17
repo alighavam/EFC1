@@ -76,7 +76,7 @@ clearvars -except data
 close all;
 
 % DATA PREP:
-efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
+% efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
 
 % ANALISYS:
 % efc1_analyze('RT_vs_run',data,'plotfcn','median');
@@ -86,7 +86,7 @@ efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subj
 % rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 % efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
-% thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',1,'firstTrial',2);
+thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',1,'firstTrial',2);
 
 
 %% Scatter plots ranked separate numActiveFing
@@ -132,7 +132,6 @@ for i = 1:size(lastRuns_ranked,2)
 end
 
 
-
 %% median RT over numActiveFinger
 close all;
 clc;
@@ -158,6 +157,7 @@ end
 legend(legNames)
 xlabel("num active fingers")
 ylabel("average medRT")
+
 
 
 %% Linear Regression
@@ -264,22 +264,32 @@ plot([sigTmp(1,2) sigTmp(end,2)],-[data{subj,1}.baselineTopThresh data{subj,1}.b
 legend({"1","2","3","4","5"})
 
 
-%% E(alpha) over Var(alpha) in force signals
+%% Exp(theta) over std(theta) in force signals
 clc;
 clearvars -except data forceData
+close all;
 
-thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',0,'firstTrial',2);
+onlyActiveFing = 1;
+thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',1,...
+    'firstTrial',2,'onlyActiveFing',onlyActiveFing,'selectRun',-1);
 
-
+%%
 firstTrial = 2;
 thetaMean = zeros(242,size(thetaCell,1));
 thetaStd = zeros(242,size(thetaCell,1));
 for subj = 1:size(thetaCell,1)
-    for j = 1:size(thetaMean,1)
+    for j = 11:size(thetaMean,1)
         thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
         thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
     end
 end
+
+%%
+if (onlyActiveFing)
+    thetaMean(1:10,:) = [];
+end
+[i,~] = find(isnan(thetaMean));
+thetaMean(i,:) = [];
 
 corrMethod = 'pearson';
 rho = corr(thetaMean,'type',corrMethod);
