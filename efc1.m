@@ -36,7 +36,7 @@ end
 % temporary RT correction:
 for i = 1:size(data,1)  % loop on subjects
     for i_t = 1:length(data{i,1}.BN)  % loop on trials
-        if (data{i,1}.trialErrorType(i_t) == 2)
+        if (data{i,1}.trialErrorType(i_t) == 1)     % errorType: '1'->planning error , '2'->exec error
             data{i,1}.RT(i_t) = 0;
         end
     end
@@ -76,16 +76,17 @@ clearvars -except data
 close all;
 
 % DATA PREP:
-% efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
+efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
 
 % ANALISYS:
 % efc1_analyze('RT_vs_run',data,'plotfcn','median');
-corrMethod = 'pearson';
-rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
-rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod,'excludeChord',[1]);
-rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
+% corrMethod = 'pearson';
+% rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
+% rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod,'excludeChord',[1]);
+% rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 % efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
+% thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',1,'firstTrial',2);
 
 
 %% Scatter plots ranked separate numActiveFing
@@ -244,21 +245,54 @@ for i = 1:size(data,1)
 end
 
 
-%%
+%% visualize force data - examples
 clc;
 close all;
 clearvars -except data forceData
 
 subj = 1;
-trial = 18;
+trial = 3977;
 sigTmp = forceData{subj,1}{trial};
 fGain4 = data{subj,1}.fGain4(trial);
 fGain5 = data{subj,1}.fGain5(trial);
 plot(sigTmp(:,2),[sigTmp(:,3:5),fGain4*sigTmp(:,6),fGain5*sigTmp(:,7)])
 xline(500,'r','LineWidth',1.5)
+hold on
+plot([sigTmp(1,2) sigTmp(end,2)],[data{subj,1}.baselineTopThresh data{subj,1}.baselineTopThresh],'k')
+hold on
+plot([sigTmp(1,2) sigTmp(end,2)],-[data{subj,1}.baselineTopThresh data{subj,1}.baselineTopThresh],'k')
 legend({"1","2","3","4","5"})
 
-% [firstRT,execRT] = getSeparateRT(getrow(data{1,1},1));
+
+%% E(alpha) over Var(alpha) in force signals
+clc;
+clearvars -except data forceData
+
+thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',0,'firstTrial',2);
+
+
+firstTrial = 2;
+thetaMean = zeros(242,size(thetaCell,1));
+thetaStd = zeros(242,size(thetaCell,1));
+for subj = 1:size(thetaCell,1)
+    for j = 1:size(thetaMean,1)
+        thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
+        thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
+    end
+end
+
+corrMethod = 'pearson';
+rho = corr(thetaMean,'type',corrMethod);
+
+
+
+
+
+
+
+
+
+
 
 
 

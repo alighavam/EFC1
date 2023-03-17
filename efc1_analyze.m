@@ -3,7 +3,7 @@ function varargout=efc1_analyze(what, data, varargin)
 addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 %GLOBALS:
-subjName = {'subj05','subj09'};
+subjName = {'subj05','subj08'};
 
 switch (what)
     % =====================================================================
@@ -54,7 +54,7 @@ switch (what)
         corrMethod = 'pearson';     % default correlation method
         excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'plotfcn' option for lineplot()
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'corrMethod' option
         end
         if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
             excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
@@ -62,7 +62,108 @@ switch (what)
         % correlation of median RT across subjects
         rhoAvgModel = efc1_corr_avg_model(data,corrMethod,excludeVec);
         varargout{1} = rhoAvgModel;
-    
+
+    % =====================================================================
+    case 'thetaExp_vs_thetaStd'
+        durAfterActive = 200;   % default duration after first finger passed the baseline threshld in ms
+        plotfcn = 1;            % default is to plot
+        firstTrial = 2;         % default is 2
+        if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))
+            durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};     % setting 'durAfterActive' option
+        end
+        if (~isempty(find(strcmp(varargin,'plotfcn'),1)))
+            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};                % setting 'plotfcn' option
+        end
+        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};                % setting 'firstTrial' option
+        end
+        
+        forceData = cell(size(data));
+        for i = 1:size(data,1)
+            forceData{i,1} = extractDiffForce(data{i,1});
+            forceData{i,2} = data{i,2};
+        end
+        
+        thetaCell = cell(size(data));
+        for subj = 1:size(data,1)
+            thetaCell{subj,2} = data{subj,2};
+            chordVec = generateAllChords();  % all chords
+            subjData = data{subj,1};
+            uniqueBN = unique(subjData.BN);
+            subjForceData = forceData{subj,1};
+            thetaCellSubj = cell(length(chordVec),2);
+            for i = 1:length(chordVec)
+                thetaCellSubj{i,1} = chordVec(i);
+                trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN >= uniqueBN(end-11));
+                thetaTmp = [];
+                if (~isempty(trialIdx))
+                    chordTmp = num2str(chordVec(i));
+                    for trial_i = 1:length(trialIdx)
+                        forceTmp = [];
+                        tVec = subjForceData{trialIdx(trial_i)}(:,2); % time vector in trial
+                        tGoCue = subjData.planTime(trialIdx(trial_i));
+                        for j = 1:5     % thresholded force of the fingers after "Go Cue"
+                            if (chordTmp(j) == '1') % extension
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                            elseif (chordTmp(j) == '2') % flexion
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                            end
+                        end
+            
+                        for k = 1:size(forceTmp,2)
+                            tmpIdx(k) = find(forceTmp(:,k),1);
+                        end
+                        [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
+                        idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first finger passes the baseline threhold after "Go Cue"
+                        
+                        forceSelceted = [];
+                        for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
+                            forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                        end
+                        forceVec = mean(forceSelceted,1);  % average of finger forces from idxStart to idxStart+durAfterActive
+                        idealVec = double(chordTmp~='9');
+                        for j = 1:5
+                            if (chordTmp(j) == '2')
+                                idealVec(j) = -1;
+                            end
+                        end
+                        thetaCellSubj{i,2} = [thetaCellSubj{i,2} vectorAngle(forceVec,idealVec)];
+                    end
+                else
+                    thetaCellSubj{i,2} = [];
+                end 
+            end
+            thetaCell{subj,1} = thetaCellSubj;
+        end
+        varargout{1} = thetaCell;
+
+        if (plotfcn)
+            % visualizing thetaCell
+            chordVecSep = sepChordVec(chordVec);
+            colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
+                [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
+            for subj = 1:size(thetaCell,1)
+                thetaCellSubj = thetaCell{subj,1};
+                expVec = zeros(size(thetaCellSubj,1),1);
+                stdVec = zeros(size(thetaCellSubj,1),1);
+                for i = 1:size(thetaCellSubj,1)
+                    expVec(i) = mean(thetaCellSubj{i,2}(firstTrial:end));
+                    stdVec(i) = std(thetaCellSubj{i,2}(firstTrial:end));
+                end
+                
+                figure;
+                for numActiveFing = 1:size(chordVecSep,1)
+                    scatter(stdVec(chordVecSep{numActiveFing,2}),expVec(chordVecSep{numActiveFing,2}),...
+                        30,"MarkerFaceColor",colors(numActiveFing,:))
+                    hold on
+                end
+                xlabel("std theta (degree)")
+                ylabel("mean theta (degree)")
+                title(sprintf("%s",thetaCell{subj,2}))
+                legend({"1","2","3","4","5"})
+            end
+        end
+
     % =====================================================================
     case 'plot_scatter_within_subj'
         dataTransform = 'no_transform'; % default data transform type
