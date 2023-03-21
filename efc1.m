@@ -89,10 +89,11 @@ clearvars -except data
 close all;
 
 % parameters:
-onlyActiveFing = 1;
+onlyActiveFing = 0;
 fisrtTrial = 2;
-corrMethod = 'spearman';
+corrMethod = 'pearson';
 selectRun = -1;
+durAfterActive = 200;
 
 % DATA PREP:
 % efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
@@ -102,7 +103,7 @@ selectRun = -1;
 
 rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
 
-rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod,'excludeChord',[1]);
+rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',[0,1],'corrMethod',corrMethod,'excludeChord',[1]);
 
 rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
 
@@ -110,8 +111,7 @@ thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotf
     'firstTrial',fisrtTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
 
 rho_theta = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
-    'firstTrial',fisrtTrial,'corrMethod',corrMethod);
-
+    'firstTrial',fisrtTrial,'corrMethod',corrMethod,'plotfcn',1,'clim',[0,1]);
 
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 

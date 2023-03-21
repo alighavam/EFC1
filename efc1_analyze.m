@@ -39,15 +39,35 @@ switch (what)
     case 'corr_across_subj'
         corrMethod = 'pearson';     % default correlation method
         excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
+        plotfcn = 0;                % default is not to plot
+        clim = [0,1];               % default for colorbar limit
+        if (~isempty(find(strcmp(varargin,'plotfcn'),1)))
+            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};           % setting 'plotfcn' option
+        end
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'plotfcn' option for lineplot()
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'corrMethod' option
         end
         if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
             excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
         end  
+        if (~isempty(find(strcmp(varargin,'clim'),1)))
+            clim = varargin{find(strcmp(varargin,'clim'),1)+1};                 % setting 'colorbar' option
+        end
         % correlation of median RT across subjects
         rhoAcrossSubjects = efc1_corr_across_subj(data,corrMethod,excludeVec);
         varargout{1} = rhoAcrossSubjects;
+        if (plotfcn)
+            figure;
+            if (~isempty(clim))
+                imagesc(rhoAcrossSubjects{1},clim)
+            else
+                imagesc(rhoAcrossSubjects{1})
+            end
+            colorbar
+            title(sprintf("corr medRT across subjects - corrMethod: %s",corrMethod))
+            xlabel("subj")
+            ylabel("subj")
+        end
 
     % =====================================================================
     case 'corr_avg_model'
@@ -193,9 +213,11 @@ switch (what)
     
     % =====================================================================
     case 'corr_mean_theta_across_subj'
-        onlyActiveFing = 1; % default value
-        firstTrial = 2;     % default value
+        onlyActiveFing = 1;     % default value
+        firstTrial = 2;         % default value
         corrMethod = 'pearson'; % default corr method
+        plotfcn = 0;            % default is not to plot
+        clim = [0,1];           % default for colorbar limit
         if (isempty(find(strcmp(varargin,'thetaCell'),1)))   
             error("thetaCell not found. You should input thetaCell for this analysis")
         end
@@ -210,6 +232,9 @@ switch (what)
         end
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))    
             corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};         % setting the 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'plotfcn'),1)))    
+            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};               % setting the 'plotfcn' option
         end
         
         rho = cell(1,2);
@@ -231,6 +256,19 @@ switch (what)
         
         rho{1,1} = corr(thetaMean,'type',corrMethod);
         varargout{1} = rho;
+
+        if (plotfcn)
+            figure;
+            if (~isempty(clim))
+                imagesc(rho{1},clim)
+            else
+                imagesc(rho{1})
+            end
+            colorbar
+            title(sprintf("corr meanTheta across subj - corrMethod: %s",corrMethod))
+            xlabel("subj")
+            ylabel("subj")
+        end
     
     % =====================================================================
     case 'plot_scatter_within_subj'
