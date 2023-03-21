@@ -33,6 +33,19 @@ for i = 1:length(matFiles)
     end
 end
 
+% temporary fix for the ongoing data recording
+dataTmp = [];
+for i = 1:size(data,1)
+    if (length(unique(data{i,1}.BN)) >= 37 && length(unique(data{i,1}.BN)) <= 47)   % if data was not complete
+        for j = 1:length(data{i,1}.BN)
+            if (data{i,1}.BN(j) <= 36)
+                dataTmp = addstruct(dataTmp,getrow(data{i,1},j),'row','force');
+            end
+        end
+        data{i,1} = dataTmp;
+    end
+end
+
 % temporary RT correction:
 for i = 1:size(data,1)  % loop on subjects
     for i_t = 1:length(data{i,1}.BN)  % loop on trials
@@ -78,7 +91,7 @@ close all;
 % parameters:
 onlyActiveFing = 1;
 fisrtTrial = 2;
-corrMethod = 'pearson';
+corrMethod = 'spearman';
 selectRun = -1;
 
 % DATA PREP:
@@ -87,21 +100,24 @@ selectRun = -1;
 % ANALISYS:
 % efc1_analyze('RT_vs_run',data,'plotfcn','median');
 
-% rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
+rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
 
-% rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod,'excludeChord',[1]);
+rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'corrMethod',corrMethod,'excludeChord',[1]);
 
-% rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
-
-% efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
-
-% efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
+rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
 
 thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',1,...
     'firstTrial',fisrtTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
 
 rho_theta = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
     'firstTrial',fisrtTrial,'corrMethod',corrMethod);
+
+
+% efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
+
+% efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
+
+
 
 %% Scatter plots ranked separate numActiveFing
 close all;

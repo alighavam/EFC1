@@ -212,6 +212,7 @@ switch (what)
             corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};         % setting the 'corrMethod' option
         end
         
+        rho = cell(1,2);
         thetaMean = zeros(242,size(thetaCell,1));
         thetaStd = zeros(242,size(thetaCell,1));
         for subj = 1:size(thetaCell,1)
@@ -219,6 +220,7 @@ switch (what)
                 thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
                 thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
             end
+            rho{1,2} = [rho{1,2} convertCharsToStrings(data{subj,2})];
         end
 
         if (onlyActiveFing)
@@ -227,7 +229,7 @@ switch (what)
         [i,~] = find(isnan(thetaMean));
         thetaMean(i,:) = [];
         
-        rho = corr(thetaMean,'type',corrMethod);
+        rho{1,1} = corr(thetaMean,'type',corrMethod);
         varargout{1} = rho;
     
     % =====================================================================
