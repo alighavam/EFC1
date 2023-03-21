@@ -19,7 +19,7 @@ switch (what)
         if (~isempty(find(strcmp(varargin,'plotfcn'),1)))
             plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};   % setting 'plotfcn' option for lineplot()
         end
-        efc1_RTvsRun(data,plotfcn);
+        efc1_RTvs Run(data,plotfcn);
     
     % =====================================================================
     case 'corr_within_subj_runs'
@@ -236,6 +236,9 @@ switch (what)
         if (~isempty(find(strcmp(varargin,'plotfcn'),1)))    
             plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};               % setting the 'plotfcn' option
         end
+        if (~isempty(find(strcmp(varargin,'clim'),1)))    
+            clim = varargin{find(strcmp(varargin,'clim'),1)+1};                     % setting the 'clim' option
+        end
         
         rho = cell(1,2);
         thetaMean = zeros(242,size(thetaCell,1));
@@ -270,6 +273,55 @@ switch (what)
             ylabel("subj")
         end
     
+    % =====================================================================
+    case 'corr_mean_theta_avg_model'
+        onlyActiveFing = 1;     % default value
+        firstTrial = 2;         % default value
+        corrMethod = 'pearson'; % default corr method
+        if (isempty(find(strcmp(varargin,'thetaCell'),1)))   
+            error("thetaCell not found. You should input thetaCell for this analysis")
+        end
+        if (~isempty(find(strcmp(varargin,'thetaCell'),1)))    
+            thetaCell = varargin{find(strcmp(varargin,'thetaCell'),1)+1};           % inputting the 'thetaCell'
+        end
+        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))    
+            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1}; % setting the 'onlyActiveFing' option - should be the same as the option used for 'thetaExp_vs_thetaStd'
+        end
+        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))    
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};         % setting the 'firstTrial' option - should be the same as the option used for 'thetaExp_vs_thetaStd'
+        end
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))    
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};         % setting the 'corrMethod' option
+        end
+
+        thetaMean = zeros(242,size(thetaCell,1));
+        thetaStd = zeros(242,size(thetaCell,1));
+        for subj = 1:size(thetaCell,1)
+            for j = 11:size(thetaMean,1)
+                thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
+                thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
+            end
+            % rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{subj,2})];
+        end
+        
+        if (onlyActiveFing)
+            thetaMean(1:10,:) = [];
+        end
+        [i,~] = find(isnan(thetaMean));
+        thetaMean(i,:) = [];
+        
+        rhoAvg = cell(1,2);
+        for i = 1:size(thetaMean,2)
+            idxSelect = setdiff(1:size(thetaMean,2),i);                 % excluding subj i from avg calculation
+            tmpThetaMeanMat = thetaMean(:,idxSelect);
+            tmpAvg = mean(tmpThetaMeanMat,2);                           % calculating avg of thetaMean for subjects other than subj i
+            corrTmp = corr(tmpAvg,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with excluded subj
+            rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
+            rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+        end
+        
+        varargout{1} = rhoAvg;
+
     % =====================================================================
     case 'plot_scatter_within_subj'
         dataTransform = 'no_transform'; % default data transform type

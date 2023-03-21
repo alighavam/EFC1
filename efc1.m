@@ -89,16 +89,17 @@ clearvars -except data
 close all;
 
 % parameters:
-onlyActiveFing = 0;
+onlyActiveFing = 1;
 fisrtTrial = 2;
 corrMethod = 'pearson';
 selectRun = -1;
 durAfterActive = 200;
 
-% DATA PREP:
+% ====DATA PREP====
 % efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
 
-% ANALISYS:
+
+% ====ANALISYS====
 % efc1_analyze('RT_vs_run',data,'plotfcn','median');
 
 rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
@@ -107,16 +108,32 @@ rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',[0,1
 
 rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
 
-thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',1,...
+thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',0,...
     'firstTrial',fisrtTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
 
 rho_theta = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
     'firstTrial',fisrtTrial,'corrMethod',corrMethod,'plotfcn',1,'clim',[0,1]);
 
+rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
+    'firstTrial',fisrtTrial,'corrMethod',corrMethod);
+
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 
 % efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
 
+
+% ====EXTRA PLOTS====
+figure;
+hold all
+scatter(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},40,'k','filled','HandleVisibility','off')
+plot(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},'k','LineWidth',0.2)
+scatter(1:length(rhoAvgModel{1}),rhoAvgModel{1},40,'r','filled','HandleVisibility','off')
+plot(1:length(rhoAvgModel{1}),rhoAvgModel{1},'r','LineWidth',0.2)
+title("correlation avg model")
+xlabel("subj excluded")
+ylabel("correlation of avg with excluded subj")
+legend("meanTheta","medRT")
+ylim([0,1])
 
 
 %% Scatter plots ranked separate numActiveFing
@@ -178,7 +195,7 @@ end
 
 for i = 1:size(data,1)
     if (length(data{i,1}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i,1}));
+        medRT = cell2mat(calcMedRT(data{i,1},[]));
         lineplot(activeVec,medRT(:,end),'linecolor',colors(i,:),'errorbars',{''})
         legNames{i} = data{i,2};
         hold on
@@ -188,9 +205,41 @@ legend(legNames)
 xlabel("num active fingers")
 ylabel("average medRT")
 
+%% mean theta over numActiveFinger
+close all;
+clc;
+
+chordVec = generateAllChords();
+chordVecSep = sepChordVec(chordVec);
+colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
+    [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
+firstTrial = 2;
+
+activeVec = zeros(length(chordVec),1);
+for i = 1:size(chordVecSep,1)
+    activeVec(chordVecSep{i,2}) = i;
+end
+
+thetaMean = zeros(242,size(thetaCell,1));
+thetaStd = zeros(242,size(thetaCell,1));
+for subj = 1:size(thetaCell,1)
+    for j = 11:size(thetaMean,1)
+        thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
+        thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
+    end
+end
+
+for i = 1:size(thetaMean,2)
+    lineplot(activeVec,thetaMean(:,i),'linecolor',colors(i,:),'errorbars',{''})
+    legNames{i} = data{i,2};
+    hold on
+end
+legend(legNames)
+xlabel("num active fingers")
+ylabel("mean theta")
 
 
-%% Linear Regression
+%% Linear Regression (OLS)
 clc;
 clearvars -except data
 close all;
