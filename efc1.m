@@ -4,22 +4,22 @@ close all;
 clc;
 
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary analysis:
 
 % loading data
-% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -196,12 +196,12 @@ end
 for i = 1:size(data,1)
     if (length(data{i,1}.BN) >= 2420)
         medRT = cell2mat(calcMedRT(data{i,1},[]));
-        lineplot(activeVec,medRT(:,end),'linecolor',colors(i,:),'errorbars',{''})
+        lineplot(activeVec,medRT(:,end),'linecolor',colors(i,:),'errorbars',{''});
         legNames{i} = data{i,2};
         hold on
     end
 end
-legend(legNames)
+legend(legNames,'Location','northwest')
 xlabel("num active fingers")
 ylabel("average medRT")
 
@@ -230,18 +230,17 @@ for subj = 1:size(thetaCell,1)
 end
 
 for i = 1:size(thetaMean,2)
-    lineplot(activeVec,thetaMean(:,i),'linecolor',colors(i,:),'errorbars',{''})
+    lineplot(activeVec,thetaMean(:,i),'linecolor',colors(i,:),'errorbars',{''});
     legNames{i} = data{i,2};
     hold on
 end
-legend(legNames)
+legend(legNames,'Location','northwest')
 xlabel("num active fingers")
 ylabel("mean theta")
 
 
-%% Linear Regression (OLS)
+%% Linear Regression (OLS) - Med RT
 clc;
-clearvars -except data
 close all;
 
 
@@ -284,32 +283,132 @@ for i = 1:size(f4Base,2)-1
 end
 
 % linear regression for one subj:
+subj = 1;
 features = [f1,f2,f3,f4];
-medRT = cell2mat(calcMedRT(data{1,1}));
+medRT = cell2mat(calcMedRT(data{subj,1},[]));
 estimated = medRT(:,end);
 mdl = fitlm(features,estimated)
 
+
 % cross validated linear regression:
 fullFeatures = [repmat(f1,size(data,1)-1,1),repmat(f2,size(data,1)-1,1),repmat(f3,size(data,1)-1,1),repmat(f4,size(data,1)-1,1)];
+rho_OLS_medRT = cell(1,2);
 for i = 1:size(data,1)
     fprintf("\n")
     idx = setdiff(1:size(data,1),i);
     estimated = []; 
     for j = idx
-        tmpMedRT = cell2mat(calcMedRT(data{j,1}));
+        tmpMedRT = cell2mat(calcMedRT(data{j,1},[]));
         estimated = [estimated ; tmpMedRT(:,end)];
     end
-    fprintf('subj %s out:\n',data{i,2})
+    fprintf('%s out:\n',data{i,2})
     mdl = fitlm(fullFeatures,estimated)
 
     % testing model:
     pred = predict(mdl,features);
-    medRTOut = cell2mat(calcMedRT(data{i,1}));
+    medRTOut = cell2mat(calcMedRT(data{i,1},[]));
     medRTOut = medRTOut(:,end);
-    SST = sum((medRTOut-mean(medRTOut)).^2);
-    SSE = sum((medRTOut - pred).^2);
-    rSquaredOut = 1 - (SSE/SST);
-    fprintf('\ncross-validated R-Squared = %.4f , %s out\n',rSquaredOut,data{i,2})
+    
+    corrTmp = corr(medRTOut,pred,'type',corrMethod);
+    rho_OLS_medRT{2}(1,i) = convertCharsToStrings(data{i,2});
+    rho_OLS_medRT{1}(1,i) = corrTmp;
+end
+
+
+%% Linear Regression (OLS) - Mean Theta 
+clc;
+close all;
+
+
+chordVec = generateAllChords();
+chordVecSep = sepChordVec(chordVec);
+
+% features
+% num active fingers - continuous:
+f1 = zeros(size(chordVec));
+for i = 1:size(chordVecSep,1)
+    f1(chordVecSep{i,2}) = i;
+end
+% num active fingers - one hot:
+% f1 = zeros(size(chordVec,1),5);
+% for i = 1:size(chordVecSep,1)
+%     f1(chordVecSep{i,2},i) = 1;
+% end
+
+% each finger flexed or not:
+f2 = zeros(size(chordVec,1),5);
+for i = 1:size(chordVec,1)
+    chord = num2str(chordVec(i));
+    f2(i,:) = (chord == '2');
+end
+
+% each finger extended or not:
+f3 = zeros(size(chordVec,1),5);
+for i = 1:size(chordVec,1)
+    chord = num2str(chordVec(i));
+    f3(i,:) = (chord == '1');
+end
+
+% second level interactions of finger combinations:
+f4Base = [f2,f3];
+f4 = [];
+for i = 1:size(f4Base,2)-1
+    for j = i+1:size(f4Base,2)
+        f4 = [f4, f4Base(:,i) .* f4Base(:,j)];
+    end
+end
+
+firstTrial = 2;
+
+activeVec = zeros(length(chordVec),1);
+for i = 1:size(chordVecSep,1)
+    activeVec(chordVecSep{i,2}) = i;
+end
+
+thetaMean = zeros(242,size(thetaCell,1));
+thetaStd = zeros(242,size(thetaCell,1));
+for subj = 1:size(thetaCell,1)
+    for j = 11:size(thetaMean,1)
+        thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
+        thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
+    end
+end
+
+% linear regression for one subj:
+features = [f1,f2,f3,f4];
+if (onlyActiveFing)
+    thetaMean(1:10,:) = [];
+    features(1:10,:) = [];
+end
+[i,~] = find(isnan(thetaMean));
+thetaMean(i,:) = [];
+features(i,:) = [];
+
+subj = 1;
+estimated = thetaMean(:,subj);  
+mdl = fitlm(features,estimated)
+
+%%
+% cross validated linear regression:
+fullFeatures = repmat(features,size(data,1)-1,1);
+rho_OLS_meanTheta = cell(1,2);
+for i = 1:size(data,1)
+    fprintf("\n")
+    idx = setdiff(1:size(data,1),i);
+    estimated = []; 
+    for j = idx
+        estimated = [estimated ; thetaMean(:,j)];
+    end
+    fprintf('%s out:\n',data{i,2})
+    mdl = fitlm(fullFeatures,estimated)
+
+    % testing model:
+    pred = predict(mdl,features);
+    meanThetaOut = thetaMean(:,i);
+    
+    corrTmp = corr(meanThetaOut,pred,'type',corrMethod);
+    rho_OLS_meanTheta{2}(1,i) = convertCharsToStrings(data{i,2});
+    rho_OLS_meanTheta{1}(1,i) = corrTmp;
 end
 
 %% analysis tmp
@@ -341,38 +440,6 @@ plot([sigTmp(1,2) sigTmp(end,2)],[data{subj,1}.baselineTopThresh data{subj,1}.ba
 hold on
 plot([sigTmp(1,2) sigTmp(end,2)],-[data{subj,1}.baselineTopThresh data{subj,1}.baselineTopThresh],'k')
 legend({"1","2","3","4","5"})
-
-
-%% Exp(theta) over std(theta) in force signals
-clc;
-clearvars -except data forceData
-close all;
-
-onlyActiveFing = 1;
-thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',1,...
-    'firstTrial',2,'onlyActiveFing',onlyActiveFing,'selectRun',-1);
-
-%%
-firstTrial = 2;
-thetaMean = zeros(242,size(thetaCell,1));
-thetaStd = zeros(242,size(thetaCell,1));
-for subj = 1:size(thetaCell,1)
-    for j = 11:size(thetaMean,1)
-        thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
-        thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
-    end
-end
-
-%%
-if (onlyActiveFing)
-    thetaMean(1:10,:) = [];
-end
-[i,~] = find(isnan(thetaMean));
-thetaMean(i,:) = [];
-
-corrMethod = 'pearson';
-rho = corr(thetaMean,'type',corrMethod);
-
 
 
 
