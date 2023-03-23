@@ -137,7 +137,7 @@ rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',t
 
 
 % ====EXTRA PLOTS====
-figure;
+figure; % avgModel correlations comparison between medRT and meanTheta
 hold all
 scatter(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},40,'k','filled','HandleVisibility','off')
 plot(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},'k','LineWidth',0.2)
@@ -148,6 +148,9 @@ xlabel("subj excluded")
 ylabel("correlation of avg with excluded subj")
 legend("meanTheta","medRT")
 ylim([0,1])
+
+
+
 
 
 %% median RT over numActiveFinger + mean theta over numActiveFinger
