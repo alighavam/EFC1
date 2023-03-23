@@ -22,7 +22,7 @@ cd("/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1");
 % cd("/Users/alighavam/Desktop/ExtFlexChord/");
 
 % experiment parameters
-subNum = 9;                        % subject number - dont forget to change this for each subject!!!!!!
+subNum = 10;                        % subject number - dont forget to change this for each subject!!!!!!
 nSessions = 24;
 option = "fullCounterBalanced";    % option for makeChord function
 
