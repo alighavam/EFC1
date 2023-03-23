@@ -73,14 +73,19 @@ switch (what)
     case 'corr_avg_model'
         corrMethod = 'pearson';     % default correlation method
         excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
+        includeSubj = 0;            % default is not to include each subj in the avg calculation
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
             corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'corrMethod' option
         end
         if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
             excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
         end
+        if (~isempty(find(strcmp(varargin,'includeSubj'),1)))    
+            includeSubj = varargin{find(strcmp(varargin,'includeSubj'),1)+1};   % setting the 'includeSubj' option
+        end
+
         % correlation of median RT across subjects
-        rhoAvgModel = efc1_corr_avg_model(data,corrMethod,excludeVec);
+        rhoAvgModel = efc1_corr_avg_model(data,corrMethod,excludeVec,includeSubj);
         varargout{1} = rhoAvgModel;
 
     % =====================================================================
@@ -278,6 +283,7 @@ switch (what)
         onlyActiveFing = 1;     % default value
         firstTrial = 2;         % default value
         corrMethod = 'pearson'; % default corr method
+        includeSubj = 0;        % default is not to include subj in avg
         if (isempty(find(strcmp(varargin,'thetaCell'),1)))   
             error("thetaCell not found. You should input thetaCell for this analysis")
         end
@@ -292,6 +298,9 @@ switch (what)
         end
         if (~isempty(find(strcmp(varargin,'corrMethod'),1)))    
             corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};         % setting the 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'includeSubj'),1)))    
+            includeSubj = varargin{find(strcmp(varargin,'includeSubj'),1)+1};       % setting the 'includeSubj' option
         end
 
         thetaMean = zeros(242,size(thetaCell,1));
@@ -311,15 +320,24 @@ switch (what)
         thetaMean(i,:) = [];
         
         rhoAvg = cell(1,2);
-        for i = 1:size(thetaMean,2)
-            idxSelect = setdiff(1:size(thetaMean,2),i);                 % excluding subj i from avg calculation
-            tmpThetaMeanMat = thetaMean(:,idxSelect);
-            tmpAvg = mean(tmpThetaMeanMat,2);                           % calculating avg of thetaMean for subjects other than subj i
-            corrTmp = corr(tmpAvg,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with excluded subj
-            rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
-            rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+        if (~includeSubj)    % if we do not include each subject in the avg model -> lower noise ceiling
+            for i = 1:size(thetaMean,2)
+                idxSelect = setdiff(1:size(thetaMean,2),i);                 % excluding subj i from avg calculation
+                tmpThetaMeanMat = thetaMean(:,idxSelect);
+                avgModel = mean(tmpThetaMeanMat,2);                           % calculating avg of thetaMean for subjects other than subj i
+                corrTmp = corr(avgModel,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with excluded subj
+                rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
+                rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+            end
+        else                % if we include all subjects in the avg model -> higher noise ceiling
+            avgModel = mean(thetaMean,2);    
+            for i = 1:size(thetaMean,2)
+                corrTmp = corr(avgModel,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with each subj
+                rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
+                rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+            end
         end
-        
+
         varargout{1} = rhoAvg;
 
     % =====================================================================
@@ -424,6 +442,230 @@ switch (what)
                 k = k+1;
             end
         end
+    
+    % =====================================================================
+    case 'reg_OLS_medRT'
+        regSubjNum = 0;         % default is not to do single subject regression model
+        corrMethod = 'pearson'; % default corrMethod is pearson
+        excludeChord = [];      % default is not to exclude any subjects
+        if (~isempty(find(strcmp(varargin,'regSubjNum'),1)))
+            regSubjNum = varargin{find(strcmp(varargin,'regSubjNum'),1)+1};     % setting 'regSubjNum' option
+        end
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
+            excludeChord = varargin{find(strcmp(varargin,'excludeChord'),1)+1}; % setting 'excludeChord' option
+        end
+
+        chordVec = generateAllChords();
+        chordVecSep = sepChordVec(chordVec);
+        if (~isempty(excludeChord))
+            idxRemove = [];
+            for i = 1:length(excludeChord)
+                idxRemove = [idxRemove chordVecSep{excludeChord(i),2}];
+            end
+        else
+            idxRemove = [];
+        end
+
+        % FEATURES:
+        % num active fingers - continuous:
+        f1 = zeros(size(chordVec));
+        for i = 1:size(chordVecSep,1)
+            f1(chordVecSep{i,2}) = i;
+        end
+        f1(idxRemove,:) = [];
+        
+        % each finger flexed or not:
+        f2 = zeros(size(chordVec,1),5);
+        for i = 1:size(chordVec,1)
+            chord = num2str(chordVec(i));
+            f2(i,:) = (chord == '2');
+        end
+        f2(idxRemove,:) = [];
+        
+        
+        % each finger extended or not:
+        f3 = zeros(size(chordVec,1),5);
+        for i = 1:size(chordVec,1)
+            chord = num2str(chordVec(i));
+            f3(i,:) = (chord == '1');
+        end
+        f3(idxRemove,:) = [];
+        
+        % second level interactions of finger combinations:
+        f4Base = [f2,f3];
+        f4 = [];
+        for i = 1:size(f4Base,2)-1
+            for j = i+1:size(f4Base,2)
+                f4 = [f4, f4Base(:,i) .* f4Base(:,j)];
+            end
+        end
+
+        % linear regression for one subj:
+        features = [f1,f2,f3,f4];
+        if (regSubjNum ~= 0)
+            singleSubjModel = cell(1,2);
+            medRT = cell2mat(calcMedRT(data{regSubjNum,1},excludeChord));
+            estimated = medRT(:,end);
+            fprintf("============= medRT regression for %s =============\n",data{regSubjNum,2})
+            mdl = fitlm(features,estimated)
+            fprintf("==========================================================================================\n\n")
+            singleSubjModel{1} = mdl;
+            singleSubjModel{2} = sprintf("regression for %s",data{regSubjNum,2});
+            varargout{3} = singleSubjModel;
+        else
+            varargout{3} = "no single subj reg";
+        end
+        
+        % cross validated linear regression:
+        fullFeatures = [repmat(f1,size(data,1)-1,1),repmat(f2,size(data,1)-1,1),repmat(f3,size(data,1)-1,1),repmat(f4,size(data,1)-1,1)];
+        rho_OLS_medRT = cell(1,2);
+        crossValModel = cell(size(data,1),2);
+        for i = 1:size(data,1)
+            idx = setdiff(1:size(data,1),i);    % excluding one subj from the model fitting process
+            estimated = [];                     % the estimated values for the regression
+            for j = idx
+                tmpMedRT = cell2mat(calcMedRT(data{j,1},excludeChord));
+                estimated = [estimated ; tmpMedRT(:,end)];
+            end
+            fprintf('============= medRT regression with excluded subject: %s =============\n',data{i,2})
+            mdl = fitlm(fullFeatures,estimated) % linear regression with OLS
+            fprintf('==========================================================================================\n\n')
+            crossValModel{i,1} = mdl;
+            crossValModel{i,2} = sprintf("excluded subj: %s",data{i,2});
+            
+            % testing the model:
+            pred = predict(mdl,features);   % model fitted values
+            medRTOut = cell2mat(calcMedRT(data{i,1},excludeChord));   % medRT of all runs of the excluded subject
+            medRTOut = medRTOut(:,end); % medRT of the lastRun of excluded subject
+            
+            corrTmp = corr(medRTOut,pred,'type',corrMethod);    % correlation of model fit with the excluded subj medRT
+            rho_OLS_medRT{2}(1,i) = convertCharsToStrings(data{i,2});
+            rho_OLS_medRT{1}(1,i) = corrTmp;
+        end
+        varargout{2} = crossValModel;
+        varargout{1} = rho_OLS_medRT;
+
+    % =====================================================================
+    case 'reg_OLS_meanTheta'
+        regSubjNum = 0;         % default is not to do single subject regression model
+        corrMethod = 'pearson'; % default corrMethod is pearson
+        onlyActiveFing = 1;     % default onlyActiveFinger is turned on
+        firstTrial = 2;         % default is firstTrial is 2
+        thetaCell = varargin{1};
+        if (~isempty(find(strcmp(varargin,'regSubjNum'),1)))
+            regSubjNum = varargin{find(strcmp(varargin,'regSubjNum'),1)+1};             % setting 'regSubjNum' option
+        end
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};             % setting 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))
+            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1};     % setting 'onlyActiveFing' option
+        end
+        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};             % setting 'onlyActiveFing' option
+        end
+
+        chordVec = generateAllChords();
+        chordVecSep = sepChordVec(chordVec);
+        
+        % FEATURES
+        % num active fingers - continuous:
+        f1 = zeros(size(chordVec));
+        for i = 1:size(chordVecSep,1)
+            f1(chordVecSep{i,2}) = i;
+        end
+        
+        % each finger flexed or not:
+        f2 = zeros(size(chordVec,1),5);
+        for i = 1:size(chordVec,1)
+            chord = num2str(chordVec(i));
+            f2(i,:) = (chord == '2');
+        end
+        
+        % each finger extended or not:
+        f3 = zeros(size(chordVec,1),5);
+        for i = 1:size(chordVec,1)
+            chord = num2str(chordVec(i));
+            f3(i,:) = (chord == '1');
+        end
+        
+        % second level interactions of finger combinations:
+        f4Base = [f2,f3];
+        f4 = [];
+        for i = 1:size(f4Base,2)-1
+            for j = i+1:size(f4Base,2)
+                f4 = [f4, f4Base(:,i) .* f4Base(:,j)];
+            end
+        end
+        
+
+        activeVec = zeros(length(chordVec),1);
+        for i = 1:size(chordVecSep,1)
+            activeVec(chordVecSep{i,2}) = i;
+        end
+        
+        thetaMean = zeros(242,size(thetaCell,1));
+        thetaStd = zeros(242,size(thetaCell,1));
+        for subj = 1:size(thetaCell,1)
+            for j = 11:size(thetaMean,1)
+                thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
+                thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
+            end
+        end
+        
+        % linear regression for one subj:
+        features = [f1,f2,f3,f4];
+        if (onlyActiveFing)
+            thetaMean(1:10,:) = [];
+            features(1:10,:) = [];
+        end
+        [i,~] = find(isnan(thetaMean));
+        thetaMean(i,:) = [];
+        features(i,:) = [];
+        
+        if (regSubjNum ~= 0)
+            estimated = thetaMean(:,regSubjNum);  
+            singleSubjModel = cell(1,2);
+            fprintf("============= meanTheta regression for %s =============\n",data{regSubjNum,2})
+            mdl = fitlm(features,estimated)
+            fprintf("==========================================================================================\n\n")
+            singleSubjModel{1} = mdl;
+            singleSubjModel{2} = sprintf("regression for %s",data{regSubjNum,2});
+            varargout{3} = singleSubjModel;
+        else
+            varargout{3} = "no single subj reg";
+        end
+        
+
+        % cross validated linear regression:
+        fullFeatures = repmat(features,size(data,1)-1,1);
+        rho_OLS_meanTheta = cell(1,2);
+        crossValModel = cell(size(data,1),2);
+        for i = 1:size(data,1)
+            idx = setdiff(1:size(data,1),i);
+            estimated = []; 
+            for j = idx
+                estimated = [estimated ; thetaMean(:,j)];
+            end
+            fprintf('============= meanTheta regression with excluded subject: %s =============\n',data{i,2})
+            mdl = fitlm(fullFeatures,estimated)
+            fprintf('==========================================================================================\n\n')
+            crossValModel{i,1} = mdl;
+            crossValModel{i,2} = sprintf("excluded subj: %s",data{i,2});
+
+            % testing model:
+            pred = predict(mdl,features);
+            meanThetaOut = thetaMean(:,i);
+            
+            corrTmp = corr(meanThetaOut,pred,'type',corrMethod);
+            rho_OLS_meanTheta{2}(1,i) = convertCharsToStrings(data{i,2});
+            rho_OLS_meanTheta{1}(1,i) = corrTmp;
+        end
+        varargout{2} = crossValModel;
+        varargout{1} = rho_OLS_meanTheta;
 
 
     otherwise

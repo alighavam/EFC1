@@ -88,12 +88,20 @@ clc;
 clearvars -except data
 close all;
 
-% parameters:
-onlyActiveFing = 1;
-fisrtTrial = 2;
+% global params:
 corrMethod = 'pearson';
+includeSubjAvgModel = 0;
+
+% theta calc params:
+onlyActiveFing = 1;
+firstTrial = 2;
 selectRun = -1;
 durAfterActive = 200;
+clim = [0,1];
+
+% medRT params:
+excludeChord = [1];
+
 
 % ====DATA PREP====
 % efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
@@ -102,20 +110,26 @@ durAfterActive = 200;
 % ====ANALISYS====
 % efc1_analyze('RT_vs_run',data,'plotfcn','median');
 
-rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',[1]);
+rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',excludeChord);
 
-rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',[0,1],'corrMethod',corrMethod,'excludeChord',[1]);
+rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',clim,'corrMethod',corrMethod,'excludeChord',excludeChord);
 
-rhoAvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',[1]);
+rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',includeSubjAvgModel);
 
-thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',200,'plotfcn',0,...
-    'firstTrial',fisrtTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
+thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',durAfterActive,'plotfcn',0,...
+    'firstTrial',firstTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
 
 rho_theta = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
-    'firstTrial',fisrtTrial,'corrMethod',corrMethod,'plotfcn',1,'clim',[0,1]);
+    'firstTrial',firstTrial,'corrMethod',corrMethod,'plotfcn',1,'clim',clim);
 
 rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
-    'firstTrial',fisrtTrial,'corrMethod',corrMethod);
+    'firstTrial',firstTrial,'corrMethod',corrMethod,'includeSubj',includeSubjAvgModel);
+
+[rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
+    'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
+
+[rho_OLS_meanTheta, crossValModels_meanTheta, singleSubjModel_meanTheta] = efc1_analyze('reg_OLS_meanTheta',data,...
+    thetaCell,'regSubjNum',0,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial);
 
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 
@@ -127,8 +141,8 @@ figure;
 hold all
 scatter(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},40,'k','filled','HandleVisibility','off')
 plot(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},'k','LineWidth',0.2)
-scatter(1:length(rhoAvgModel{1}),rhoAvgModel{1},40,'r','filled','HandleVisibility','off')
-plot(1:length(rhoAvgModel{1}),rhoAvgModel{1},'r','LineWidth',0.2)
+scatter(1:length(rho_medRT_AvgModel{1}),rho_medRT_AvgModel{1},40,'r','filled','HandleVisibility','off')
+plot(1:length(rho_medRT_AvgModel{1}),rho_medRT_AvgModel{1},'r','LineWidth',0.2)
 title("correlation avg model")
 xlabel("subj excluded")
 ylabel("correlation of avg with excluded subj")
@@ -136,50 +150,7 @@ legend("meanTheta","medRT")
 ylim([0,1])
 
 
-%% Scatter plots ranked separate numActiveFing
-close all;
-clc;
-
-chordVec = generateAllChords();
-chordVecSep = sepChordVec(chordVec);
-colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
-    [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
-
-% Ranked Med RTs across subjects:
-lastRuns_ranked = [];
-for i = 1:length(data)
-    if (length(data{i}.BN) >= 2420)
-        medRT = cell2mat(calcMedRT(data{i}));
-        [~,idx] = sort(medRT(:,end));
-        lastRuns_ranked = [lastRuns_ranked idx];
-    end
-end
-
-% figure
-col1 = repelem(1:size(lastRuns_ranked,2),size(lastRuns_ranked,2));
-col2 = repmat(1:5,1,size(lastRuns_ranked,2));
-C = [col1',col2'];
-C(C(:,1)==C(:,2),:) = [];
-subplotCols = 2;
-subplotRows = round((size(lastRuns_ranked,2)-1)/subplotCols);
-for i = 1:size(lastRuns_ranked,2)
-    figure;
-    for j = 1:subplotRows*subplotCols
-        subplot(subplotRows,subplotCols,j)
-        for numActiveFing = 1:size(chordVecSep,1)
-            scatter(lastRuns_ranked(chordVecSep{numActiveFing,2},C((i-1)*(size(lastRuns_ranked,2)-1)+j,1)),lastRuns_ranked(chordVecSep{numActiveFing,2},C((i-1)*(size(lastRuns,2)-1)+j,2)),...
-                30,"MarkerFaceColor",colors(numActiveFing,:))
-            hold on
-        end
-        title(sprintf("%s vs %s , ranked medRT",matFiles(i).name(6:11),matFiles(C((i-1)*(size(lastRuns_ranked,2)-1)+j,2)).name(6:11)))
-        xlabel(sprintf("%s medRT(ms)",matFiles(C((i-1)*(size(lastRuns_ranked,2)-1)+j,1)).name(6:11)))
-        ylabel(sprintf("%s medRT(ms)",matFiles(C((i-1)*(size(lastRuns_ranked,2)-1)+j,2)).name(6:11)))
-        legend(["activeFinger 1","activeFinger 2","activeFinger 3","activeFinger 4","activeFinger 5"])
-    end
-end
-
-
-%% median RT over numActiveFinger
+%% median RT over numActiveFinger + mean theta over numActiveFinger
 close all;
 clc;
 
@@ -205,10 +176,7 @@ legend(legNames,'Location','northwest')
 xlabel("num active fingers")
 ylabel("average medRT")
 
-%% mean theta over numActiveFinger
-close all;
-clc;
-
+% mean theta over numActiveFinger:
 chordVec = generateAllChords();
 chordVecSep = sepChordVec(chordVec);
 colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
@@ -229,6 +197,7 @@ for subj = 1:size(thetaCell,1)
     end
 end
 
+figure;
 for i = 1:size(thetaMean,2)
     lineplot(activeVec,thetaMean(:,i),'linecolor',colors(i,:),'errorbars',{''});
     legNames{i} = data{i,2};
@@ -239,86 +208,11 @@ xlabel("num active fingers")
 ylabel("mean theta")
 
 
-%% Linear Regression (OLS) - Med RT
-clc;
-close all;
-
-
-chordVec = generateAllChords();
-chordVecSep = sepChordVec(chordVec);
-
-% features
-% num active fingers - continuous:
-f1 = zeros(size(chordVec));
-for i = 1:size(chordVecSep,1)
-    f1(chordVecSep{i,2}) = i;
-end
-% num active fingers - one hot:
-% f1 = zeros(size(chordVec,1),5);
-% for i = 1:size(chordVecSep,1)
-%     f1(chordVecSep{i,2},i) = 1;
-% end
-
-% each finger flexed or not:
-f2 = zeros(size(chordVec,1),5);
-for i = 1:size(chordVec,1)
-    chord = num2str(chordVec(i));
-    f2(i,:) = (chord == '2');
-end
-
-% each finger extended or not:
-f3 = zeros(size(chordVec,1),5);
-for i = 1:size(chordVec,1)
-    chord = num2str(chordVec(i));
-    f3(i,:) = (chord == '1');
-end
-
-% second level interactions of finger combinations:
-f4Base = [f2,f3];
-f4 = [];
-for i = 1:size(f4Base,2)-1
-    for j = i+1:size(f4Base,2)
-        f4 = [f4, f4Base(:,i) .* f4Base(:,j)];
-    end
-end
-
-% linear regression for one subj:
-subj = 1;
-features = [f1,f2,f3,f4];
-medRT = cell2mat(calcMedRT(data{subj,1},[]));
-estimated = medRT(:,end);
-mdl = fitlm(features,estimated)
-
-
-% cross validated linear regression:
-fullFeatures = [repmat(f1,size(data,1)-1,1),repmat(f2,size(data,1)-1,1),repmat(f3,size(data,1)-1,1),repmat(f4,size(data,1)-1,1)];
-rho_OLS_medRT = cell(1,2);
-for i = 1:size(data,1)
-    fprintf("\n")
-    idx = setdiff(1:size(data,1),i);
-    estimated = []; 
-    for j = idx
-        tmpMedRT = cell2mat(calcMedRT(data{j,1},[]));
-        estimated = [estimated ; tmpMedRT(:,end)];
-    end
-    fprintf('%s out:\n',data{i,2})
-    mdl = fitlm(fullFeatures,estimated)
-
-    % testing model:
-    pred = predict(mdl,features);
-    medRTOut = cell2mat(calcMedRT(data{i,1},[]));
-    medRTOut = medRTOut(:,end);
-    
-    corrTmp = corr(medRTOut,pred,'type',corrMethod);
-    rho_OLS_medRT{2}(1,i) = convertCharsToStrings(data{i,2});
-    rho_OLS_medRT{1}(1,i) = corrTmp;
-end
 
 
 %% Linear Regression (OLS) - Mean Theta 
 clc;
 close all;
-
 
 chordVec = generateAllChords();
 chordVecSep = sepChordVec(chordVec);
@@ -409,6 +303,9 @@ for i = 1:size(data,1)
     rho_OLS_meanTheta{2}(1,i) = convertCharsToStrings(data{i,2});
     rho_OLS_meanTheta{1}(1,i) = corrTmp;
 end
+
+
+
 
 %% analysis tmp
 clc;

@@ -1,4 +1,4 @@
-function rhoAvgModel = efc1_corr_avg_model(data,corrMethod,excludeVec)
+function rhoAvgModel = efc1_corr_avg_model(data,corrMethod,excludeVec,includeSubj)
 
 medRTSubjects = [];
 rhoAvgModel = cell(1,2);
@@ -12,10 +12,17 @@ for i = 1:size(data,1)
     end
 end
 
-for i = 1:size(medRTSubjects,2)
-    idxMean = setdiff(1:size(medRTSubjects,2),i);   % excluding one subject
-    avgModel = mean(medRTSubjects(:,idxMean),2);    % average median RT model
-    rhoTmp = corr([medRTSubjects(:,i) , avgModel],'type',corrMethod);   % correlation of average model and excluded subject
-    rhoAvgModel{1,1} = [rhoAvgModel{1,1} rhoTmp(1,2)];
+if (~includeSubj)   % if not including each subj in the avg calculation -> low noise ceiling
+    for i = 1:size(medRTSubjects,2)
+        idxMean = setdiff(1:size(medRTSubjects,2),i);   % excluding one subject
+        avgModel = mean(medRTSubjects(:,idxMean),2);    % average median RT model
+        rhoTmp = corr([medRTSubjects(:,i) , avgModel],'type',corrMethod);   % correlation of average model and excluded subject
+        rhoAvgModel{1,1} = [rhoAvgModel{1,1} rhoTmp(1,2)];
+    end
+else                % if including the subj in avg calculation -> high noise ceiling
+    avgModel = mean(medRTSubjects,2);
+    for i = 1:size(medRTSubjects,2)
+        rhoTmp = corr([medRTSubjects(:,i) , avgModel],'type',corrMethod);   % correlation of average model and each subject
+        rhoAvgModel{1,1} = [rhoAvgModel{1,1} rhoTmp(1,2)];
+    end
 end
-
