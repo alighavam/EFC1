@@ -214,6 +214,7 @@ switch (what)
                 title(sprintf("%s",thetaCell{subj,2}))
                 legend({"1","2","3","4","5"})
                 ylim([0,90])
+                xlim([0,60])
             end
         end
     
