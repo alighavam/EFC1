@@ -93,33 +93,31 @@ corrMethod = 'pearson';
 includeSubjAvgModel = 0;
 
 % theta calc params:
-onlyActiveFing = 1;
+onlyActiveFing = 0;
 firstTrial = 2;
 selectRun = -1;
 durAfterActive = 200;
 clim = [0,1];
 
 % medRT params:
-excludeChord = [1];
-
+excludeChord = [];
 
 % ====DATA PREP====
 % efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
 
-
 % ====ANALISYS====
 % efc1_analyze('RT_vs_run',data,'plotfcn','median');
 
-rhoWithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',excludeChord);
+rho_medRT_WithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',excludeChord);
 
-rhoAcrossSubjects = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',clim,'corrMethod',corrMethod,'excludeChord',excludeChord);
+rho_medRT_acrossSubj = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',clim,'corrMethod',corrMethod,'excludeChord',excludeChord);
 
 rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',includeSubjAvgModel);
 
 thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',durAfterActive,'plotfcn',0,...
     'firstTrial',firstTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
 
-rho_theta = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
+rho_theta_acrossSubj = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
     'firstTrial',firstTrial,'corrMethod',corrMethod,'plotfcn',1,'clim',clim);
 
 rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
@@ -133,7 +131,9 @@ rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',t
 
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 
-% efc1_analyze('plot_scatter_across_subj',data,'transform_type','ranked')
+% efc1_analyze('plot_scatter_across_subj',data,'transform_type','no_transform')
+
+efc1_analyze('meanTheta_scatter_across_subj',data,thetaCell,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial)
 
 
 % ====EXTRA PLOTS====
@@ -148,7 +148,6 @@ xlabel("subj excluded")
 ylabel("correlation of avg with excluded subj")
 legend("meanTheta","medRT")
 ylim([0,1])
-
 
 
 

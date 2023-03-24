@@ -213,6 +213,7 @@ switch (what)
                 ylabel("mean theta (degree)")
                 title(sprintf("%s",thetaCell{subj,2}))
                 legend({"1","2","3","4","5"})
+                ylim([0,90])
             end
         end
     
@@ -249,7 +250,7 @@ switch (what)
         thetaMean = zeros(242,size(thetaCell,1));
         thetaStd = zeros(242,size(thetaCell,1));
         for subj = 1:size(thetaCell,1)
-            for j = 11:size(thetaMean,1)
+            for j = 1:size(thetaMean,1)
                 thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
                 thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
             end
@@ -306,7 +307,7 @@ switch (what)
         thetaMean = zeros(242,size(thetaCell,1));
         thetaStd = zeros(242,size(thetaCell,1));
         for subj = 1:size(thetaCell,1)
-            for j = 11:size(thetaMean,1)
+            for j = 1:size(thetaMean,1)
                 thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
                 thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
             end
@@ -355,7 +356,7 @@ switch (what)
         last2Runs_cell = {};
         for i = 1:size(data,1)
             if (length(data{i,1}.BN) >= 2420)
-                medRT = cell2mat(calcMedRT(data{i,1}));
+                medRT = cell2mat(calcMedRT(data{i,1},[]));
                 last2Runs = medRT(:,end-1:end);
                 if (strcmp(dataTransform,'no_transform'))
                     last2Runs_cell{j,1} = last2Runs;
@@ -404,7 +405,7 @@ switch (what)
         k = 1;  % index for last runs.
         for i = 1:size(data,1)
             if (length(data{i,1}.BN) >= 2420)
-                medRT = cell2mat(calcMedRT(data{i,1}));
+                medRT = cell2mat(calcMedRT(data{i,1},[]));
                 if (strcmp(dataTransform,'no_transform'))   % not transform option
                     lastRuns{k,1} = medRT(:,end);
                 elseif (strcmp(dataTransform,'ranked'))     % rank transform option
@@ -610,7 +611,7 @@ switch (what)
         thetaMean = zeros(242,size(thetaCell,1));
         thetaStd = zeros(242,size(thetaCell,1));
         for subj = 1:size(thetaCell,1)
-            for j = 11:size(thetaMean,1)
+            for j = 1:size(thetaMean,1)
                 thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
                 thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
             end
@@ -667,6 +668,56 @@ switch (what)
         varargout{2} = crossValModel;
         varargout{1} = rho_OLS_meanTheta;
 
+    % =====================================================================
+    case 'meanTheta_scatter_across_subj'
+        onlyActiveFing = 1;     % default onlyActiveFinger is turned on
+        firstTrial = 2;         % default is firstTrial is 2
+        thetaCell = varargin{1};
+        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))
+            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1};     % setting 'onlyActiveFing' option
+        end
+        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};             % setting 'onlyActiveFing' option
+        end
+        
+        thetaMean = zeros(242,size(thetaCell,1));
+        thetaStd = zeros(242,size(thetaCell,1));
+        for subj = 1:size(thetaCell,1)
+            for j = 1:size(thetaMean,1)
+                thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
+                thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
+            end
+            % rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{subj,2})];
+        end
+
+        if (onlyActiveFing)
+            thetaMean(1:10,:) = 0;
+        end
+        [i,~] = find(isnan(thetaMean));
+        thetaMean(i,:) = [];
+        
+        % plotting
+        chordVec = generateAllChords();
+        chordVecSep = sepChordVec(chordVec);
+        colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
+            [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
+        rowNum = 3;
+        colNum = ceil(nchoosek(size(data,1),2)/rowNum);
+        figure;
+        k = 1;
+        for i = 1:size(data,1)
+            for j = i+1:size(data,1)
+                subplot(rowNum,colNum,k)
+                for numActiveFing = 1:size(chordVecSep,1)
+                    scatter(thetaMean(chordVecSep{numActiveFing,2},i),thetaMean(chordVecSep{numActiveFing,2},j),30,"MarkerFaceColor",colors(numActiveFing,:))
+                    hold on
+                end
+                xlabel(sprintf("%s meanTheta",data{i,2}))
+                ylabel(sprintf("%s meanTheta",data{j,2}))
+                legend(["1","2","3","4","5"])
+                k = k+1;
+            end
+        end
 
     otherwise
         error('The analysis you entered does not exist!')
