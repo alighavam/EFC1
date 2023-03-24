@@ -4,22 +4,22 @@ close all;
 clc;
 
 % iMac
-% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary analysis:
 
 % loading data
-analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -148,6 +148,119 @@ xlabel("subj excluded")
 ylabel("correlation of avg with excluded subj")
 legend("meanTheta","medRT")
 ylim([0,1])
+
+
+
+
+
+
+
+
+%% ========================================================================
+%% TEMPORARY CODES AND ANALYSIS FROM HERE !<UNDER CONSTRUCTION>!
+
+
+%% Mean Deviation
+clc
+clearvars -except data
+close all
+
+% Params:
+durAfterActive = 200;   % 200 ms after first active finger passes threshold
+selectRun = -1;         % the 12 runs to select data from
+
+forceData = cell(size(data));
+for i = 1:size(data,1)
+    forceData{i,1} = extractDiffForce(data(1,:));
+    forceData{i,2} = data{i,2};
+end
+
+meanDCell = cell(size(data,1),2);
+for subj = 1:size(data,1)
+    chordVec = generateAllChords();                 % make all chords
+    subjForceData = forceData{subj,1};
+    subjData = data{subj,1};
+    meanDCell{subj,2} = data{subj,2};
+    meanDCell{subj,1} = zeros(size(chordVec,1),6);  % 6 = 1(chordID) + 5(number of repetitions for that chord)
+    vecBN = unique(subjData.BN);
+    for i = 1:length(chordVec)
+        meanDCell{subj,1}(i,1) = chordVec(i);      % first columns: chordID
+        if (selectRun == -1)    % selecting the last 12 runs
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-12));
+        elseif (selectRun == 1) % selecting the first 12 runs
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN < 13);
+        elseif (selectRun == 2)
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 12 & subjData.BN < 25);
+        elseif (selectRun == 3)
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 24 & subjData.BN < 37);
+            iTmp = find(subjData.BN > 24 & subjData.BN < 37);
+            if (isempty(iTmp))
+                error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
+            end
+        else
+            error("selectRun " + num2str(selectRun) + "does not exist. Possible choices are 1,2,3 and -1.")
+        end
+
+        if (~isempty(trialIdx))
+            chordTmp = num2str(chordVec(i));
+            for trial_i = 1:length(trialIdx)
+                forceTmp = [];
+                tVec = subjForceData{trialIdx(trial_i)}(:,2);   % time vector in trial
+                tGoCue = subjData.planTime(trialIdx(trial_i));
+                fGainVec = [subjData.fGain1(trialIdx(trial_i)) subjData.fGain2(trialIdx(trial_i)) subjData.fGain3(trialIdx(trial_i)) subjData.fGain4(trialIdx(trial_i)) subjData.fGain5(trialIdx(trial_i))];
+                for j = 1:5     % thresholded force of the fingers after "Go Cue"
+                    if (chordTmp(j) == '1') % extension
+                        forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                    elseif (chordTmp(j) == '2') % flexion
+                        forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                    end
+                end
+    
+                tmpIdx = [];
+                for k = 1:size(forceTmp,2)
+                    tmpIdx(k) = find(forceTmp(:,k),1);
+                end
+                [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
+                idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first active finger passes the baseline threshold after "Go Cue"
+                
+                forceSelceted = [];
+                durAfterActive = subjData.RT(trialIdx(trial_i))-600;    % select the force from movement initiation until the correct state is formed
+                % durAfterActive = 200;   % select the force from movement initiation until 200ms later
+                for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
+                    forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                end
+                
+                tempDiff = zeros(size(forceSelceted,1),1);
+                straightLineTrajectory = 
+                for t = 1:size(forceSelceted,1)
+
+                    projection = 
+                    tempDiff(t) = forceSelceted(t,:) - projection;
+                end
+
+
+                forceVec = mean(forceSelceted,1);  % average of finger forces from idxStart to idxStart+durAfterActive
+                idealVec = double(chordTmp~='9');
+                for j = 1:5
+                    if (chordTmp(j) == '2')
+                        idealVec(j) = -1;
+                    end
+                end
+                if (onlyActiveFing) % if only wanted to find the angle between active fingers
+                    forceVec(idealVec==0) = [];
+                    idealVec(idealVec==0) = [];
+                end
+                thetaCellSubj{i,2} = [thetaCellSubj{i,2} vectorAngle(forceVec,idealVec)];
+            end
+        else
+            meanDCell{subj,1}(i,2:end) = 0;
+        end 
+    end
+    thetaCell{subj,1} = thetaCellSubj;
+end
+
+
+
 
 
 %% Model Testing

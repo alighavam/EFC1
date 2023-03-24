@@ -19,7 +19,7 @@ switch (what)
         if (~isempty(find(strcmp(varargin,'plotfcn'),1)))
             plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};   % setting 'plotfcn' option for lineplot()
         end
-        efc1_RTvs Run(data,plotfcn);
+        efc1_RTvsRun(data,plotfcn);
     
     % =====================================================================
     case 'corr_within_subj_runs'
@@ -138,9 +138,6 @@ switch (what)
                 else
                     trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(selectRun)+1) & subjData.BN <= uniqueBN(idxBN(selectRun+1)+1));
                 end
-                
-%                 fprintf("%s\n",data{subj,2})
-%                 fprintf("trialIdx: %d\n",trialIdx)
 
                 if (~isempty(trialIdx))
                     chordTmp = num2str(chordVec(i));

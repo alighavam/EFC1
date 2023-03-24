@@ -1,6 +1,6 @@
 function forces = extractDiffForce(data)
 
-mov = data.mov;
+mov = data{1}.mov;
 forces = cell(size(mov));
 for i = 1:length(mov)
     movTmp = mov{i};
