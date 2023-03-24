@@ -716,6 +716,10 @@ switch (what)
                 k = k+1;
             end
         end
+    
+    
+    case 'OLS_'
+        
 
     otherwise
         error('The analysis you entered does not exist!')
