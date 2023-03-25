@@ -1,3 +1,4 @@
+
 %% Ali Ghavampour 2022
 % This code makes .tgt files for the ExtFlexChord experiment
 
@@ -9,20 +10,26 @@ close all;
 
 % Loading packages 
 % iMac
-path(path,genpath('/Users/aghavampour/Documents/MATLAB'));
+% path(path,genpath('/Users/aghavampour/Documents/MATLAB'));
 % Macbook Pro
 % path(path,genpath('/Users/alighavam/Documents/MATLAB'));
+% Shuja PC
+path(path,genpath('C:\Users\shuja\Documents\MATLAB'))
 
 % Loading functions
 % iMac
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-cd("/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1");
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+% cd("/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1");
 % Macbook Pro
 % addpath('/Users/alighavam/Desktop/ExtFlexChord/functions');
 % cd("/Users/alighavam/Desktop/ExtFlexChord/");
+% Shuja
+addpath('C:\Users\shuja\Documents\GitHub\EFC1\functions\', '-begin');
+cd("C:\Users\shuja\Documents\GitHub\EFC1");
 
 % experiment parameters
-subNum = 10;                        % subject number - dont forget to change this for each subject!!!!!!
+subNum = 99;                        % subject number - dont forget to change this for each subject!!!!!!
+                                    % Range of 1-99
 nSessions = 24;
 option = "fullCounterBalanced";    % option for makeChord function
 
@@ -52,7 +59,12 @@ for i = 1:nSessions
     targetStruct.execMaxTime = repmat([execMaxTime],trialNum,1);
     targetStruct.feedbackTime = repmat([feedbackTime],trialNum,1);
     targetStruct.iti = repmat([iti],trialNum,1);
-    datsave(sprintf("efc1_subj0%s_set1_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    if subNum<10
+        dsave(sprintf("efc1_subj0%s_set1_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    else
+        dsave(sprintf("efc1_subj%s_set1_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    end
+    
 end
 % set 2:
 targetStruct = struct(columnNames{1},[],columnNames{2},[],columnNames{3},[],columnNames{4},[],columnNames{5},[],columnNames{6},[]);
@@ -65,7 +77,11 @@ for i = 1:nSessions
     targetStruct.execMaxTime = repmat([execMaxTime],trialNum,1);
     targetStruct.feedbackTime = repmat([feedbackTime],trialNum,1);
     targetStruct.iti = repmat([iti],trialNum,1);
-    datsave(sprintf("efc1_subj0%s_set2_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    if subNum<10
+        dsave(sprintf("efc1_subj0%s_set2_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    else
+        dsave(sprintf("efc1_subj%s_set2_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    end
 end
 disp("target file created")
 cd('..')
