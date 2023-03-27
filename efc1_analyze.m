@@ -599,7 +599,6 @@ switch (what)
                 f4 = [f4, f4Base(:,i) .* f4Base(:,j)];
             end
         end
-        
 
         activeVec = zeros(length(chordVec),1);
         for i = 1:size(chordVecSep,1)
@@ -716,11 +715,57 @@ switch (what)
                 k = k+1;
             end
         end
-    
-    
-    case 'OLS_'
         
 
+    % =====================================================================
+    case 'OLS'
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};             % setting 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'dataset'),1)))                               % setting 'dataset' option
+            dataset = varargin{find(strcmp(varargin,'dataset'),1)+1};                   
+            if (~isempty(find(isnan(dataset),1)))
+                error("you have NaN in your dataset. Please handle them before giving to this function")
+            end
+        else
+            error('dataset not inputted to the function.')
+        end
+        if (~isempty(find(strcmp(varargin,'features'),1)))                              % setting 'features' option
+            features = varargin{find(strcmp(varargin,'features'),1)+1};                   
+            if (size(features,1) ~= size(dataset,1))
+                error("dataset and features must have the same number of rows.")
+            end
+        else
+            error('features not inputted to the function.')
+        end
+        
+        % cross validated linear regression:
+        fullFeatures = repmat(features,size(data,1)-1,1);
+        rho_OLS = cell(1,2);
+        models = cell(size(data,1),2);
+        for i = 1:size(data,1)
+            idx = setdiff(1:size(data,1),i);    % excluding one subject from the analysis
+            estimated = [];
+            for j = idx
+                estimated = [estimated ; dataset(:,j)];
+            end
+            fprintf('============= OLS linear regression with excluded subject: %s =============\n',data{i,2})
+            mdl = fitlm(fullFeatures,estimated)
+            fprintf('==========================================================================================\n\n')
+            models{i,1} = mdl;
+            models{i,2} = sprintf("excluded subj: %s",data{i,2});
+
+            % testing model:
+            pred = predict(mdl,features);
+            dataOut = dataset(:,i);
+            
+            corrTmp = corr(dataOut,pred,'type',corrMethod);
+            rho_OLS{2}(i,1) = convertCharsToStrings(data{i,2});
+            rho_OLS{1}(i,1) = corrTmp;
+        end
+        varargout{2} = models;
+        varargout{1} = rho_OLS;
+        
     otherwise
         error('The analysis you entered does not exist!')
 end

@@ -4,22 +4,22 @@ close all;
 clc;
 
 % iMac
-% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary analysis:
 
 % loading data
-analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -123,17 +123,23 @@ rho_theta_acrossSubj = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCel
 rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
     'firstTrial',firstTrial,'corrMethod',corrMethod,'includeSubj',includeSubjAvgModel);
 
-[rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
-    'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
+% [rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
+%     'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
 
-[rho_OLS_meanTheta, crossValModels_meanTheta, singleSubjModel_meanTheta] = efc1_analyze('reg_OLS_meanTheta',data,...
-    thetaCell,'regSubjNum',0,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial);
+% [rho_OLS_meanTheta, crossValModels_meanTheta, singleSubjModel_meanTheta] = efc1_analyze('reg_OLS_meanTheta',data,...
+%     thetaCell,'regSubjNum',0,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial);
 
 % efc1_analyze('plot_scatter_within_subj',data,'transform_type','ranked')
 
 % efc1_analyze('plot_scatter_across_subj',data,'transform_type','no_transform')
 
 % efc1_analyze('meanTheta_scatter_across_subj',data,thetaCell,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial)
+
+% regression
+[thetaMean,~] = meanTheta(thetaCell,firstTrial);
+dataset = thetaMean;
+features = makeFeatures("numActiveFing");
+[rho_OLS, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
 
 
 % ====EXTRA PLOTS====
