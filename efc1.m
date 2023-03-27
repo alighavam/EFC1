@@ -139,7 +139,18 @@ rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',t
 [thetaMean,~] = meanTheta(thetaCell,firstTrial);
 dataset = thetaMean;
 features = makeFeatures("numActiveFing");
-[rho_OLS, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+[rho_OLS_1, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFinger");
+[rho_OLS_2, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFinger");
+[rho_OLS_3, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFingExt");
+[rho_OLS_4, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFingFlex");
+[rho_OLS_5, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("all");
+[rho_OLS_6, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+
 
 
 % ====EXTRA PLOTS====
@@ -154,8 +165,6 @@ xlabel("subj excluded")
 ylabel("correlation of avg with excluded subj")
 legend("meanTheta","medRT")
 ylim([0,1])
-
-
 
 
 
@@ -274,22 +283,22 @@ clc;
 close all;
 
 
-rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',1);
-highCeil = mean(rho_medRT_AvgModel{1}); 
-rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',0);
-lowCeil = mean(rho_medRT_AvgModel{1});
-
-[rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
-    'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
-modelPerformance = mean(rho_OLS_medRT{1});
-
-figure;
-hold all
-bar(modelPerformance)
-yline(lowCeil)
-yline(highCeil)
-ylim([0,1])
-title("regressin on medRT")
+% rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',1);
+% highCeil = mean(rho_medRT_AvgModel{1}); 
+% rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',0);
+% lowCeil = mean(rho_medRT_AvgModel{1});
+% 
+% [rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
+%     'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
+% modelPerformance = mean(rho_OLS_medRT{1});
+% 
+% figure;
+% hold all
+% bar(modelPerformance)
+% yline(lowCeil)
+% yline(highCeil)
+% ylim([0,1])
+% title("regressin on medRT")
 
 
 thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',durAfterActive,'plotfcn',0,...
@@ -304,10 +313,32 @@ lowCeil = mean(rho_theta_avgModel{1});
 
 [rho_OLS_meanTheta, crossValModels_meanTheta, singleSubjModel_meanTheta] = efc1_analyze('reg_OLS_meanTheta',data,...
     thetaCell,'regSubjNum',0,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial);
-modelPerformance = mean(rho_OLS_meanTheta{1});
+
+% regression
+[thetaMean,~] = meanTheta(thetaCell,firstTrial);
+dataset = thetaMean;
+features = makeFeatures("numActiveFing");
+[rho_OLS_1, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFinger");
+[rho_OLS_2, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFinger");
+[rho_OLS_3, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFingExt");
+[rho_OLS_4, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("singleFingFlex");
+[rho_OLS_5, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+features = makeFeatures("all");
+[rho_OLS_6, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+
+modelPerf_1 = mean(rho_OLS_1{1});
+modelPerf_2 = mean(rho_OLS_2{1});
+modelPerf_3 = mean(rho_OLS_3{1});
+modelPerf_4 = mean(rho_OLS_4{1});
+modelPerf_5 = mean(rho_OLS_5{1});
+modelPerf_6 = mean(rho_OLS_6{1});
 figure;
 hold all
-bar(modelPerformance)
+bar([modelPerf_1,modelPerf_2,modelPerf_3,modelPerf_4,modelPerf_5,modelPerf_6])
 yline(lowCeil)
 yline(highCeil)
 ylim([0,1])

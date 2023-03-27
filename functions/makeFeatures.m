@@ -38,7 +38,9 @@ for i = 1:size(f4Base,2)-1
 end
 
 features = [f1,f2,f3,f4];
-if (varargin{1} == "numActiveFing")
+if (varargin{1} == "all")
+    features = features;
+elseif (varargin{1} == "numActiveFing")
     features = f1;
 elseif (varargin{1} == "singleFingFlex")
     features = f2;
