@@ -741,7 +741,7 @@ switch (what)
         
         % cross validated linear regression:
         fullFeatures = repmat(features,size(data,1)-1,1);
-        rho_OLS = cell(1,2);
+        rho_OLS = zeros(1,size(data,1));
         models = cell(size(data,1),2);
         for i = 1:size(data,1)
             idx = setdiff(1:size(data,1),i);    % excluding one subject from the analysis
@@ -749,9 +749,9 @@ switch (what)
             for j = idx
                 estimated = [estimated ; dataset(:,j)];
             end
-            fprintf('============= OLS linear regression with excluded subject: %s =============\n',data{i,2})
-            mdl = fitlm(fullFeatures,estimated)
-            fprintf('==========================================================================================\n\n')
+%             fprintf('============= OLS linear regression with excluded subject: %s =============\n',data{i,2})
+            mdl = fitlm(fullFeatures,estimated);
+%             fprintf('==========================================================================================\n\n')
             models{i,1} = mdl;
             models{i,2} = sprintf("excluded subj: %s",data{i,2});
 
@@ -760,8 +760,7 @@ switch (what)
             dataOut = dataset(:,i);
             
             corrTmp = corr(dataOut,pred,'type',corrMethod);
-            rho_OLS{2}(i,1) = convertCharsToStrings(data{i,2});
-            rho_OLS{1}(i,1) = corrTmp;
+            rho_OLS(1,i) = corrTmp;
         end
         varargout{2} = models;
         varargout{1} = rho_OLS;

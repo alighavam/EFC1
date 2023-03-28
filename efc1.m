@@ -311,46 +311,39 @@ rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',t
     'firstTrial',firstTrial,'corrMethod',corrMethod,'includeSubj',0);
 lowCeil = mean(rho_theta_avgModel{1});
 
-[rho_OLS_meanTheta, crossValModels_meanTheta, singleSubjModel_meanTheta] = efc1_analyze('reg_OLS_meanTheta',data,...
-    thetaCell,'regSubjNum',0,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial);
-
-% regression
+% regression:
 [thetaMean,~] = meanTheta(thetaCell,firstTrial);
+featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
+    "neighbourFingers","neighbourFingers+singleFinger","all"};
 dataset = thetaMean;
-features = makeFeatures("numActiveFing");
-[rho_OLS_1, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFinger");
-[rho_OLS_2, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFinger");
-[rho_OLS_3, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFingExt");
-[rho_OLS_4, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFingFlex");
-[rho_OLS_5, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("all");
-[rho_OLS_6, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+rho_OLS = [];
+for i = 1:length(featureCell)
+    features = makeFeatures(featureCell{i});
+    [rho_OLS(i,:), ~] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+end
 
-modelPerf_1 = mean(rho_OLS_1{1});
-modelPerf_2 = mean(rho_OLS_2{1});
-modelPerf_3 = mean(rho_OLS_3{1});
-modelPerf_4 = mean(rho_OLS_4{1});
-modelPerf_5 = mean(rho_OLS_5{1});
-modelPerf_6 = mean(rho_OLS_6{1});
+modelCorrAvg = zeros(size(rho_OLS,1),1);
+modelCorrSem = zeros(size(rho_OLS,1),1);
+for i = 1:size(rho_OLS,1)
+    modelCorrAvg(i) = mean(rho_OLS(i,:));
+    modelCorrSem(i) = std(rho_OLS(i,:))/sqrt(length(rho_OLS(i,:)));
+end
+
 figure;
 hold all
-bar([modelPerf_1,modelPerf_2,modelPerf_3,modelPerf_4,modelPerf_5,modelPerf_6])
+x = 1:length(modelCorrAvg);
+bar(x,modelCorrAvg)
+errorbar(x,modelCorrAvg,modelCorrSem,"LineStyle","none",'Color','k')
 yline(lowCeil)
 yline(highCeil)
 ylim([0,1])
+xticks(x)
+xticklabels(featureCell)
 title("regression on meanTheta")
+xlabel("Models")
+ylabel("Crossvalidated Correlation")
 
-for i = 1:size(data,1)
-    tmpR2_medRT(i) = crossValModels_medRT{i,1}.Rsquared.Adjusted;
-    tmpR2_meanTheta(i) = crossValModels_meanTheta{i,1}.Rsquared.Adjusted;
-end
 
-fprintf("mean crossVal rsquared medRT = %.4f\n",mean(tmpR2_medRT))
-fprintf("mean crossVal rsquared meanTheta = %.4f\n",mean(tmpR2_meanTheta))
 
 %% thetaMean avg over numFingerActive
 
