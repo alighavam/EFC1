@@ -70,7 +70,7 @@ switch (what)
         end
 
     % =====================================================================
-    case 'corr_avg_model'
+    case 'corr_medRT_avg_model'
         corrMethod = 'pearson';     % default correlation method
         excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
         includeSubj = 0;            % default is not to include each subj in the avg calculation
