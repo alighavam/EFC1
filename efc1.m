@@ -311,7 +311,7 @@ lowCeil = mean(rho_theta_avgModel{1});
 % regression:
 [thetaMean,~] = meanTheta(thetaCell,firstTrial);
 featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
-    "neighbourFingers","singleFinger+2FingerCombinations","neighbourFingers+singleFinger","all"};
+    "neighbourFingers","2FingerCombinations","singleFinger+2FingerCombinations","neighbourFingers+singleFinger","all"};
 dataset = thetaMean;
 models_save = cell(size(featureCell,2),1);
 rho_OLS = [];
@@ -345,7 +345,7 @@ ylabel("Crossvalidated Correlation")
 
 
 % beta value maps - single + 2finger
-model = models_save{7};
+model = models_save{8};
 betaMatCell = cell(size(model,1),1);
 for n = 1:size(model,1)
     betaMat = zeros(10,10);
@@ -353,6 +353,9 @@ for n = 1:size(model,1)
     beta = modelTmp.Coefficients;
     beta = table2array(beta(:,1));
     beta(1) = [];
+    
+%     beta = [zeros(10,1);beta];
+
     singleFingerBeta = beta(1:10);
     cnt_single = 1;
     twoFingerBeta = beta(11:end);
