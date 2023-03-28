@@ -278,28 +278,25 @@ end
 
 
 
-%% Model Testing
+%% Model Testing - meanTheta
 clc;
 close all;
+clearvars -except data
 
 
-% rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',1);
-% highCeil = mean(rho_medRT_AvgModel{1}); 
-% rho_medRT_AvgModel = efc1_analyze('corr_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',0);
-% lowCeil = mean(rho_medRT_AvgModel{1});
-% 
-% [rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
-%     'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
-% modelPerformance = mean(rho_OLS_medRT{1});
-% 
-% figure;
-% hold all
-% bar(modelPerformance)
-% yline(lowCeil)
-% yline(highCeil)
-% ylim([0,1])
-% title("regressin on medRT")
+% global params:
+corrMethod = 'pearson';
+includeSubjAvgModel = 0;
 
+% theta calc params:
+onlyActiveFing = 0;
+firstTrial = 2;
+selectRun = -1;
+durAfterActive = 200;
+clim = [0,1];
+
+% medRT params:
+excludeChord = [];
 
 thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',durAfterActive,'plotfcn',0,...
     'firstTrial',firstTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
@@ -314,12 +311,13 @@ lowCeil = mean(rho_theta_avgModel{1});
 % regression:
 [thetaMean,~] = meanTheta(thetaCell,firstTrial);
 featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
-    "neighbourFingers","neighbourFingers+singleFinger","all"};
+    "neighbourFingers","singleFinger+2FingerCombinations","neighbourFingers+singleFinger","all"};
 dataset = thetaMean;
+models_save = cell(size(featureCell,2),1);
 rho_OLS = [];
 for i = 1:length(featureCell)
     features = makeFeatures(featureCell{i});
-    [rho_OLS(i,:), ~] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+    [rho_OLS(i,:), models_save{i}] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
 end
 
 modelCorrAvg = zeros(size(rho_OLS,1),1);
@@ -329,6 +327,8 @@ for i = 1:size(rho_OLS,1)
     modelCorrSem(i) = std(rho_OLS(i,:))/sqrt(length(rho_OLS(i,:)));
 end
 
+
+% Plot model performance
 figure;
 hold all
 x = 1:length(modelCorrAvg);
@@ -342,6 +342,49 @@ xticklabels(featureCell)
 title("regression on meanTheta")
 xlabel("Models")
 ylabel("Crossvalidated Correlation")
+
+
+% beta value maps - single + 2finger
+model = models_save{7};
+betaMatCell = cell(size(model,1),1);
+for n = 1:size(model,1)
+    betaMat = zeros(10,10);
+    modelTmp = model{n,1};
+    beta = modelTmp.Coefficients;
+    beta = table2array(beta(:,1));
+    beta(1) = [];
+    singleFingerBeta = beta(1:10);
+    cnt_single = 1;
+    twoFingerBeta = beta(11:end);
+    cnt_two = 1;
+    for i = 1:size(betaMat,1)
+        for j = i:size(betaMat,2)
+            if (i==j)
+                betaMat(i,j) = singleFingerBeta(cnt_single);
+                cnt_single = cnt_single+1;
+            elseif (j ~= i+5)
+                betaMat(i,j) = twoFingerBeta(cnt_two);
+                betaMat(j,i) = twoFingerBeta(cnt_two);
+                cnt_two = cnt_two+1;
+            end
+        end
+    end
+    betaMatCell{n} = betaMat;
+end
+
+betaMat = zeros(10,10);
+for i = 1:size(betaMatCell,1)
+    betaMat = betaMat + betaMatCell{i};
+end
+betaMat = betaMat/size(betaMatCell,1);
+figure;
+imagesc(betaMat)
+hold on
+line([0.5,10.5], [5.5,5.5], 'Color', 'k','LineWidth',2);
+line([5.5,5.5], [0.5,10.5], 'Color', 'k','LineWidth',2);
+xticklabels([1:5,1:5])
+yticklabels([1:5,1:5])
+colorbar
 
 
 

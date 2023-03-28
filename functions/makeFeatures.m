@@ -62,23 +62,6 @@ for i = 1:size(chordVec,1)
     end
 end
 
-% neighbour finger combinations - only opposition and accompaniment:
-% column: 8
-f6 = zeros(size(chordVec,1),8);
-neighbourChords = [11555,12555,21555,22555,...
-                   51155,51255,52155,52255,...
-                   55115,55125,55215,55225,...
-                   55511,55512,55521,55522];
-for i = 1:size(chordVec,1)
-    chordTmp = num2str(chordVec(i));
-    for j = 1:length(neighbourChords)
-        if (sum(chordTmp == num2str(neighbourChords(j))) == 2)
-            f6(i,j) = 1;
-        end
-    end
-end
-
-
 
 if (varargin{1} == "all")
     features = [f5,f2,f3,f4];
@@ -98,6 +81,10 @@ elseif (varargin{1} == "neighbourFingers")
     features = f6;
 elseif (varargin{1} == "neighbourFingers+singleFinger")
     features = [f2,f3,f6];
+elseif (varargin{1} == "2FingerCombinations")
+    features = f4;
+elseif (varargin{1} == "singleFinger+2FingerCombinations")
+    features = [f2,f3,f4];
 else
     error("makeFeature option " + varargin{1} + " does not exist.")
 end
