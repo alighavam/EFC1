@@ -28,7 +28,7 @@ addpath('C:\Users\shuja\Documents\GitHub\EFC1\functions\', '-begin');
 cd("C:\Users\shuja\Documents\GitHub\EFC1");
 
 % experiment parameters
-subNum = 99;                        % subject number - dont forget to change this for each subject!!!!!!
+subNum = 10;                        % subject number - dont forget to change this for each subject!!!!!!
                                     % Range of 1-99
 nSessions = 24;
 option = "fullCounterBalanced";    % option for makeChord function
