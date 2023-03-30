@@ -106,7 +106,7 @@ excludeChord = [];
 % efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
 
 % ====ANALISYS====
-% efc1_analyze('RT_vs_run',data,'plotfcn','median');
+efc1_analyze('RT_vs_run',data,'plotfcn','median');
 
 rho_medRT_WithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',excludeChord);
 
@@ -134,7 +134,6 @@ rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',t
 % efc1_analyze('plot_scatter_across_subj',data,'transform_type','no_transform')
 
 % efc1_analyze('meanTheta_scatter_across_subj',data,thetaCell,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial
-
 
 
 % ====EXTRA PLOTS====
