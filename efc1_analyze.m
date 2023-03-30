@@ -765,6 +765,139 @@ switch (what)
         varargout{2} = models;
         varargout{1} = rho_OLS;
         
+    
+    
+    case 'modelTesting'
+        dataName = "meanTheta";
+        featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
+            "neighbourFingers","2FingerCombinations","singleFinger+2FingerCombinations","neighbourFingers+singleFinger","all"};
+
+        if (~isempty(find(strcmp(varargin,'dataName'),1)))
+            dataName = varargin{find(strcmp(varargin,'dataName'),1)+1};   % setting 'dataName' option
+        end
+        if (~isempty(find(strcmp(varargin,'featureCell'),1)))
+            featureCell = varargin{find(strcmp(varargin,'featureCell'),1)+1};   % setting 'featureCell' option
+        end
+        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))
+            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1};
+        else
+            error("parameter error: you should input onlyActiveFing parameter")
+        end
+        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};
+        else
+            error("parameter error: you should input firstTrial parameter")
+        end
+        if (~isempty(find(strcmp(varargin,'selectRun'),1)))
+            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1}; 
+        else
+            error("parameter error: you should input selectRun parameter")
+        end
+        if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))
+            durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};
+        else
+            error("parameter error: you should input durAfterActive parameter")
+        end
+        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
+            excludeChord = varargin{find(strcmp(varargin,'excludeChord'),1)+1};
+        else
+            error("parameter error: you should input excludeChord parameter")
+        end
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};
+        else
+            error("parameter error: you should input corrMethod parameter")
+        end
+
+        fprintf("Running model evaluation for %s\n\n",dataName);
+        
+        dataset = regressionDataset(data,dataName,'onlyActiveFing',onlyActiveFing,...
+            'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive);
+        [highCeil,lowCeil] = calcNoiseCeiling(data,dataName,'onlyActiveFing',onlyActiveFing,...
+            'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive,'excludeChord',excludeChord);
+        
+        % regression:
+        models_save = cell(size(featureCell,2),1);
+        rho_OLS = [];
+        for i = 1:length(featureCell)
+            features = makeFeatures(featureCell{i});
+            [rho_OLS(i,:), models_save{i}] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+        end
+        
+        modelCorrAvg = zeros(size(rho_OLS,1),1);
+        modelCorrSem = zeros(size(rho_OLS,1),1);
+        for i = 1:size(rho_OLS,1)
+            modelCorrAvg(i) = mean(rho_OLS(i,:));
+            modelCorrSem(i) = std(rho_OLS(i,:))/sqrt(length(rho_OLS(i,:)));
+        end
+        
+        
+        % Plot model performance
+        figure;
+        hold all
+        x = 1:length(modelCorrAvg);
+        bar(x,modelCorrAvg)
+        errorbar(x,modelCorrAvg,modelCorrSem,"LineStyle","none",'Color','k')
+        yline(lowCeil)
+        yline(highCeil)
+        ylim([0,1])
+        xticks(x)
+        xticklabels(featureCell)
+        title(sprintf("regression on %s",dataName))
+        xlabel("Models")
+        ylabel("Crossvalidated Correlation")
+        
+        
+        
+        % beta value maps - single + 2finger
+        model = models_save{find(string(featureCell) == "singleFinger+2FingerCombinations")};
+        betaMatCell = cell(size(model,1),1);
+        for n = 1:size(model,1)
+            betaMat = zeros(10,10);
+            modelTmp = model{n,1};
+            beta = modelTmp.Coefficients;
+            beta = table2array(beta(:,1));
+            beta(1) = [];
+            
+        %     beta = [zeros(10,1);beta];
+        
+            singleFingerBeta = beta(1:10);
+            cnt_single = 1;
+            twoFingerBeta = beta(11:end);
+            cnt_two = 1;
+            for i = 1:size(betaMat,1)
+                for j = i:size(betaMat,2)
+                    if (i==j)
+                        betaMat(i,j) = singleFingerBeta(cnt_single);
+                        cnt_single = cnt_single+1;
+                    elseif (j ~= i+5)
+                        betaMat(i,j) = twoFingerBeta(cnt_two);
+                        betaMat(j,i) = twoFingerBeta(cnt_two);
+                        cnt_two = cnt_two+1;
+                    end
+                end
+            end
+            betaMatCell{n} = betaMat;
+        end
+        
+        betaMat = zeros(10,10);
+        for i = 1:size(betaMatCell,1)
+            betaMat = betaMat + betaMatCell{i};
+        end
+        betaMat = betaMat/size(betaMatCell,1);
+        figure;
+        imagesc(betaMat)
+        hold on
+        line([0.5,10.5], [5.5,5.5], 'Color', 'k','LineWidth',2);
+        line([5.5,5.5], [0.5,10.5], 'Color', 'k','LineWidth',2);
+        xticklabels([1:5,1:5])
+        yticklabels([1:5,1:5])
+        colorbar
+        title(sprintf("beta values , %s",dataName))
+        xlabel("digit")
+        ylabel("digit")
+    
+    
     otherwise
         error('The analysis you entered does not exist!')
 end

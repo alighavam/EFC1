@@ -4,22 +4,22 @@ close all;
 clc;
 
 % iMac
-% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary analysis:
 
 % loading data
-analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -133,23 +133,7 @@ rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',t
 
 % efc1_analyze('plot_scatter_across_subj',data,'transform_type','no_transform')
 
-% efc1_analyze('meanTheta_scatter_across_subj',data,thetaCell,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial)
-
-% regression
-[thetaMean,~] = meanTheta(thetaCell,firstTrial);
-dataset = thetaMean;
-features = makeFeatures("numActiveFing");
-[rho_OLS_1, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFinger");
-[rho_OLS_2, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFinger");
-[rho_OLS_3, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFingExt");
-[rho_OLS_4, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("singleFingFlex");
-[rho_OLS_5, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-features = makeFeatures("all");
-[rho_OLS_6, models] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
+% efc1_analyze('meanTheta_scatter_across_subj',data,thetaCell,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial
 
 
 
@@ -285,7 +269,6 @@ clearvars -except data
 
 
 % global params:
-dataName = "medRT";
 corrMethod = 'pearson';
 includeSubjAvgModel = 0;
 
@@ -294,95 +277,16 @@ onlyActiveFing = 0;
 firstTrial = 2;
 selectRun = -1;
 durAfterActive = 200;
-clim = [0,1];
 
 % medRT params:
 excludeChord = [];
 
-dataset = regressionDataset(data,dataName,'onlyActiveFing',onlyActiveFing,...
-    'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive);
-[highCeil,lowCeil] = calcNoiseCeiling(data,dataName,'onlyActiveFing',onlyActiveFing,...
-    'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive,'excludeChord',excludeChord);
-
-% regression:
+dataName = "meanTheta";
 featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
-    "neighbourFingers","2FingerCombinations","singleFinger+2FingerCombinations","neighbourFingers+singleFinger","all"};
+    "neighbourFingers","2FingerCombinations","neighbourFingers+singleFinger","singleFinger+2FingerCombinations","all"};
 
-models_save = cell(size(featureCell,2),1);
-rho_OLS = [];
-for i = 1:length(featureCell)
-    features = makeFeatures(featureCell{i});
-    [rho_OLS(i,:), models_save{i}] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-end
-
-modelCorrAvg = zeros(size(rho_OLS,1),1);
-modelCorrSem = zeros(size(rho_OLS,1),1);
-for i = 1:size(rho_OLS,1)
-    modelCorrAvg(i) = mean(rho_OLS(i,:));
-    modelCorrSem(i) = std(rho_OLS(i,:))/sqrt(length(rho_OLS(i,:)));
-end
-
-
-% Plot model performance
-figure;
-hold all
-x = 1:length(modelCorrAvg);
-bar(x,modelCorrAvg)
-errorbar(x,modelCorrAvg,modelCorrSem,"LineStyle","none",'Color','k')
-yline(lowCeil)
-yline(highCeil)
-ylim([0,1])
-xticks(x)
-xticklabels(featureCell)
-title("regression on meanTheta")
-xlabel("Models")
-ylabel("Crossvalidated Correlation")
-
-
-% beta value maps - single + 2finger
-model = models_save{8};
-betaMatCell = cell(size(model,1),1);
-for n = 1:size(model,1)
-    betaMat = zeros(10,10);
-    modelTmp = model{n,1};
-    beta = modelTmp.Coefficients;
-    beta = table2array(beta(:,1));
-    beta(1) = [];
-    
-%     beta = [zeros(10,1);beta];
-
-    singleFingerBeta = beta(1:10);
-    cnt_single = 1;
-    twoFingerBeta = beta(11:end);
-    cnt_two = 1;
-    for i = 1:size(betaMat,1)
-        for j = i:size(betaMat,2)
-            if (i==j)
-                betaMat(i,j) = singleFingerBeta(cnt_single);
-                cnt_single = cnt_single+1;
-            elseif (j ~= i+5)
-                betaMat(i,j) = twoFingerBeta(cnt_two);
-                betaMat(j,i) = twoFingerBeta(cnt_two);
-                cnt_two = cnt_two+1;
-            end
-        end
-    end
-    betaMatCell{n} = betaMat;
-end
-
-betaMat = zeros(10,10);
-for i = 1:size(betaMatCell,1)
-    betaMat = betaMat + betaMatCell{i};
-end
-betaMat = betaMat/size(betaMatCell,1);
-figure;
-imagesc(betaMat)
-hold on
-line([0.5,10.5], [5.5,5.5], 'Color', 'k','LineWidth',2);
-line([5.5,5.5], [0.5,10.5], 'Color', 'k','LineWidth',2);
-xticklabels([1:5,1:5])
-yticklabels([1:5,1:5])
-colorbar
+efc1_analyze('modelTesting',data,'dataName',dataName,'featureCell',featureCell,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,...
+            'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive,'excludeChord',excludeChord);
 
 
 
