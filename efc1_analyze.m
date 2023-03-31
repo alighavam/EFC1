@@ -170,6 +170,12 @@ switch (what)
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                             elseif (chordTmp(j) == '2') % flexion
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                            elseif (chordTmp(j) == '9') % finger should be relaxed
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
+                                    | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
                             end
                         end
             
@@ -182,7 +188,7 @@ switch (what)
                         
                         forceSelceted = [];
                         for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
-                            forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                            forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
                         end
                         forceVec = mean(forceSelceted,1);  % average of finger forces from idxStart to idxStart+durAfterActive
                         idealVec = double(chordTmp~='9');
@@ -340,7 +346,7 @@ switch (what)
         rhoAvg = cell(1,2);
         if (~includeSubj)    % if we do not include each subject in the avg model -> lower noise ceiling
             for i = 1:size(thetaMean,2)
-                idxSelect = setdiff(1:size(thetaMean,2),i);                 % excluding subj i from avg calculation
+                idxSelect = setdiff(1:size(thetaMean,2),i);                   % excluding subj i from avg calculation
                 tmpThetaMeanMat = thetaMean(:,idxSelect);
                 avgModel = mean(tmpThetaMeanMat,2);                           % calculating avg of thetaMean for subjects other than subj i
                 corrTmp = corr(avgModel,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with excluded subj
@@ -866,8 +872,6 @@ switch (what)
         xlabel("Models")
         ylabel("Crossvalidated Correlation")
         
-        
-        
         % beta value maps - single + 2finger
         model = models_save{find(string(featureCell) == "singleFinger+2FingerCombinations")};
         betaMatCell = cell(size(model,1),1);
@@ -916,6 +920,191 @@ switch (what)
         xlabel("digit")
         ylabel("digit")
     
+    
+    case 'theta_bias'
+        durAfterActive = 200;   % default duration after first finger passed the baseline threshld in ms
+        plotfcn = 1;            % default is to plot
+        firstTrial = 2;         % default is 2 , The first trial of the chord is usually very different from others which impacts the variance a lot. This is an option to ignore the first trial if wanted.
+        selectRun = -1;         % default run to do the analysis is the last run. you can select run 1,2,3 or -1(last)
+        if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))
+            durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};     % setting 'durAfterActive' option
+        end
+        if (~isempty(find(strcmp(varargin,'plotfcn'),1)))
+            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};                   % setting 'plotfcn' option
+        end
+        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};             % setting 'firstTrial' option
+        end
+        if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
+            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};               % setting 'selectRun' option
+        end
+        
+        forceData = cell(size(data));   % extracting the force signals for each subj
+        for i = 1:size(data,1)
+            forceData{i,1} = extractDiffForce(data{i,1});
+            forceData{i,2} = data{i,2};
+        end
+
+        outCell = cell(size(data));
+        for subj = 1:size(data,1)
+            outCell{subj,2} = data{subj,2};
+            chordVec = generateAllChords();  % all chords
+            subjData = data{subj,1};
+            subjForceData = forceData{subj,1};
+            outCellSubj = cell(length(chordVec),2);
+            vecBN = unique(subjData.BN);
+            for i = 1:length(chordVec)
+                outCellSubj{i,1} = chordVec(i);
+
+                if (selectRun == -1)        % selecting the last 12 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-12));
+                elseif (selectRun == -2)    % selectign the last 24 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-24));
+                elseif (selectRun == 1)     % selecting the first 12 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN < 13);
+                elseif (selectRun == 2)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 12 & subjData.BN < 25);
+                elseif (selectRun == 3)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 24 & subjData.BN < 37);
+                    iTmp = find(subjData.BN > 24 & subjData.BN < 37,1);
+                    if (isempty(iTmp))
+                        error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
+                    end
+                else
+                    error("selectRun " + num2str(selectRun) + "does not exist. Possible choices are 1,2,3 and -1.")
+                end
+
+                if (firstTrial == 2)
+                    if (selectRun ~= -2)
+                        if (length(trialIdx) == 5)
+                            trialIdx(1) = [];
+                        end
+                    elseif (selectRun == -2)
+                        if (length(trialIdx) == 10)
+                            trialIdx(6) = [];
+                            trialIdx(1) = [];
+                        end
+                    end
+                end
+
+                if (~isempty(trialIdx))
+                    chordTmp = num2str(chordVec(i));
+                    idealVec = double(chordTmp~='9');
+                    for j = 1:5
+                        if (chordTmp(j) == '2')
+                            idealVec(j) = -1;
+                        end
+                    end
+                    forceVec_i_holder = [];
+                    for trial_i = 1:length(trialIdx)
+                        forceTmp = [];
+                        tVec = subjForceData{trialIdx(trial_i)}(:,2); % time vector in trial
+                        tGoCue = subjData.planTime(trialIdx(trial_i));
+                        fGainVec = [subjData.fGain1(trialIdx(trial_i)) subjData.fGain2(trialIdx(trial_i)) subjData.fGain3(trialIdx(trial_i)) subjData.fGain4(trialIdx(trial_i)) subjData.fGain5(trialIdx(trial_i))];
+                        for j = 1:5     % thresholded force of the fingers after "Go Cue"
+                            if (chordTmp(j) == '1') % extension
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                            elseif (chordTmp(j) == '2') % flexion
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                            elseif (chordTmp(j) == '9') % finger should be relaxed
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
+                                    | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
+                            end
+                        end
+            
+                        tmpIdx = [];
+                        for k = 1:size(forceTmp,2)
+                            tmpIdx(k) = find(forceTmp(:,k),1);
+                        end
+                        [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
+                        idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first finger passes the baseline threhold after "Go Cue"
+                        
+                        forceSelceted = [];
+                        for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
+                            forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                        end
+                        forceVec_i = mean(forceSelceted,1)';  % average of finger forces in the first {durAfterActive} ms
+                        forceVec_i_holder = [forceVec_i_holder forceVec_i];
+                    end
+                    forceVec_avg = mean(forceVec_i_holder,2);   % average of force vectors across trials -> vec_avg
+                    thetaTmp = zeros(size(forceVec_i_holder,2),1);
+                    for j = size(forceVec_i_holder,2) % going through all the forces
+                        thetaTmp(i) = vectorAngle(forceVec_avg,forceVec_i_holder(:,j)); % Angle(vec_avg,vec_i)
+                    end
+                    outCellSubj{i,2}(1) = vectorAngle(forceVec_avg,idealVec);   % bias = Angle(vec_avg,vec_ideal);
+                    outCellSubj{i,2}(2) = var(thetaTmp);                        % var = var{Angle(vec_i,vec_avg)}
+                else
+                    outCellSubj{i,2} = [];
+                end 
+            end
+            outCell{subj,1} = outCellSubj;
+        end
+        varargout{1} = outCell;
+
+
+    case 'corr_bias_avg_model'
+        onlyActiveFing = 1;     % default value
+        firstTrial = 2;         % default value
+        corrMethod = 'pearson'; % default corr method
+        includeSubj = 0;        % default is not to include subj in avg
+        if (isempty(find(strcmp(varargin,'thetaCell'),1)))   
+            error("thetaCell not found. You should input thetaCell for this analysis")
+        end
+        if (~isempty(find(strcmp(varargin,'thetaCell'),1)))    
+            thetaCell = varargin{find(strcmp(varargin,'thetaCell'),1)+1};           % inputting the 'thetaCell'
+        end
+        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))    
+            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1}; % setting the 'onlyActiveFing' option - should be the same as the option used for 'thetaExp_vs_thetaStd'
+        end
+        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))    
+            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};         % setting the 'firstTrial' option - should be the same as the option used for 'thetaExp_vs_thetaStd'
+        end
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))    
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};         % setting the 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'includeSubj'),1)))    
+            includeSubj = varargin{find(strcmp(varargin,'includeSubj'),1)+1};       % setting the 'includeSubj' option
+        end
+
+        thetaMean = zeros(242,size(thetaCell,1));
+        thetaStd = zeros(242,size(thetaCell,1));
+        for subj = 1:size(thetaCell,1)
+            for j = 1:size(thetaMean,1)
+                thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
+                thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
+            end
+            % rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{subj,2})];
+        end
+        
+        if (onlyActiveFing)
+            thetaMean(1:10,:) = [];
+        end
+        [i,~] = find(isnan(thetaMean));
+        thetaMean(i,:) = [];
+        
+        rhoAvg = cell(1,2);
+        if (~includeSubj)    % if we do not include each subject in the avg model -> lower noise ceiling
+            for i = 1:size(thetaMean,2)
+                idxSelect = setdiff(1:size(thetaMean,2),i);                   % excluding subj i from avg calculation
+                tmpThetaMeanMat = thetaMean(:,idxSelect);
+                avgModel = mean(tmpThetaMeanMat,2);                           % calculating avg of thetaMean for subjects other than subj i
+                corrTmp = corr(avgModel,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with excluded subj
+                rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
+                rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+            end
+        else                % if we include all subjects in the avg model -> higher noise ceiling
+            avgModel = mean(thetaMean,2);    
+            for i = 1:size(thetaMean,2)
+                corrTmp = corr(avgModel,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with each subj
+                rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
+                rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+            end
+        end
+
+        varargout{1} = rhoAvg;
     
     otherwise
         error('The analysis you entered does not exist!')

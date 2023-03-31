@@ -158,6 +158,59 @@ ylim([0,1])
 %% TEMPORARY CODES AND ANALYSIS FROM HERE !<UNDER CONSTRUCTION>!
 
 
+%% theta bias and var
+clc;
+close all;
+clearvars -except data
+
+% global params:
+corrMethod = 'pearson';
+includeSubjAvgModel = 0;
+
+% theta calc params:
+onlyActiveFing = 0;
+firstTrial = 1;
+selectRun = -2;
+durAfterActive = 200;
+clim = [0,1];
+
+% medRT params:
+excludeChord = [];
+
+biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
+                            'firstTrial',firstTrial);
+
+
+chordVec = generateAllChords();
+chordVecSep = sepChordVec(chordVec);
+colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
+    [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
+for subj = 1:size(biasVarCell,1)
+    bias_var = biasVarCell{subj};
+    bias_var = cell2mat(bias_var(:,2));
+    figure;
+    for numActiveFing = 1:size(chordVecSep,1)
+        scatter(sqrt(bias_var(chordVecSep{numActiveFing,2},2)),bias_var(chordVecSep{numActiveFing,2},1),30,"MarkerFaceColor",colors(numActiveFing,:))
+        hold on
+    end
+    xlabel("std theta (degree)")
+    ylabel("bias (degree)")
+    title(sprintf("%s",biasVarCell{subj,2}))
+    legend({"1","2","3","4","5"})
+%     ylim([0,90])
+%     xlim([0,60])
+end
+
+
+biasMat = [biasVarCell{:,1}];
+biasMat(:,1:2:end)=[];
+biasMat = cell2mat(biasMat);
+biasMat(:,2:2:end)=[];
+
+
+
+
+
 %% Mean Deviation
 clc
 clearvars -except data
@@ -259,8 +312,6 @@ end
 
 
 
-
-
 %% Model Testing
 clc;
 close all;
@@ -320,6 +371,7 @@ for j = 1:4
     hold on
 end
 
+
 %% median RT over numActiveFinger + mean theta over numActiveFinger
 close all;
 clc;
@@ -376,7 +428,6 @@ end
 legend(legNames,'Location','northwest')
 xlabel("num active fingers")
 ylabel("mean theta")
-
 
 
 
