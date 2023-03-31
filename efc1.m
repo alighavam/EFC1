@@ -261,26 +261,27 @@ end
 
 
 
-%% Model Testing - meanTheta
+%% Model Testing
 clc;
 close all;
 clearvars -except data
 
 
 % global params:
+dataName = "meanTheta";
 corrMethod = 'pearson';
 includeSubjAvgModel = 0;
 
 % theta calc params:
 onlyActiveFing = 0;
 firstTrial = 2;
-selectRun = -1;
+selectRun = -2;
 durAfterActive = 200;
 
 % medRT params:
 excludeChord = [];
 
-dataName = "meanTheta";
+
 featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
     "neighbourFingers","2FingerCombinations","neighbourFingers+singleFinger","singleFinger+2FingerCombinations","all"};
 

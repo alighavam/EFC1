@@ -111,7 +111,7 @@ switch (what)
             selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};          % setting 'selectRun' option
         end
         
-        forceData = cell(size(data));
+        forceData = cell(size(data));   % extracting the force signals for each subj
         for i = 1:size(data,1)
             forceData{i,1} = extractDiffForce(data{i,1});
             forceData{i,2} = data{i,2};
@@ -122,21 +122,40 @@ switch (what)
             thetaCell{subj,2} = data{subj,2};
             chordVec = generateAllChords();  % all chords
             subjData = data{subj,1};
-            uniqueBN = [0 ; unique(subjData.BN)];
-            idxBN = find(mod(uniqueBN,12)==0)-1;
-            idxBN(1) = 1;
+%             uniqueBN = [0 ; unique(subjData.BN)];
+%             idxBN = find(mod(uniqueBN,12)==0)-1;
+%             idxBN(1) = 1;
             subjForceData = forceData{subj,1};
             thetaCellSubj = cell(length(chordVec),2);
+            vecBN = unique(subjData.BN);
             for i = 1:length(chordVec)
                 thetaCellSubj{i,1} = chordVec(i);
-                if (selectRun == -1)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(end-1)+1) & subjData.BN <= uniqueBN(idxBN(end)+1));
-                elseif (selectRun > length(idxBN)-1)
-                    error("Error with <selectRun> option , " + data{subj,2} + " does not have run number " + num2str(selectRun))
-                elseif (selectRun == 1)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(selectRun)) & subjData.BN <= uniqueBN(idxBN(selectRun+1)+1));
+%                 if (selectRun == -1)
+%                     trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(end-1)+1) & subjData.BN <= uniqueBN(idxBN(end)+1));
+%                 elseif (selectRun > length(idxBN)-1)
+%                     error("Error with <selectRun> option , " + data{subj,2} + " does not have run number " + num2str(selectRun))
+%                 elseif (selectRun == 1)
+%                     trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(selectRun)) & subjData.BN <= uniqueBN(idxBN(selectRun+1)+1));
+%                 else
+%                     trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(selectRun)+1) & subjData.BN <= uniqueBN(idxBN(selectRun+1)+1));
+%                 end
+
+                if (selectRun == -1)        % selecting the last 12 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-12));
+                elseif (selectRun == -2)    % selectign the last 24 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-24));
+                elseif (selectRun == 1)     % selecting the first 12 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN < 13);
+                elseif (selectRun == 2)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 12 & subjData.BN < 25);
+                elseif (selectRun == 3)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 24 & subjData.BN < 37);
+                    iTmp = find(subjData.BN > 24 & subjData.BN < 37);
+                    if (isempty(iTmp))
+                        error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
+                    end
                 else
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > uniqueBN(idxBN(selectRun)+1) & subjData.BN <= uniqueBN(idxBN(selectRun+1)+1));
+                    error("selectRun " + num2str(selectRun) + "does not exist. Possible choices are 1,2,3 and -1.")
                 end
 
                 if (~isempty(trialIdx))
