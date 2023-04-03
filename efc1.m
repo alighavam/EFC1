@@ -289,18 +289,18 @@ for subj = 1:size(data,1)
                 end
                 [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
                 idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first active finger passes the baseline threshold after "Go Cue"
-                
+                idxStart
                 forceSelceted = [];
                 durAfterActive = subjData.RT(trialIdx(trial_i))-600;    % select the force from movement initiation until the correct state is formed
                 % durAfterActive = 200;   % select the force from movement initiation until 200ms later
                 for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
-                    forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                    forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:round(durAfterActive/2),2+j)];
                 end
                 
                 tempDiff = zeros(size(forceSelceted,1),1);
                 c = forceSelceted(end,:)-forceSelceted(1,:);
                 for t = 1:size(forceSelceted,1) % iterating on time points
-                    projection = dot((c' * forceSelceted(t,:) / norm(c)^2),c);
+                    projection = (c * forceSelceted(t,:)' / norm(c)^2)*c;
                     tempDiff(t) = norm(forceSelceted(t,:) - projection);
                 end
                 meanDevTmp(trial_i) = sum(tempDiff) / size(forceSelceted,1);
