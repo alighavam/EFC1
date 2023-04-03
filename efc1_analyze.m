@@ -141,15 +141,15 @@ switch (what)
 %                 end
 
                 if (selectRun == -1)        % selecting the last 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-12));
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-12));
                 elseif (selectRun == -2)    % selectign the last 24 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-24));
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-24));
                 elseif (selectRun == 1)     % selecting the first 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN < 13);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN < 13);
                 elseif (selectRun == 2)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 12 & subjData.BN < 25);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 12 & subjData.BN < 25);
                 elseif (selectRun == 3)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 24 & subjData.BN < 37);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 24 & subjData.BN < 37);
                     iTmp = find(subjData.BN > 24 & subjData.BN < 37);
                     if (isempty(iTmp))
                         error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
@@ -168,8 +168,14 @@ switch (what)
                         for j = 1:5     % thresholded force of the fingers after "Go Cue"
                             if (chordTmp(j) == '1') % extension
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
                             elseif (chordTmp(j) == '2') % flexion
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
                             elseif (chordTmp(j) == '9') % finger should be relaxed
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
                                     | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
@@ -177,6 +183,10 @@ switch (what)
                                     forceTmp(:,end) = [];
                                 end
                             end
+                        end
+                        if (isempty(find(forceTmp,1)))  % if no fingers moved out of threshold, go to next trial
+                            disp("empty")
+                            continue
                         end
             
                         tmpIdx = [];
@@ -930,7 +940,7 @@ switch (what)
         xlabel("digit")
         ylabel("digit")
     
-    
+    % =====================================================================
     case 'theta_bias'
         durAfterActive = 200;   % default duration after first finger passed the baseline threshld in ms
         plotfcn = 1;            % default is to plot
@@ -967,15 +977,15 @@ switch (what)
                 outCellSubj{i,1} = chordVec(i);
 
                 if (selectRun == -1)        % selecting the last 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-12));
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-12));
                 elseif (selectRun == -2)    % selectign the last 24 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-24));
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-24));
                 elseif (selectRun == 1)     % selecting the first 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN < 13);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN < 13);
                 elseif (selectRun == 2)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 12 & subjData.BN < 25);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 12 & subjData.BN < 25);
                 elseif (selectRun == 3)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 24 & subjData.BN < 37);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 24 & subjData.BN < 37);
                     iTmp = find(subjData.BN > 24 & subjData.BN < 37,1);
                     if (isempty(iTmp))
                         error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
@@ -1014,8 +1024,14 @@ switch (what)
                         for j = 1:5     % thresholded force of the fingers after "Go Cue"
                             if (chordTmp(j) == '1') % extension
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
                             elseif (chordTmp(j) == '2') % flexion
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
                             elseif (chordTmp(j) == '9') % finger should be relaxed
                                 forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
                                     | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
@@ -1023,6 +1039,10 @@ switch (what)
                                     forceTmp(:,end) = [];
                                 end
                             end
+                        end
+                        if (isempty(find(forceTmp,1)))  % if no fingers moved out of threshold, go to next trial
+                            disp("empty")
+                            continue
                         end
             
                         tmpIdx = [];
@@ -1054,7 +1074,7 @@ switch (what)
         end
         varargout{1} = outCell;
 
-
+    % =====================================================================
     case 'corr_bias_avg_model'
         firstTrial = 2;         % default value
         corrMethod = 'pearson'; % default corr method
