@@ -875,32 +875,42 @@ switch (what)
         % beta value maps - single + 2finger
         model = models_save{find(string(featureCell) == "singleFinger+2FingerCombinations")};
         betaMatCell = cell(size(model,1),1);
+        pValCell = cell(size(model,1),1);
         for n = 1:size(model,1)
             betaMat = zeros(10,10);
+            pValMat = zeros(10,10);
             modelTmp = model{n,1};
             beta = modelTmp.Coefficients;
+            pVal = table2array(beta(:,4));
             beta = table2array(beta(:,1));
             beta(1) = [];
+            pVal(1) = [];
             
         %     beta = [zeros(10,1);beta];
         
             singleFingerBeta = beta(1:10);
+            singleFinger_pVal = pVal(1:10);
             cnt_single = 1;
             twoFingerBeta = beta(11:end);
+            twoFinger_pVal = pVal(11:end);
             cnt_two = 1;
             for i = 1:size(betaMat,1)
                 for j = i:size(betaMat,2)
                     if (i==j)
                         betaMat(i,j) = singleFingerBeta(cnt_single);
+                        pValMat(i,j) = singleFinger_pVal(cnt_single);
                         cnt_single = cnt_single+1;
                     elseif (j ~= i+5)
                         betaMat(i,j) = twoFingerBeta(cnt_two);
                         betaMat(j,i) = twoFingerBeta(cnt_two);
+                        pValMat(i,j) = twoFinger_pVal(cnt_two);
+                        pValMat(j,i) = twoFinger_pVal(cnt_two);
                         cnt_two = cnt_two+1;
                     end
                 end
             end
             betaMatCell{n} = betaMat;
+            pValCell{n} = pValMat;
         end
         
         betaMat = zeros(10,10);
@@ -1046,19 +1056,9 @@ switch (what)
 
 
     case 'corr_bias_avg_model'
-        onlyActiveFing = 1;     % default value
         firstTrial = 2;         % default value
         corrMethod = 'pearson'; % default corr method
         includeSubj = 0;        % default is not to include subj in avg
-        if (isempty(find(strcmp(varargin,'thetaCell'),1)))   
-            error("thetaCell not found. You should input thetaCell for this analysis")
-        end
-        if (~isempty(find(strcmp(varargin,'thetaCell'),1)))    
-            thetaCell = varargin{find(strcmp(varargin,'thetaCell'),1)+1};           % inputting the 'thetaCell'
-        end
-        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))    
-            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1}; % setting the 'onlyActiveFing' option - should be the same as the option used for 'thetaExp_vs_thetaStd'
-        end
         if (~isempty(find(strcmp(varargin,'firstTrial'),1)))    
             firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};         % setting the 'firstTrial' option - should be the same as the option used for 'thetaExp_vs_thetaStd'
         end
@@ -1068,37 +1068,35 @@ switch (what)
         if (~isempty(find(strcmp(varargin,'includeSubj'),1)))    
             includeSubj = varargin{find(strcmp(varargin,'includeSubj'),1)+1};       % setting the 'includeSubj' option
         end
+        if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))    
+            durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};       % setting the 'durAfterActive' option
+        end
+        if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
+            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};       % setting the 'selectRun' option
+        end
 
-        thetaMean = zeros(242,size(thetaCell,1));
-        thetaStd = zeros(242,size(thetaCell,1));
-        for subj = 1:size(thetaCell,1)
-            for j = 1:size(thetaMean,1)
-                thetaMean(j,subj) = mean(thetaCell{subj,1}{j,2}(firstTrial:end));
-                thetaStd(j,subj) = std(thetaCell{subj,1}{j,2}(firstTrial:end));
-            end
-            % rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{subj,2})];
-        end
-        
-        if (onlyActiveFing)
-            thetaMean(1:10,:) = [];
-        end
-        [i,~] = find(isnan(thetaMean));
-        thetaMean(i,:) = [];
+
+        biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
+                            'firstTrial',firstTrial);
+        biasMat = [biasVarCell{:,1}];
+        biasMat(:,1:2:end)=[];
+        biasMat = cell2mat(biasMat);
+        biasMat(:,2:2:end)=[];
         
         rhoAvg = cell(1,2);
         if (~includeSubj)    % if we do not include each subject in the avg model -> lower noise ceiling
-            for i = 1:size(thetaMean,2)
-                idxSelect = setdiff(1:size(thetaMean,2),i);                   % excluding subj i from avg calculation
-                tmpThetaMeanMat = thetaMean(:,idxSelect);
-                avgModel = mean(tmpThetaMeanMat,2);                           % calculating avg of thetaMean for subjects other than subj i
-                corrTmp = corr(avgModel,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with excluded subj
+            for i = 1:size(biasMat,2)
+                idxSelect = setdiff(1:size(biasMat,2),i);                       % excluding subj i from avg calculation
+                tmpThetaMeanMat = biasMat(:,idxSelect);
+                avgModel = mean(tmpThetaMeanMat,2);                             % calculating avg of thetaMean for subjects other than subj i
+                corrTmp = corr(avgModel,biasMat(:,i),'type',corrMethod);        % correlation of avg model with excluded subj
                 rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
                 rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
             end
         else                % if we include all subjects in the avg model -> higher noise ceiling
-            avgModel = mean(thetaMean,2);    
-            for i = 1:size(thetaMean,2)
-                corrTmp = corr(avgModel,thetaMean(:,i),'type',corrMethod);    % correlation of avg model with each subj
+            avgModel = mean(biasMat,2);    
+            for i = 1:size(biasMat,2)
+                corrTmp = corr(avgModel,biasMat(:,i),'type',corrMethod);      % correlation of avg model with each subj
                 rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
                 rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
             end

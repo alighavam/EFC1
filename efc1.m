@@ -4,22 +4,22 @@ close all;
 clc;
 
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary analysis:
 
 % loading data
-% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -180,14 +180,19 @@ excludeChord = [];
 biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
                             'firstTrial',firstTrial);
 
-
 chordVec = generateAllChords();
 chordVecSep = sepChordVec(chordVec);
 colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
     [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
 for subj = 1:size(biasVarCell,1)
     bias_var = biasVarCell{subj};
+    emptyCells = cellfun(@isempty,bias_var);
+    [row,col] = find(emptyCells);
     bias_var = cell2mat(bias_var(:,2));
+
+    chordVec = generateAllChords();
+    chordVec(row,:) = [];
+    chordVecSep = sepChordVec(chordVec);
     figure;
     for numActiveFing = 1:size(chordVecSep,1)
         scatter(sqrt(bias_var(chordVecSep{numActiveFing,2},2)),bias_var(chordVecSep{numActiveFing,2},1),30,"MarkerFaceColor",colors(numActiveFing,:))
@@ -197,18 +202,9 @@ for subj = 1:size(biasVarCell,1)
     ylabel("bias (degree)")
     title(sprintf("%s",biasVarCell{subj,2}))
     legend({"1","2","3","4","5"})
-%     ylim([0,90])
-%     xlim([0,60])
+    ylim([0,100])
+    xlim([0,20])
 end
-
-
-biasMat = [biasVarCell{:,1}];
-biasMat(:,1:2:end)=[];
-biasMat = cell2mat(biasMat);
-biasMat(:,2:2:end)=[];
-
-
-
 
 
 %% Mean Deviation
@@ -317,9 +313,8 @@ clc;
 close all;
 clearvars -except data
 
-
 % global params:
-dataName = "meanTheta";
+dataName = "thetaBias";
 corrMethod = 'pearson';
 includeSubjAvgModel = 0;
 
@@ -350,7 +345,7 @@ figure;
 for j = 1:4
     thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',durAfterActive,'plotfcn',0,...
     'firstTrial',firstTrial,'onlyActiveFing',onlyActiveFing,'selectRun',runVec(j));
-    [thetaMean,thetaStd] = meanTheta(thetaCell,firstTrial);
+    [thetaMean,~] = meanTheta(thetaCell,firstTrial);
     chordVec = generateAllChords();
     chordVecSep = sepChordVec(chordVec);
     xVec = [];
@@ -370,6 +365,49 @@ for j = 1:4
     ylabel("meanTheta (degree)")
     hold on
 end
+
+
+%% bias over numFingerActive
+
+runVec = [1,2,3,-1];
+colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
+    [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
+figure;
+for j = 1:4
+    biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'selectRun',runVec(j),...
+                            'firstTrial',firstTrial);
+    biasMat = [biasVarCell{:,1}];
+    biasMat(:,1:2:end)=[];
+    % in some runs, for some of the chords we get [] for biasVar. 
+    % Fixing for that here:
+    emptyCells = cellfun(@isempty,biasMat);
+    [row,col] = find(emptyCells);
+    biasMat(row,:) = [];
+    biasMat = cell2mat(biasMat);
+    biasMat(:,2:2:end)=[];
+
+    chordVec = generateAllChords();
+    chordVec(row,:) = [];
+    chordVecSep = sepChordVec(chordVec);
+
+    xVec = [];
+    yVec = [];
+    for i = 1:size(chordVecSep,1)
+        xTmp = repmat(i,size(biasMat,2)*length(chordVecSep{i,2}),1);
+        yTmp = biasMat(chordVecSep{i,2},:);
+        yTmp = yTmp(:);
+        xVec = [xVec;xTmp];
+        yVec = [yVec;yTmp];
+    end
+    xVec(isnan(yVec)) = [];
+    yVec(isnan(yVec)) = [];
+    lineplot(xVec,yVec,'linecolor',colors(j,:));
+    title("biasTheta")
+    xlabel("num Finger Active")
+    ylabel("biasTheta (degree)")
+    hold on
+end
+
 
 
 %% median RT over numActiveFinger + mean theta over numActiveFinger

@@ -44,6 +44,13 @@ elseif (what == "medRT")
     rho_medRT_AvgModel = efc1_analyze('corr_medRT_avg_model',data,'corrMethod',corrMethod,...
         'excludeChord',excludeChord,'includeSubj',0);
     lowCeil = mean(rho_medRT_AvgModel{1});
+elseif (what == "thetaBias")
+    rho_bias_AvgModel = efc1_analyze('corr_bias_avg_model',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
+                                'firstTrial',firstTrial,'includeSubj',1,'corrMethod',corrMethod);
+    highCeil = mean(rho_bias_AvgModel{1}); 
+    rho_bias_AvgModel = efc1_analyze('corr_bias_avg_model',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
+                                'firstTrial',firstTrial,'includeSubj',0,'corrMethod',corrMethod);
+   lowCeil = mean(rho_bias_AvgModel{1}); 
 end
 
 

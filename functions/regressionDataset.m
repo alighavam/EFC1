@@ -33,6 +33,16 @@ elseif (what == "medRT")
         medRT = medRT(:,end);
         dataset(:,i) = medRT;
     end
+elseif (what == "thetaBias")
+    biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
+                            'firstTrial',firstTrial);
+    biasMat = [biasVarCell{:,1}];
+    biasMat(:,1:2:end)=[];
+    biasMat = cell2mat(biasMat);
+    biasMat(:,2:2:end)=[];
+    dataset = biasMat;
+else
+    error("dataName %s does not exist.",what)
 end
 
 
