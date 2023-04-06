@@ -943,9 +943,9 @@ switch (what)
     % =====================================================================
     case 'theta_bias'
         durAfterActive = 200;   % default duration after first finger passed the baseline threshld in ms
-        plotfcn = 1;            % default is to plot
+        plotfcn = 0;            % default is to plot
         firstTrial = 2;         % default is 2 , The first trial of the chord is usually very different from others which impacts the variance a lot. This is an option to ignore the first trial if wanted.
-        selectRun = -1;         % default run to do the analysis is the last run. you can select run 1,2,3 or -1(last)
+        selectRun = -2;         % default run to do the analysis is the last run. you can select run 1,2,3 or -1(last)
         if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))
             durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};     % setting 'durAfterActive' option
         end
@@ -1074,6 +1074,35 @@ switch (what)
         end
         varargout{1} = outCell;
 
+        if (plotfcn)    % plotting
+            biasVarCell = outCell;
+            chordVec = generateAllChords();
+            chordVecSep = sepChordVec(chordVec);
+            colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
+                [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
+            for subj = 1:size(biasVarCell,1)
+                bias_var = biasVarCell{subj};
+                emptyCells = cellfun(@isempty,bias_var);
+                [row,col] = find(emptyCells);
+                bias_var = cell2mat(bias_var(:,2));
+            
+                chordVec = generateAllChords();
+                chordVec(row,:) = [];
+                chordVecSep = sepChordVec(chordVec);
+                figure;
+                for numActiveFing = 1:size(chordVecSep,1)
+                    scatter(sqrt(bias_var(chordVecSep{numActiveFing,2},2)),bias_var(chordVecSep{numActiveFing,2},1),30,"MarkerFaceColor",colors(numActiveFing,:))
+                    hold on
+                end
+                xlabel("std theta (degree)")
+                ylabel("bias (degree)")
+                title(sprintf("%s",biasVarCell{subj,2}))
+                legend({"1","2","3","4","5"})
+                ylim([0,100])
+                xlim([0,20])
+            end
+        end
+
     % =====================================================================
     case 'corr_bias_avg_model'
         firstTrial = 2;         % default value
@@ -1123,6 +1152,143 @@ switch (what)
         end
 
         varargout{1} = rhoAvg;
+    
+    % =====================================================================
+    case 'meanDev'
+        selectRun = -2;         % the blocks to select data from
+        clim = [];
+        corrMethod = 'pearson';
+        plotfcn = 0;
+        if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
+            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};               % setting the 'selectRun' option
+        end
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))    
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};             % setting the 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'plotfcn'),1)))    
+            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};               % setting the 'plotfcn' option
+        end
+        if (~isempty(find(strcmp(varargin,'clim'),1)))    
+            clim = varargin{find(strcmp(varargin,'clim'),1)+1};                     % setting the 'clim' option
+        end
+        
+        forceData = cell(size(data));
+        for i = 1:size(data,1)
+            forceData{i,1} = extractDiffForce(data{i,1});
+            forceData{i,2} = data{i,2};
+        end
+        
+        meanDevCell = cell(size(data,1),2);
+        for subj = 1:size(data,1)
+            chordVec = generateAllChords();                 % make all chords
+            subjForceData = forceData{subj,1};
+            subjData = data{subj,1};
+            meanDevCell{subj,2} = data{subj,2};
+            vecBN = unique(subjData.BN);
+            meanDevCellSubj = cell(length(chordVec),2);
+            for i = 1:length(chordVec)
+                meanDevCellSubj{i,1} = chordVec(i);      % first columns: chordID
+                if (selectRun == -1)        % selecting the last 12 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-12));
+                elseif (selectRun == -2)    % selectign the last 24 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-24));
+                elseif (selectRun == 1)     % selecting the first 12 runs
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN < 13);
+                elseif (selectRun == 2)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 12 & subjData.BN < 25);
+                elseif (selectRun == 3)
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 24 & subjData.BN < 37);
+                    iTmp = find(subjData.BN > 24 & subjData.BN < 37,1);
+                    if (isempty(iTmp))
+                        error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
+                    end
+                else
+                    error("selectRun " + num2str(selectRun) + "does not exist. Possible choices are 1,2,3 and -1.")
+                end
+        
+                if (~isempty(trialIdx))
+                    chordTmp = num2str(chordVec(i));
+                    meanDevTmp = zeros(length(trialIdx),1);
+                    for trial_i = 1:length(trialIdx)
+                        forceTmp = [];
+                        tVec = subjForceData{trialIdx(trial_i)}(:,2);   % time vector in trial
+                        tGoCue = subjData.planTime(trialIdx(trial_i));
+                        fGainVec = [subjData.fGain1(trialIdx(trial_i)) subjData.fGain2(trialIdx(trial_i)) subjData.fGain3(trialIdx(trial_i)) subjData.fGain4(trialIdx(trial_i)) subjData.fGain5(trialIdx(trial_i))];
+                        for j = 1:5     % thresholded force of the fingers after "Go Cue"
+                            if (chordTmp(j) == '1') % extension
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
+                            elseif (chordTmp(j) == '2') % flexion
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
+                            elseif (chordTmp(j) == '9') % finger should be relaxed
+                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
+                                    | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                if (isempty(find(forceTmp(:,end),1)))
+                                    forceTmp(:,end) = [];
+                                end
+                            end
+                        end
+                        
+                        if (isempty(find(forceTmp,1)))  % if no fingers moved out of threshold, go to next trial
+                            disp("empty forceTmp")
+                            continue
+                        end
+            
+                        tmpIdx = [];
+                        for k = 1:size(forceTmp,2)
+                            tmpIdx(k) = find(forceTmp(:,k),1);
+                        end
+                        [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
+                        idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first active finger passes the baseline threshold after "Go Cue"
+                        forceSelceted = [];
+                        durAfterActive = subjData.RT(trialIdx(trial_i))-600;    % select the force from movement initiation until the correct state is formed
+                        % durAfterActive = 200;   % select the force from movement initiation until 200ms later
+                        for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
+                            forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:find(tVec==tGoCue)+round(durAfterActive/2),2+j)];
+                        end
+                        
+                        tempDiff = zeros(size(forceSelceted,1),1);
+                        c = forceSelceted(end,:)-forceSelceted(1,:);
+                        for t = 1:size(forceSelceted,1) % iterating on time points
+                            projection = (c * forceSelceted(t,:)' / norm(c)^2)*c;
+                            tempDiff(t) = norm(forceSelceted(t,:) - projection);
+                        end
+                        meanDevTmp(trial_i) = sum(tempDiff) / size(forceSelceted,1);
+                    end
+                    meanDevCellSubj{i,2} = meanDevTmp;
+                else
+                    meanDevCellSubj{i,2} = [];
+                end 
+            end
+            meanDevCell{subj,1} = meanDevCellSubj;
+        end
+        varargout{1} = meanDevCell;
+        tmpMeanDev = [meanDevCell{:,1}];
+        tmpMeanDev(:,1:2:end) = [];
+        avgMeanDev = cellfun(@(x) mean(x,'all'),tmpMeanDev);
+        corrMeanDev = cell(1,2);
+        corrMeanDev{2} = cellfun(@(x) convertCharsToStrings(x),data(:,2));
+        corrMeanDev{1} = corr(avgMeanDev,'type',corrMethod);
+        varargout{2} = corrMeanDev;
+        
+        if (plotfcn)
+            figure;
+            if (~isempty(clim))
+                imagesc(corrMeanDev{1},clim)
+            else
+                imagesc(corrMeanDev{1})
+            end
+            colorbar
+            title(sprintf("corr meanDev across subj - corrMethod: %s",corrMethod))
+            xlabel("subj")
+            ylabel("subj")
+        end
+
     
     otherwise
         error('The analysis you entered does not exist!')
