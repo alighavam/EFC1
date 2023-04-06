@@ -15,8 +15,7 @@ addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin'
 % addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
 % addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
-% temporary analysis:
-
+% temporary fix:
 % loading data
 % analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
 analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
@@ -127,7 +126,10 @@ biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'se
                             'firstTrial',firstTrial,'plotfcn',0);
 
 [meanDevCell,rho_meanDev_acrossSubj] = efc1_analyze('meanDev',data,'selectRun',selectRun,...
-                                                    'corrMethod',corrMethod,'plotfcn',1,'clim',clim);
+                                                    'corrMethod',corrMethod,'plotfcn',0,'clim',clim);
+
+rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',selectRun,'corrMethod',corrMethod,...
+                                    'includeSubj',includeSubjAvgModel);
 
 % [rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
 %     'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
@@ -142,21 +144,6 @@ biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'se
 % efc1_analyze('meanTheta_scatter_across_subj',data,thetaCell,'onlyActiveFing',onlyActiveFing,'firstTrial',firstTrial
 
 
-% ====EXTRA PLOTS====
-figure; % avgModel correlations comparison between medRT and meanTheta
-hold all
-scatter(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},40,'k','filled','HandleVisibility','off')
-plot(1:length(rho_theta_avgModel{1}),rho_theta_avgModel{1},'k','LineWidth',0.2)
-scatter(1:length(rho_medRT_AvgModel{1}),rho_medRT_AvgModel{1},40,'r','filled','HandleVisibility','off')
-plot(1:length(rho_medRT_AvgModel{1}),rho_medRT_AvgModel{1},'r','LineWidth',0.2)
-title("correlation avg model")
-xlabel("subj excluded")
-ylabel("correlation of avg with excluded subj")
-legend("meanTheta","medRT")
-ylim([0,1])
-
-
-
 
 
 
@@ -166,15 +153,13 @@ ylim([0,1])
 
 
 
-
-
 %% Model Testing
 clc;
 close all;
 clearvars -except data
 
 % global params:
-dataName = "thetaBias";
+dataName = "meanDev";
 corrMethod = 'pearson';
 includeSubjAvgModel = 0;
 
@@ -188,15 +173,15 @@ durAfterActive = 200;
 excludeChord = [];
 
 
-featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
-    "neighbourFingers","2FingerCombinations","neighbourFingers+singleFinger","singleFinger+2FingerCombinations","all"};
+featureCell = {"singleFingExt","numActiveFing-oneHot","singleFinger",...
+    "neighbourFingers+singleFinger","singleFinger+2FingerCombinations","all"};
 
 efc1_analyze('modelTesting',data,'dataName',dataName,'featureCell',featureCell,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,...
             'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive,'excludeChord',excludeChord);
 
 
 
-%% thetaMean avg over numFingerActive
+%% thetaMean avg vs numFingerActive
 
 runVec = [1,2,3,-1];
 colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
@@ -227,7 +212,7 @@ for j = 1:4
 end
 
 
-%% bias over numFingerActive
+%% bias vs numFingerActive
 
 runVec = [1,2,3,-1];
 colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
@@ -265,6 +250,38 @@ for j = 1:4
     title("biasTheta")
     xlabel("num Finger Active")
     ylabel("biasTheta (degree)")
+    hold on
+end
+
+%% MeanDev vs numFingerActive
+
+runVec = [1,2,3,-1];
+colors = [[0 0.4470 0.7410];[0.8500 0.3250 0.0980];[0.9290 0.6940 0.1250];[0.4940 0.1840 0.5560];...
+    [0.4660 0.6740 0.1880];[0.3010 0.7450 0.9330];[0.6350 0.0780 0.1840]];
+
+
+figure;
+for j = 1:4
+    meanDev = regressionDataset(data,'meanDev','selectRun',runVec(j),'plotfcn',0);
+
+    chordVec = generateAllChords();
+    chordVecSep = sepChordVec(chordVec);
+
+    xVec = [];
+    yVec = [];
+    for i = 1:size(chordVecSep,1)
+        xTmp = repmat(i,size(meanDev,2)*length(chordVecSep{i,2}),1);
+        yTmp = meanDev(chordVecSep{i,2},:);
+        yTmp = yTmp(:);
+        xVec = [xVec;xTmp];
+        yVec = [yVec;yTmp];
+    end
+    xVec(isnan(yVec)) = [];
+    yVec(isnan(yVec)) = [];
+    lineplot(xVec,yVec,'linecolor',colors(j,:));
+    title("MeanDev")
+    xlabel("num Finger Active")
+    ylabel("Avg MeanDev")
     hold on
 end
 
@@ -474,7 +491,6 @@ legend({"1","2","3","4","5"})
 
 
 %% Correlations of measures
-
 clc;
 close all;
 clearvars -except data
@@ -503,23 +519,28 @@ meanTheta = regressionDataset(data,"meanTheta",'onlyActiveFing',onlyActiveFing,.
 thetaBias = regressionDataset(data,"thetaBias",'onlyActiveFing',onlyActiveFing,...
             'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive);
 
+meanDev = regressionDataset(data,"meanDev",'onlyActiveFing',onlyActiveFing,...
+            'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive);
 
-mat = [medRT,meanTheta,thetaBias];
+
+mat = [medRT,meanTheta,thetaBias,meanDev];
 rho = corr(mat,'type',corrMethod);
 
 figure;
 imagesc(rho)
 hold on
-line([0.5,18.5], [6.5,6.5], 'Color', 'k','LineWidth',2);
-line([0.5,18.5], [12.5,12.5], 'Color', 'k','LineWidth',2);
-line([6.5,6.5], [0.5,18.5], 'Color', 'k','LineWidth',2);
-line([12.5,12.5], [0.5,18.5], 'Color', 'k','LineWidth',2);
-xticks([1:18])
-yticks([1:18])
-xticklabels([1:6,1:6,1:6])
-yticklabels([1:6,1:6,1:6])
+line([0.50,24.5], [6.50,6.50], 'Color', 'k','LineWidth',2);
+line([0.50,24.5], [12.5,12.5], 'Color', 'k','LineWidth',2);
+line([0.50,24.5], [18.5,18.5], 'Color', 'k','LineWidth',2);
+line([6.50,6.50], [0.50,24.5], 'Color', 'k','LineWidth',2);
+line([12.5,12.5], [0.50,24.5], 'Color', 'k','LineWidth',2);
+line([18.5,18.5], [0.50,24.5], 'Color', 'k','LineWidth',2);
+xticks([1:24])
+yticks([1:24])
+xticklabels([1:6,1:6,1:6,1:6])
+yticklabels([1:6,1:6,1:6,1:6])
 colorbar
-title(sprintf("measures correlations (L: medRT , M: meanTheta , R: theta bias)"))
+title(sprintf("measures correlations (left to right: medRT , meanTheta , theta bias , meanDev)"))
 xlabel("subject num")
 ylabel("subject num")
 

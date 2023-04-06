@@ -2,7 +2,7 @@ function dataset = regressionDataset(data,what,varargin)
 
 onlyActiveFing = 0;
 firstTrial = 2;
-selectRun = -1;
+selectRun = -2;
 durAfterActive = 200;
 
 if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))
@@ -41,6 +41,13 @@ elseif (what == "thetaBias")
     biasMat = cell2mat(biasMat);
     biasMat(:,2:2:end)=[];
     dataset = biasMat;
+elseif (what == "meanDev")
+    [meanDevCell,~] = efc1_analyze('meanDev',data,'selectRun',selectRun,...
+                                                    'plotfcn',0,'clim',[]);
+    tmpMeanDev = [meanDevCell{:,1}];
+    tmpMeanDev(:,1:2:end) = [];
+    avgMeanDev = cellfun(@(x) mean(x,'all'),tmpMeanDev);
+    dataset = avgMeanDev;
 else
     error("dataName %s does not exist.",what)
 end

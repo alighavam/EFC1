@@ -6,7 +6,6 @@ addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin'
 subjName = {'subj09'};
 
 switch (what)
-    % =====================================================================
     case 'all_subj'     % create .mat data files for subjects   
         for s = 1:length(subjName)
             efc1_subj(subjName{s},0);
@@ -1177,8 +1176,8 @@ switch (what)
             forceData{i,1} = extractDiffForce(data{i,1});
             forceData{i,2} = data{i,2};
         end
-        
         meanDevCell = cell(size(data,1),2);
+        
         for subj = 1:size(data,1)
             chordVec = generateAllChords();                 % make all chords
             subjForceData = forceData{subj,1};
@@ -1187,7 +1186,9 @@ switch (what)
             vecBN = unique(subjData.BN);
             meanDevCellSubj = cell(length(chordVec),2);
             for i = 1:length(chordVec)
+                
                 meanDevCellSubj{i,1} = chordVec(i);      % first columns: chordID
+                
                 if (selectRun == -1)        % selecting the last 12 runs
                     trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-12));
                 elseif (selectRun == -2)    % selectign the last 24 runs
@@ -1205,7 +1206,7 @@ switch (what)
                 else
                     error("selectRun " + num2str(selectRun) + "does not exist. Possible choices are 1,2,3 and -1.")
                 end
-        
+                
                 if (~isempty(trialIdx))
                     chordTmp = num2str(chordVec(i));
                     meanDevTmp = zeros(length(trialIdx),1);
@@ -1238,7 +1239,7 @@ switch (what)
                             disp("empty forceTmp")
                             continue
                         end
-            
+                        
                         tmpIdx = [];
                         for k = 1:size(forceTmp,2)
                             tmpIdx(k) = find(forceTmp(:,k),1);
@@ -1266,16 +1267,20 @@ switch (what)
                 end 
             end
             meanDevCell{subj,1} = meanDevCellSubj;
+            
         end
+        
         varargout{1} = meanDevCell;
         tmpMeanDev = [meanDevCell{:,1}];
         tmpMeanDev(:,1:2:end) = [];
+        
+        
         avgMeanDev = cellfun(@(x) mean(x,'all'),tmpMeanDev);
         corrMeanDev = cell(1,2);
         corrMeanDev{2} = cellfun(@(x) convertCharsToStrings(x),data(:,2));
         corrMeanDev{1} = corr(avgMeanDev,'type',corrMethod);
         varargout{2} = corrMeanDev;
-        
+
         if (plotfcn)
             figure;
             if (~isempty(clim))
@@ -1288,8 +1293,46 @@ switch (what)
             xlabel("subj")
             ylabel("subj")
         end
+        
 
-    
+    % =====================================================================
+    case 'corr_meanDev_avg_model'
+        selectRun = -2;
+        corrMethod = 'pearson';
+        includeSubj = 0;
+        if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
+            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};           % setting the 'selectRun' option - should be the same as the option used for 'thetaExp_vs_thetaStd'
+        end
+        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))    
+            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};         % setting the 'corrMethod' option
+        end
+        if (~isempty(find(strcmp(varargin,'includeSubj'),1)))    
+            includeSubj = varargin{find(strcmp(varargin,'includeSubj'),1)+1};       % setting the 'includeSubj' option
+        end
+        
+        meanDev = regressionDataset(data,'meanDev','selectRun',selectRun,'plotfcn',0);
+        
+        rhoAvg = cell(1,2);
+        if (~includeSubj)    % if we do not include each subject in the avg model -> lower noise ceiling
+            for i = 1:size(meanDev,2)
+                idxSelect = setdiff(1:size(meanDev,2),i);                       % excluding subj i from avg calculation
+                tmpMeanDev = meanDev(:,idxSelect);
+                avgModel = mean(tmpMeanDev,2);                                  % calculating avg of meanDev for subjects other than subj i
+                corrTmp = corr(avgModel,meanDev(:,i),'type',corrMethod);        % correlation of avg model with excluded subj
+                rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
+                rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+            end
+        else                % if we include all subjects in the avg model -> higher noise ceiling
+            avgModel = mean(meanDev,2);    
+            for i = 1:size(meanDev,2)
+                corrTmp = corr(avgModel,meanDev(:,i),'type',corrMethod);      % correlation of avg model with each subj
+                rhoAvg{1,1} = [rhoAvg{1,1} corrTmp];
+                rhoAvg{1,2} = [rhoAvg{1,2} convertCharsToStrings(data{i,2})];
+            end
+        end
+
+        varargout{1} = rhoAvg;
+
     otherwise
         error('The analysis you entered does not exist!')
 end

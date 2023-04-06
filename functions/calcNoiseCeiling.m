@@ -51,6 +51,13 @@ elseif (what == "thetaBias")
     rho_bias_AvgModel = efc1_analyze('corr_bias_avg_model',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
                                 'firstTrial',firstTrial,'includeSubj',0,'corrMethod',corrMethod);
    lowCeil = mean(rho_bias_AvgModel{1}); 
+elseif (what == "meanDev")
+    rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',selectRun,'corrMethod',corrMethod,...
+                                    'includeSubj',1);
+    highCeil = mean(rho_meanDev_avgModel{1}); 
+    rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',selectRun,'corrMethod',corrMethod,...
+                                    'includeSubj',0);
+    lowCeil = mean(rho_meanDev_avgModel{1}); 
 end
 
 
