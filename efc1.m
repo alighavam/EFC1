@@ -4,21 +4,21 @@ close all;
 clc;
 
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary fix:
 % loading data
-% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -178,6 +178,27 @@ featureCell = {"singleFingExt","numActiveFing-oneHot","singleFinger",...
 
 efc1_analyze('modelTesting',data,'dataName',dataName,'featureCell',featureCell,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,...
             'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive,'excludeChord',excludeChord);
+
+
+%% variability of finger forces 
+% meand and var of finger forces during baseline interval, inactive and
+% active for each subject.
+clc;
+clearvars -except data
+close all;
+
+for subj = 1:size(data,1)
+    dataTmp = data{subj,1};
+    forces = extractDiffForce(dataTmp); % force signals
+    corrTrialIdx = find(dataTmp.trialErrorType == 0);   % correct trials
+    subj_baseLineForceCell
+    for j = 1:length(corrTrialIdx)
+        forcesTmp = forces{corrTrialIdx(j)};
+        baseLineIdx = find(forcesTmp(:,1) == 2);
+        
+    end
+end
+
 
 
 
