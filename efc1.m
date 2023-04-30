@@ -4,21 +4,21 @@ close all;
 clc;
 
 % iMac
-% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary fix:
 % loading data
-analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -187,17 +187,88 @@ clc;
 clearvars -except data
 close all;
 
+holdTime = 600; % chord hold time = 600ms
+
+baselineForceCell = cell(size(data,1),3);
+execForceCell = cell(size(data,1),3);
 for subj = 1:size(data,1)
     dataTmp = data{subj,1};
     forces = extractDiffForce(dataTmp); % force signals
-    corrTrialIdx = find(dataTmp.trialErrorType == 0);   % correct trials
-    subj_baseLineForceCell
-    for j = 1:length(corrTrialIdx)
-        forcesTmp = forces{corrTrialIdx(j)};
-        baseLineIdx = find(forcesTmp(:,1) == 2);
+    correctTrialIdx = find(dataTmp.trialErrorType == 0);   % correct trials
+    subj_baselineForceMat = zeros(length(correctTrialIdx),5);
+    subj_execForceMat = zeros(length(correctTrialIdx),5);
+    for j = 1:length(correctTrialIdx)
+        forceTmp = forces{correctTrialIdx(j)};
+        baselineIdx = find(forceTmp(:,1) == 2);
+        execIdx = find(forceTmp(:,1) == 3);
+        execIdx = execIdx(end-holdTime/2:end);
+        
+        baselineForce = forceTmp(baselineIdx,3:end);
+        execForce = forceTmp(execIdx,3:end);
+
+        subj_baselineForceMat(j,:) = mean(baselineForce,1);
+        subj_execForceMat(j,:) = mean(execForce,1);
         
     end
+    baselineForceCell{subj,1} = subj_baselineForceMat;
+    execForceCell{subj,1} = subj_execForceMat;
+    baselineForceCell{subj,2} = data{subj,2};
+    execForceCell{subj,2} = data{subj,2};
+    baselineForceCell{subj,3} = correctTrialIdx;
+    execForceCell{subj,3} = correctTrialIdx;
 end
+
+% baseline force plot
+figure;
+for subj = 1:size(baselineForceCell,1)
+    tmpForceMat = baselineForceCell{subj,1};
+    avgFingForce = mean(tmpForceMat,1);
+    semFingForce = std(tmpForceMat,[],1)/sqrt(size(tmpForceMat,1));
+    baselineTopThreshold = data{subj,1}.baselineTopThresh(1);
+    subplot(6,1,subj);
+    scatter([1,2,3,4,5],avgFingForce,60,'k','filled')
+    hold on
+    errorbar([1,2,3,4,5],avgFingForce,semFingForce,'LineStyle','none','Color','k')
+    hold on
+    line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineWidth',1.5)
+    hold on
+    line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineWidth',1.5)
+    ylim([-1.5,1.5])
+    xlim([0,6])
+    xticks(1:5)
+    xticklabels({'finger 1', 'finger 2', 'finger 3', 'finger 4', 'finger 5'})
+    ylabel('avg force (N)')
+    title(sprintf("baseline interval , %s",baselineForceCell{subj,2}))
+end
+
+% exec inactive force plot
+figure;
+for subj = 1:size(baselineForceCell,1)
+    tmpForceMat = execForceCell{subj,1};
+%     avgFingForce = mean(tmpForceMat,1);
+%     semFingForce = std(tmpForceMat,[],1)/sqrt(size(tmpForceMat,1));
+%     baselineTopThreshold = data{subj,1}.baselineTopThresh(1);
+%     subplot(6,1,subj);
+%     scatter([1,2,3,4,5],avgFingForce,60,'k','filled')
+%     hold on
+%     errorbar([1,2,3,4,5],avgFingForce,semFingForce,'LineStyle','none','Color','k')
+%     hold on
+%     line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineWidth',1.5)
+%     hold on
+%     line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineWidth',1.5)
+%     ylim([-1.5,1.5])
+%     xlim([0,6])
+%     xticks(1:5)
+%     xticklabels({'finger 1', 'finger 2', 'finger 3', 'finger 4', 'finger 5'})
+%     ylabel('avg force (N)')
+%     title(sprintf("baseline interval , %s",baselineForceCell{subj,2}))
+end
+
+
+% exec active force plot
+
+
+
 
 
 
