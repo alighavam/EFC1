@@ -109,6 +109,7 @@ switch (what)
         if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
             selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};          % setting 'selectRun' option
         end
+        holdTime = 600;
         
         forceData = cell(size(data));   % extracting the force signals for each subj
         for i = 1:size(data,1)
@@ -160,24 +161,33 @@ switch (what)
                 if (~isempty(trialIdx))
                     chordTmp = num2str(chordVec(i));
                     for trial_i = 1:length(trialIdx)
+                        forceTrial = subjForceData{trialIdx(trial_i)};
+                        baselineIdx = forceTrial(:,1) == 2;
+                        execIdx = find(forceTrial(:,1) == 3);
+                        execIdx = execIdx(end-holdTime/2:end);
+                        
+                        avgBaselineForce = mean(forceTrial(baselineIdx,3:7),1);
+                        avgExecForce = mean(forceTrial(execIdx,3:7),1);
+                        idealVec = avgExecForce - avgBaselineForce;
+
                         forceTmp = [];
                         tVec = subjForceData{trialIdx(trial_i)}(:,2); % time vector in trial
                         tGoCue = subjData.planTime(trialIdx(trial_i));
                         fGainVec = [subjData.fGain1(trialIdx(trial_i)) subjData.fGain2(trialIdx(trial_i)) subjData.fGain3(trialIdx(trial_i)) subjData.fGain4(trialIdx(trial_i)) subjData.fGain5(trialIdx(trial_i))];
                         for j = 1:5     % thresholded force of the fingers after "Go Cue"
                             if (chordTmp(j) == '1') % extension
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
                             elseif (chordTmp(j) == '2') % flexion
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
                             elseif (chordTmp(j) == '9') % finger should be relaxed
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
-                                    | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
+                                    | subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
@@ -197,19 +207,15 @@ switch (what)
                         
                         forceSelceted = [];
                         for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
-                            forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                            forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
                         end
                         forceVec = mean(forceSelceted,1);  % average of finger forces from idxStart to idxStart+durAfterActive
-                        idealVec = double(chordTmp~='9');
-                        for j = 1:5
-                            if (chordTmp(j) == '2')
-                                idealVec(j) = -1;
-                            end
-                        end
-                        if (onlyActiveFing) % if only wanted to find the angle between active fingers
-                            forceVec(idealVec==0) = [];
-                            idealVec(idealVec==0) = [];
-                        end
+%                         idealVec = double(chordTmp~='9');
+%                         for j = 1:5
+%                             if (chordTmp(j) == '2')
+%                                 idealVec(j) = -1;
+%                             end
+%                         end
                         thetaCellSubj{i,2} = [thetaCellSubj{i,2} vectorAngle(forceVec,idealVec)];
                     end
                 else
@@ -802,7 +808,7 @@ switch (what)
     
     
     case 'modelTesting'
-        dataName = "meanTheta";
+        dataName = "meanDev";
         featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
             "neighbourFingers","2FingerCombinations","singleFinger+2FingerCombinations","neighbourFingers+singleFinger","all"};
 
@@ -957,6 +963,7 @@ switch (what)
         if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
             selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};               % setting 'selectRun' option
         end
+        holdTime = 600;
         
         forceData = cell(size(data));   % extracting the force signals for each subj
         for i = 1:size(data,1)
@@ -1015,25 +1022,34 @@ switch (what)
                         end
                     end
                     forceVec_i_holder = [];
+                    idealVec = zeros(1,5);
                     for trial_i = 1:length(trialIdx)
+                        forceTrial = subjForceData{trialIdx(trial_i)};
+                        baselineIdx = forceTrial(:,1) == 2;
+                        execIdx = find(forceTrial(:,1) == 3);
+                        execIdx = execIdx(end-holdTime/2:end);
+                        
+                        avgBaselineForce = mean(forceTrial(baselineIdx,3:7),1);
+                        avgExecForce = mean(forceTrial(execIdx,3:7),1);
+                        idealVec = idealVec + (avgExecForce - avgBaselineForce)/length(trialIdx);
+
                         forceTmp = [];
                         tVec = subjForceData{trialIdx(trial_i)}(:,2); % time vector in trial
                         tGoCue = subjData.planTime(trialIdx(trial_i));
-                        fGainVec = [subjData.fGain1(trialIdx(trial_i)) subjData.fGain2(trialIdx(trial_i)) subjData.fGain3(trialIdx(trial_i)) subjData.fGain4(trialIdx(trial_i)) subjData.fGain5(trialIdx(trial_i))];
                         for j = 1:5     % thresholded force of the fingers after "Go Cue"
                             if (chordTmp(j) == '1') % extension
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
                             elseif (chordTmp(j) == '2') % flexion
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
                             elseif (chordTmp(j) == '9') % finger should be relaxed
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
-                                    | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
+                                    | subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
@@ -1053,7 +1069,7 @@ switch (what)
                         
                         forceSelceted = [];
                         for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
-                            forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                            forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
                         end
                         forceVec_i = mean(forceSelceted,1)';  % average of finger forces in the first {durAfterActive} ms
                         forceVec_i_holder = [forceVec_i_holder forceVec_i];
@@ -1217,18 +1233,18 @@ switch (what)
                         fGainVec = [subjData.fGain1(trialIdx(trial_i)) subjData.fGain2(trialIdx(trial_i)) subjData.fGain3(trialIdx(trial_i)) subjData.fGain4(trialIdx(trial_i)) subjData.fGain5(trialIdx(trial_i))];
                         for j = 1:5     % thresholded force of the fingers after "Go Cue"
                             if (chordTmp(j) == '1') % extension
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
                             elseif (chordTmp(j) == '2') % flexion
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
                             elseif (chordTmp(j) == '9') % finger should be relaxed
-                                forceTmp = [forceTmp (fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
-                                    | fGainVec(j)*subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
+                                    | subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
                                 if (isempty(find(forceTmp(:,end),1)))
                                     forceTmp(:,end) = [];
                                 end
@@ -1250,7 +1266,7 @@ switch (what)
                         durAfterActive = subjData.RT(trialIdx(trial_i))-600;    % select the force from movement initiation until the correct state is formed
                         % durAfterActive = 200;   % select the force from movement initiation until 200ms later
                         for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
-                            forceSelceted = [forceSelceted fGainVec(j)*subjForceData{trialIdx(trial_i)}(idxStart:find(tVec==tGoCue)+round(durAfterActive/2),2+j)];
+                            forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:find(tVec==tGoCue)+round(durAfterActive/2),2+j)];
                         end
                         
                         tempDiff = zeros(size(forceSelceted,1),1);

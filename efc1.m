@@ -4,21 +4,21 @@ close all;
 clc;
 
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary fix:
 % loading data
-% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -159,9 +159,8 @@ close all;
 clearvars -except data
 
 % global params:
-dataName = "meanDev";
+dataName = "meanTheta";
 corrMethod = 'pearson';
-includeSubjAvgModel = 0;
 
 % theta calc params:
 onlyActiveFing = 0;
@@ -223,53 +222,122 @@ figure;
 for subj = 1:size(baselineForceCell,1)
     tmpForceMat = baselineForceCell{subj,1};
     avgFingForce = mean(tmpForceMat,1);
-    semFingForce = std(tmpForceMat,[],1)/sqrt(size(tmpForceMat,1));
+    stdFingForce = std(tmpForceMat,[],1);
     baselineTopThreshold = data{subj,1}.baselineTopThresh(1);
-    subplot(6,1,subj);
+    subplot(2,3,subj);
     scatter([1,2,3,4,5],avgFingForce,60,'k','filled')
     hold on
-    errorbar([1,2,3,4,5],avgFingForce,semFingForce,'LineStyle','none','Color','k')
+    errorbar([1,2,3,4,5],avgFingForce,stdFingForce,'LineStyle','none','Color','k')
     hold on
-    line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineWidth',1.5)
+    line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineStyle','--')
     hold on
-    line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineWidth',1.5)
-    ylim([-1.5,1.5])
+    line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineStyle','--')
+    ylim([-6,6])
     xlim([0,6])
     xticks(1:5)
     xticklabels({'finger 1', 'finger 2', 'finger 3', 'finger 4', 'finger 5'})
     ylabel('avg force (N)')
-    title(sprintf("baseline interval , %s",baselineForceCell{subj,2}))
+    title(sprintf("baseline , %s",baselineForceCell{subj,2}))
 end
 
 % exec inactive force plot
 figure;
 for subj = 1:size(baselineForceCell,1)
+    baselineTopThreshold = data{subj,1}.baselineTopThresh(1);
     tmpForceMat = execForceCell{subj,1};
-%     avgFingForce = mean(tmpForceMat,1);
-%     semFingForce = std(tmpForceMat,[],1)/sqrt(size(tmpForceMat,1));
-%     baselineTopThreshold = data{subj,1}.baselineTopThresh(1);
-%     subplot(6,1,subj);
-%     scatter([1,2,3,4,5],avgFingForce,60,'k','filled')
-%     hold on
-%     errorbar([1,2,3,4,5],avgFingForce,semFingForce,'LineStyle','none','Color','k')
-%     hold on
-%     line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineWidth',1.5)
-%     hold on
-%     line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineWidth',1.5)
-%     ylim([-1.5,1.5])
-%     xlim([0,6])
-%     xticks(1:5)
-%     xticklabels({'finger 1', 'finger 2', 'finger 3', 'finger 4', 'finger 5'})
-%     ylabel('avg force (N)')
-%     title(sprintf("baseline interval , %s",baselineForceCell{subj,2}))
+    tmpForceMat(tmpForceMat > baselineTopThreshold | tmpForceMat < -baselineTopThreshold) = 0;
+    avgFingForce = zeros(1,5);
+    stdFingForce = zeros(1,5);
+    for j = 1:5 % loop over fingers
+        tmp = tmpForceMat(:,j);
+        tmp(tmp==0) = [];
+        avgFingForce(j) = mean(tmp);
+        stdFingForce(j) = std(tmp);
+    end
+    subplot(2,3,subj);
+    hold all
+    scatter([1,2,3,4,5],avgFingForce,60,'k','filled')
+    errorbar([1,2,3,4,5],avgFingForce,stdFingForce,'LineStyle','none','Color','k')
+    line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineStyle','--')
+    line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineStyle','--')
+    ylim([-6,6])
+    xlim([0,6])
+    xticks(1:5)
+    xticklabels({'finger 1', 'finger 2', 'finger 3', 'finger 4', 'finger 5'})
+    ylabel('avg force (N)')
+    title(sprintf("execution inactive, %s",baselineForceCell{subj,2}))
 end
 
 
-% exec active force plot
+% exec extension force plot
+figure;
+for subj = 1:size(baselineForceCell,1)
+    baselineTopThreshold = data{subj,1}.baselineTopThresh(1);
+    extBotThresh = data{subj,1}.extBotThresh(1);
+    extTopThresh = data{subj,1}.extTopThresh(1);
+    tmpForceMat = execForceCell{subj,1};
+    tmpForceMat(tmpForceMat < baselineTopThreshold) = 0;
+    avgFingForce = zeros(1,5);
+    stdFingForce = zeros(1,5);
+    for j = 1:5 % loop over fingers
+        tmp = tmpForceMat(:,j);
+        tmp(tmp==0) = [];
+        avgFingForce(j) = mean(tmp);
+        stdFingForce(j) = std(tmp);
+    end
+    subplot(2,3,subj);
+    hold all
+    scatter([1,2,3,4,5],avgFingForce,60,'k','filled')
+    errorbar([1,2,3,4,5],avgFingForce,stdFingForce,'LineStyle','none','Color','k')
+    line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineStyle','--')
+    line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineStyle','--')
+    line([0,6],[extBotThresh extBotThresh],'Color','k')
+    line([0,6],[extTopThresh extTopThresh],'Color','k')
+    line([0,6],[-extTopThresh -extTopThresh],'Color','k')
+    line([0,6],[-extBotThresh -extBotThresh],'Color','k')
+    ylim([-6,6])
+    xlim([0,6])
+    xticks(1:5)
+    xticklabels({'finger 1', 'finger 2', 'finger 3', 'finger 4', 'finger 5'})
+    ylabel('avg force (N)')
+    title(sprintf("extension, %s",baselineForceCell{subj,2}))
+end
 
 
 
-
+% exec flexion force plot
+figure;
+for subj = 1:size(baselineForceCell,1)
+    baselineTopThreshold = data{subj,1}.baselineTopThresh(1);
+    extBotThresh = data{subj,1}.extBotThresh(1);
+    extTopThresh = data{subj,1}.extTopThresh(1);
+    tmpForceMat = execForceCell{subj,1};
+    tmpForceMat(tmpForceMat > -baselineTopThreshold) = 0;
+    avgFingForce = zeros(1,5);
+    stdFingForce = zeros(1,5);
+    for j = 1:5 % loop over fingers
+        tmp = tmpForceMat(:,j);
+        tmp(tmp==0) = [];
+        avgFingForce(j) = mean(tmp);
+        stdFingForce(j) = std(tmp);
+    end
+    subplot(2,3,subj);
+    hold all
+    scatter([1,2,3,4,5],avgFingForce,60,'k','filled')
+    errorbar([1,2,3,4,5],avgFingForce,stdFingForce,'LineStyle','none','Color','k')
+    line([0,6],[-baselineTopThreshold -baselineTopThreshold],'Color','r','LineStyle','--')
+    line([0,6],[baselineTopThreshold baselineTopThreshold],'Color','r','LineStyle','--')
+    line([0,6],[extBotThresh extBotThresh],'Color','k')
+    line([0,6],[extTopThresh extTopThresh],'Color','k')
+    line([0,6],[-extTopThresh -extTopThresh],'Color','k')
+    line([0,6],[-extBotThresh -extBotThresh],'Color','k')
+    ylim([-6,6])
+    xlim([0,6])
+    xticks(1:5)
+    xticklabels({'finger 1', 'finger 2', 'finger 3', 'finger 4', 'finger 5'})
+    ylabel('avg force (N)')
+    title(sprintf("flexion, %s",baselineForceCell{subj,2}))
+end
 
 
 
