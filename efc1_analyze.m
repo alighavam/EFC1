@@ -1015,19 +1015,19 @@ switch (what)
 
                 if (~isempty(trialIdx))
                     chordTmp = num2str(chordVec(i));
-                    idealVec = double(chordTmp~='9');
-                    for j = 1:5
-                        if (chordTmp(j) == '2')
-                            idealVec(j) = -1;
-                        end
-                    end
+%                     idealVec = double(chordTmp~='9');
+%                     for j = 1:5
+%                         if (chordTmp(j) == '2')
+%                             idealVec(j) = -1;
+%                         end
+%                     end
                     forceVec_i_holder = [];
                     idealVec = zeros(1,5);
                     for trial_i = 1:length(trialIdx)
                         forceTrial = subjForceData{trialIdx(trial_i)};
                         baselineIdx = forceTrial(:,1) == 2;
                         execIdx = find(forceTrial(:,1) == 3);
-                        execIdx = execIdx(end-holdTime/2:end);
+                        execIdx = execIdx(end-holdTime/2:end); % 2ms is sampling frequency hence the holdTime/2
                         
                         avgBaselineForce = mean(forceTrial(baselineIdx,3:7),1);
                         avgExecForce = mean(forceTrial(execIdx,3:7),1);

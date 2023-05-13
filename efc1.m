@@ -4,21 +4,21 @@ close all;
 clc;
 
 % iMac
-% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary fix:
 % loading data
-analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -146,11 +146,186 @@ rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',se
 
 
 
-
 %% ========================================================================
 %% TEMPORARY CODES AND ANALYSIS FROM HERE !<UNDER CONSTRUCTION>!
 %% ========================================================================
 
+%% pie chart
+clc;
+close all;
+clearvars -except data
+
+selectRun = -2;
+holdTime = 600;
+baseLineForceOption = 0;    % if '0', then the baseline force will be considerred [0,0,0,0,0]. If not,
+                            % baseline force will be considerred the avg
+                            % force during baseline duration.
+durAfterActive = 200;
+
+forceData = cell(size(data));   % extracting the force signals for each subj
+for i = 1:size(data,1)
+    forceData{i,1} = extractDiffForce(data{i,1});
+    forceData{i,2} = data{i,2};
+end
+
+outCell = cell(size(data));
+for subj = 1:size(data,1)
+    outCell{subj,2} = data{subj,2};
+    chordVec = generateAllChords();  % all chords
+    subjData = data{subj,1};
+    subjForceData = forceData{subj,1};
+    outCellSubj = cell(length(chordVec),2);
+    vecBN = unique(subjData.BN);
+    for i = 1:length(chordVec)
+        outCellSubj{i,2} = chordVec(i);
+        outCellSubj{i,1} = cell(1,3);
+
+        if (selectRun == -1)        % selecting the last 12 runs
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-12));
+        elseif (selectRun == -2)    % selectign the last 24 runs
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-24));
+        elseif (selectRun == 1)     % selecting the first 12 runs
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN < 13);
+        elseif (selectRun == 2)
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 12 & subjData.BN < 25);
+        elseif (selectRun == 3)
+            trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 24 & subjData.BN < 37);
+            iTmp = find(subjData.BN > 24 & subjData.BN < 37,1);
+            if (isempty(iTmp))
+                error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
+            end
+        else
+            error("selectRun " + num2str(selectRun) + "does not exist. Possible choices are 1,2,3,-1 and -2.")
+        end
+
+        
+        if (~isempty(trialIdx))
+            chordTmp = num2str(chordVec(i));
+            forceVec_i_holder = [];
+            idealVec = zeros(1,5);
+            for trial_i = 1:length(trialIdx)
+                forceTrial = subjForceData{trialIdx(trial_i)};
+                baselineIdx = forceTrial(:,1) == 2;
+                execIdx = find(forceTrial(:,1) == 3);
+                execIdx = execIdx(end-holdTime/2:end); % 2ms is sampling frequency hence the holdTime/2
+                
+                avgBaselineForce = mean(forceTrial(baselineIdx,3:7),1);
+                if (baseLineForceOption == 0)
+                    avgBaselineForce = zeros(1,5);
+                end
+                avgExecForce = mean(forceTrial(execIdx,3:7),1);
+                idealVec = idealVec + (avgExecForce - avgBaselineForce)/length(trialIdx);
+
+                forceTmp = [];
+                tVec = subjForceData{trialIdx(trial_i)}(:,2); % time vector in trial
+                tGoCue = subjData.planTime(trialIdx(trial_i));
+                for j = 1:5     % thresholded force of the fingers after "Go Cue"
+                    if (chordTmp(j) == '1') % extension
+                        forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                        if (isempty(find(forceTmp(:,end),1)))
+                            forceTmp(:,end) = [];
+                        end
+                    elseif (chordTmp(j) == '2') % flexion
+                        forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                        if (isempty(find(forceTmp(:,end),1)))
+                            forceTmp(:,end) = [];
+                        end
+                    elseif (chordTmp(j) == '9') % finger should be relaxed
+                        forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
+                            | subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
+                        if (isempty(find(forceTmp(:,end),1)))
+                            forceTmp(:,end) = [];
+                        end
+                    end
+                end
+                if (isempty(find(forceTmp,1)))  % if no fingers moved out of threshold, go to next trial
+                    disp("empty trial")
+                    continue
+                end
+    
+                tmpIdx = [];
+                for k = 1:size(forceTmp,2)
+                    tmpIdx(k) = find(forceTmp(:,k),1);
+                end
+                [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
+                idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first finger passes the baseline threhold after "Go Cue"
+                
+                forceSelceted = [];
+                for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
+                    forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
+                end
+                forceVec_i = mean(forceSelceted,1);  % average of finger forces in the first {durAfterActive} ms
+                forceVec_i_holder = [forceVec_i_holder ; forceVec_i/norm(forceVec_i)];
+            end
+
+            outCellSubj{i,1}{1} = forceVec_i_holder;
+            outCellSubj{i,1}{2} = repmat(idealVec/norm(idealVec),size(forceVec_i_holder,1),1);
+            outCellSubj{i,1}{3} = [ones(size(forceVec_i_holder,1),1)*i (1:size(forceVec_i_holder,1))'];
+        else
+            outCellSubj{i,1} = [];
+        end 
+    end
+    outCell{subj,1} = outCellSubj;
+end
+
+% Regression variables:
+y = [];     % dependent variable -> N by 5 matrix
+X1 = [];    % chord -> N by 242 matrix
+X2 = [];    % chord and subj -> N by 242*6 matrix
+chordIDVec = [];
+for subj = 1:size(outCell,1)
+    tmp = outCell{subj,1};
+    forceVec = [tmp{:,1}]';
+    idealVec = forceVec(2:3:end);
+    tmpChord = forceVec(3:3:end);
+    forceVec = forceVec(1:3:end);
+    idealVec = vertcat(idealVec{:});
+    forceVec = vertcat(forceVec{:});
+    tmpChord = vertcat(tmpChord{:});
+    tmpChord = tmpChord(:,1);
+    X1_tmp = zeros(size(tmpChord,1),242);
+    X2_tmp = zeros(size(tmpChord,1),242*6);
+    val = unique(tmpChord);
+    for i = 1:length(val)
+        X1_tmp(tmpChord==val(i),val(i)) = 1;
+        X2_tmp(tmpChord==val(i),(subj-1)*242+val(i)) = 1;
+    end
+    chordIDVec = [chordIDVec ; tmpChord];
+    X1 = [X1 ; X1_tmp];
+    X2 = [X2 ; X2_tmp];
+    y = [y;idealVec-forceVec];
+end
+
+% mean cetnering the dependent variable (for simpler matrix calculations):
+y = y - repmat(mean(y,1),size(y,1),1);
+
+% Least squared estimation of beta1 and beta2:
+beta1 = (X1' * X1)^-1 * X1' * y;
+beta2 = (X2' * X2)^-1 * X2' * y;
+
+% sum of squared regression:
+SS1 = trace(beta1'*X1'*X1*beta1);
+SS2 = trace(beta2'*X2'*X2*beta2);
+SST = trace(y'*y);
+
+% var explained by each:
+chordVar = SS1/SST*100;
+subj_chordVar = SS2/SST*100;
+trialVar = 100-(chordVar + subj_chordVar);
+
+
+% Simulations ===============================================
+y = makeSimData(size(y,1),5,'random',[0,1]);
+beta1 = (X1' * X1)^-1 * X1' * y;
+beta2 = (X2' * X2)^-1 * X2' * y;
+
+SS1 = trace(beta1'*X1'*X1*beta1);
+SS2 = trace(beta2'*X2'*X2*beta2);
+SST = trace(y'*y);
+
+chordVar = SS1/SST*100
+subj_chordVar = SS2/SST*100
+trialVar = 100-(chordVar + subj_chordVar)
 
 
 %% Model Testing
@@ -159,7 +334,7 @@ close all;
 clearvars -except data
 
 % global params:
-dataName = "meanTheta";
+dataName = "meanDev";
 corrMethod = 'pearson';
 
 % theta calc params:
