@@ -314,8 +314,25 @@ subj_chordVar = SS2/SST*100;
 trialVar = 100-(chordVar + subj_chordVar);
 
 
-% Simulations ===============================================
+%% Simulations ===============================================
 y = makeSimData(size(y,1),5,'random',[0,1]);
+beta1 = (X1' * X1)^-1 * X1' * y;
+beta2 = (X2' * X2)^-1 * X2' * y;
+
+SS1 = trace(beta1'*X1'*X1*beta1);
+SS2 = trace(beta2'*X2'*X2*beta2);
+SST = trace(y'*y);
+
+chordVar = SS1/SST*100
+subj_chordVar = SS2/SST*100
+trialVar = 100-(chordVar + subj_chordVar)
+
+
+fprintf("\n\n")
+varChord = 1;
+varSubj = 1;
+varEps = 1;
+y = makeSimData(size(y,1),5,'model',{{X1,X2},[varChord,varSubj,varEps]});
 beta1 = (X1' * X1)^-1 * X1' * y;
 beta2 = (X2' * X2)^-1 * X2' * y;
 
