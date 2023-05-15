@@ -299,50 +299,64 @@ end
 % mean cetnering the dependent variable (for simpler matrix calculations):
 y = y - repmat(mean(y,1),size(y,1),1);
 
-% Least squared estimation of beta1 and beta2:
-beta1 = (X1' * X1)^-1 * X1' * y;
-beta2 = (X2' * X2)^-1 * X2' * y;
+% Least squared estimation:
+[beta1,SSR_X1,SST] = myOLS(y,X1);
+[beta2,SSR_X2,SST] = myOLS(y,X2);
 
-% sum of squared regression:
-SS1 = trace(beta1'*X1'*X1*beta1);
-SS2 = trace(beta2'*X2'*X2*beta2);
-SST = trace(y'*y);
+% var explained by each model:
+chordVar = SSR_X1/SST*100;
+subjVar = SSR_X2/SST*100;
+%fprintf("whole var explained by single models:\nChord = %.4f , Chord-Subj = %.4f\n\n\n",chordVar,subjVar);
 
-% var explained by each:
-chordVar = SS1/SST*100;
-subj_chordVar = SS2/SST*100;
-trialVar = 100-(chordVar + subj_chordVar);
+% ====== Residual regresison:
+[beta1,SSR_X1,SST_y] = myOLS(y,X1);
+y_res = y - X1 * beta1;
+[beta2,SSR_X2,SST_y_res] = myOLS(y_res,X2);
+
+% var explained:
+chordVar = SSR_X1/SST_y * 100;
+subjVar = SSR_X2/SST_y * 100;
+trialVar = 100 - (chordVar + subjVar);
+%fprintf("var explained:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",chordVar,subjVar,trialVar);
 
 
-%% Simulations ===============================================
+%%
+clc;
+% Simulations ===============================================
+% random noise simulation
 y = makeSimData(size(y,1),5,'random',[0,1]);
-beta1 = (X1' * X1)^-1 * X1' * y;
-beta2 = (X2' * X2)^-1 * X2' * y;
+y = y - repmat(mean(y,1),size(y,1),1);
 
-SS1 = trace(beta1'*X1'*X1*beta1);
-SS2 = trace(beta2'*X2'*X2*beta2);
-SST = trace(y'*y);
+% ====== Residual regresison:
+[beta1,SSR_X1,SST_y] = myOLS(y,X1);
+y_res = y - X1 * beta1;
+[beta2,SSR_X2,SST_y_res] = myOLS(y_res,X2);
 
-chordVar = SS1/SST*100
-subj_chordVar = SS2/SST*100
-trialVar = 100-(chordVar + subj_chordVar)
+% var explained:
+chordVar = SSR_X1/SST_y * 100;
+subjVar = SSR_X2/SST_y * 100;
+trialVar = 100 - (chordVar + subjVar);
+fprintf("Sim Noisy data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",chordVar,subjVar,trialVar);
 
-
-fprintf("\n\n")
+% Model simulation
 varChord = 1;
 varSubj = 1;
-varEps = 1;
+varEps = 0;
 y = makeSimData(size(y,1),5,'model',{{X1,X2},[varChord,varSubj,varEps]});
-beta1 = (X1' * X1)^-1 * X1' * y;
-beta2 = (X2' * X2)^-1 * X2' * y;
+y = y - repmat(mean(y,1),size(y,1),1);
 
-SS1 = trace(beta1'*X1'*X1*beta1);
-SS2 = trace(beta2'*X2'*X2*beta2);
-SST = trace(y'*y);
+% ====== Residual regresison:
+[beta1,SSR_X1,SST_y] = myOLS(y,X1);
+y_res = y - X1 * beta1;
+[beta2,SSR_X2,SST_y_res] = myOLS(y_res,X2);
 
-chordVar = SS1/SST*100
-subj_chordVar = SS2/SST*100
-trialVar = 100-(chordVar + subj_chordVar)
+% var explained:
+chordVar = SSR_X1/SST_y * 100;
+subjVar = SSR_X2/SST_y * 100;
+trialVar = 100 - (chordVar + subjVar);
+fprintf("Sim Model data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n",chordVar,subjVar,trialVar);
+total = varChord+varSubj+varEps;
+fprintf("Theoretical:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",varChord/total*100,varSubj/total*100,varEps/total*100);
 
 
 %% Model Testing
