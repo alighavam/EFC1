@@ -268,10 +268,11 @@ for subj = 1:size(data,1)
     outCell{subj,1} = outCellSubj;
 end
 
-% Regression variables:
+% Making regressors:
 y = [];     % dependent variable -> N by 5 matrix
 X1 = [];    % chord -> N by 242 matrix
 X2 = [];    % chord and subj -> N by 242*6 matrix
+labels = [];
 chordIDVec = [];
 for subj = 1:size(outCell,1)
     tmp = outCell{subj,1};
@@ -282,10 +283,12 @@ for subj = 1:size(outCell,1)
     idealVec = vertcat(idealVec{:});
     forceVec = vertcat(forceVec{:});
     tmpChord = vertcat(tmpChord{:});
+    labels = [labels ; [subj*ones(size(tmpChord,1),1),tmpChord]];
     tmpChord = tmpChord(:,1);
     X1_tmp = zeros(size(tmpChord,1),242);
     X2_tmp = zeros(size(tmpChord,1),242*6);
     val = unique(tmpChord);
+    
     for i = 1:length(val)
         X1_tmp(tmpChord==val(i),val(i)) = 1;
         X2_tmp(tmpChord==val(i),(subj-1)*242+val(i)) = 1;
@@ -294,6 +297,7 @@ for subj = 1:size(outCell,1)
     X1 = [X1 ; X1_tmp];
     X2 = [X2 ; X2_tmp];
     y = [y;idealVec-forceVec];
+    
 end
 
 % mean cetnering the dependent variable (for simpler matrix calculations):
@@ -306,7 +310,7 @@ y = y - repmat(mean(y,1),size(y,1),1);
 % var explained by each model:
 chordVar = SSR_X1/SST*100;
 subjVar = SSR_X2/SST*100;
-%fprintf("whole var explained by single models:\nChord = %.4f , Chord-Subj = %.4f\n\n\n",chordVar,subjVar);
+fprintf("whole var explained by single models:\nChord = %.4f , Chord-Subj = %.4f\n\n\n",chordVar,subjVar);
 
 % ====== Residual regresison:
 [beta1,SSR_X1,SST_y] = myOLS(y,X1);
@@ -327,14 +331,12 @@ clc;
 y = makeSimData(size(y,1),5,'random',[0,1]);
 y = y - repmat(mean(y,1),size(y,1),1);
 
-% ====== Residual regresison:
-[beta1,SSR_X1,SST_y] = myOLS(y,X1);
-y_res = y - X1 * beta1;
-[beta2,SSR_X2,SST_y_res] = myOLS(y_res,X2);
+% ====== Regresison:
+[beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
 
 % var explained:
-chordVar = SSR_X1/SST_y * 100;
-subjVar = SSR_X2/SST_y * 100;
+chordVar = mean(SSR(:,1)./SST) * 100;
+subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
 trialVar = 100 - (chordVar + subjVar);
 fprintf("Sim Noisy data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",chordVar,subjVar,trialVar);
 
@@ -345,15 +347,15 @@ varEps = 0;
 y = makeSimData(size(y,1),5,'model',{{X1,X2},[varChord,varSubj,varEps]});
 y = y - repmat(mean(y,1),size(y,1),1);
 
+%%
 % ====== Residual regresison:
-[beta1,SSR_X1,SST_y] = myOLS(y,X1);
-y_res = y - X1 * beta1;
-[beta2,SSR_X2,SST_y_res] = myOLS(y_res,X2);
+[beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
 
 % var explained:
-chordVar = SSR_X1/SST_y * 100;
-subjVar = SSR_X2/SST_y * 100;
+chordVar = mean(SSR(:,1)./SST) * 100;
+subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
 trialVar = 100 - (chordVar + subjVar);
+
 fprintf("Sim Model data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n",chordVar,subjVar,trialVar);
 total = varChord+varSubj+varEps;
 fprintf("Theoretical:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",varChord/total*100,varSubj/total*100,varEps/total*100);
