@@ -73,14 +73,32 @@ switch option
         subjUnique = unique(subjID);
         chordUnique = unique(chordID);
         
-        beta = cell(numCrossVal,1);
-        SSR = zeros(numCrossVal,2);
-        SST = zeros(numCrossVal,1);
+        beta = cell(length(chordUnique),2);
+        SSR = zeros(length(chordUnique),2);
+        SST = zeros(length(chordUnique),1);
 
         for subj = 1:length(subjUnique)
-            y_tmp = 
+            y_train = y(subjID ~= subj,:);
+            y_train = y_train-repmat(mean(y_train,1),size(y_train,1),1);
+            X1_train = X1(subjID ~= subj,:);
+            X2_train = X2(subjID ~= subj,:);
+            X2_train(:,(subj-1)*242+1:subj*242) = [];
+
+            y_val = y(subjID == subj,:);
+            y_val = y_val-repmat(mean(y_val,1),size(y_val,1),1);
+            X1_val = X1(subjID == subj,:);
+            X2_val = X2(subjID == subj,(subj-1)*242+1:subj*242);
+
+            beta1 = (X1_train' * X1_train)^-1 * X1_train' * y_train;    % estimated beta with OLS
+            beta2 = (X2_train' * X2_train)^-1 * X2_train' * y_train;    % estimated beta with OLS
+            beta{subj,1} = beta1;
+            beta{subj,2} = beta2;
+
+            % sum of squared
+            SST(subj) = sum(sum(y_val.^2,1));
+            SSR(subj,1) = trace(beta1'*(X1_val'*X1_val)*beta1);
+            SSR(subj,2) = trace(beta2'*(X2_val'*X2_val)*beta2);
+
         end
-
-
 end
 

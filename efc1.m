@@ -4,21 +4,21 @@ close all;
 clc;
 
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+% cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
+% addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
+% addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
 
 % macbook
-% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
+cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
+addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
+addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
 
 % temporary fix:
 % loading data
-% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
+% analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -329,10 +329,9 @@ clc;
 % Simulations ===============================================
 % random noise simulation
 y = makeSimData(size(y,1),5,'random',[0,1]);
-y = y - repmat(mean(y,1),size(y,1),1);
 
 % ====== Regresison:
-[beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
+[beta,SSR,SST] = myOLS(y,[X1,X2],labels,'subj_crossVal');
 
 % var explained:
 chordVar = mean(SSR(:,1)./SST) * 100;
