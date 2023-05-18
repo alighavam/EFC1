@@ -27,7 +27,7 @@ switch option
             y_shuffled = y;
             for subj = 1:length(subjUnique)
                 for i = 1:length(chordUnique)
-                    tmpTrialsIdx = subjID == subjUnique(subj) & chordID == chordUnique(i);
+                    tmpTrialsIdx = (subjID == subjUnique(subj)) & (chordID == chordUnique(i));
                     y_tmp = y(tmpTrialsIdx,:);  % selecting all the trials for each chord of each subject
                     y_shuffled(tmpTrialsIdx,:) = y_tmp(randperm(size(y_tmp,1)),:);  % shuffling the trials (rows) and putting instead of original data
                 end
@@ -62,43 +62,5 @@ switch option
             SST(n) = SST_tmp;
         end
 
-    case 'subj_crossVal'   % cross validated regression across subjects
-        X1 = X(:,1:242);
-        X2 = X(:,243:end);
-        
-        trialID = labels(:,3);
-        chordID = labels(:,2);
-        subjID = labels(:,1);
-
-        subjUnique = unique(subjID);
-        chordUnique = unique(chordID);
-        
-        beta = cell(length(chordUnique),2);
-        SSR = zeros(length(chordUnique),2);
-        SST = zeros(length(chordUnique),1);
-
-        for subj = 1:length(subjUnique)
-            y_train = y(subjID ~= subj,:);
-            y_train = y_train-repmat(mean(y_train,1),size(y_train,1),1);
-            X1_train = X1(subjID ~= subj,:);
-            X2_train = X2(subjID ~= subj,:);
-            X2_train(:,(subj-1)*242+1:subj*242) = [];
-
-            y_val = y(subjID == subj,:);
-            y_val = y_val-repmat(mean(y_val,1),size(y_val,1),1);
-            X1_val = X1(subjID == subj,:);
-            X2_val = X2(subjID == subj,(subj-1)*242+1:subj*242);
-
-            beta1 = (X1_train' * X1_train)^-1 * X1_train' * y_train;    % estimated beta with OLS
-            beta2 = (X2_train' * X2_train)^-1 * X2_train' * y_train;    % estimated beta with OLS
-            beta{subj,1} = beta1;
-            beta{subj,2} = beta2;
-
-            % sum of squared
-            SST(subj) = sum(sum(y_val.^2,1));
-            SSR(subj,1) = trace(beta1'*(X1_val'*X1_val)*beta1);
-            SSR(subj,2) = trace(beta2'*(X2_val'*X2_val)*beta2);
-
-        end
 end
 
