@@ -249,7 +249,8 @@ for subj = 1:size(data,1)
                 end
                 [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
                 idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first finger passes the baseline threhold after "Go Cue"
-                
+                %idxStart = idxStart - idxStartShift;
+
                 forceSelceted = [];
                 for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
                     forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
@@ -357,6 +358,7 @@ fprintf("Theoretical Partiotions:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.
 figure;
 pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
 title(sprintf('Simulation , chord=%.2f , chord-subj=%.2f , noise=%.2f',varChord/total*100,varSubj/total*100,varEps/total*100))
+
 
 %% Model Testing
 clc;
