@@ -876,15 +876,17 @@ switch (what)
         figure;
         hold all
         x = 1:length(modelCorrAvg);
-        bar(x,modelCorrAvg)
+        h = bar(x,diag(modelCorrAvg),'stacked','BarWidth',0.6);
+%         set(h(1),'facecolor',[1,0,0])
+%         set(h(2),'facecolor',[0,1,0])
+%         set(h(3),'facecolor',[0,0,1])
         errorbar(x,modelCorrAvg,modelCorrSem,"LineStyle","none",'Color','k')
-        yline(lowCeil)
-        yline(highCeil)
+%         yline(lowCeil,'linewidth',2)
+        yline(highCeil,'linewidth',3)
         ylim([0,1])
         xticks(x)
         xticklabels(featureCell)
-        title(sprintf("regression on %s",dataName))
-        xlabel("Models")
+        title(sprintf("Eplaining the %s",dataName))
         ylabel("Crossvalidated Correlation")
         
         % beta value maps - single + 2finger
