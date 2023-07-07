@@ -105,28 +105,28 @@ excludeChord = [];
 % efc1_analyze('all_subj'); % makes the .mat files from .dat and .mov of each subject
 
 % ====ANALISYS====
-% efc1_analyze('RT_vs_run',data,'plotfcn','median');
+efc1_analyze('RT_vs_run',data,'plotfcn','median');
 
-rho_medRT_WithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',excludeChord);
-
-rho_medRT_acrossSubj = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',clim,'corrMethod',corrMethod,'excludeChord',excludeChord);
-
-rho_medRT_AvgModel = efc1_analyze('corr_medRT_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',includeSubjAvgModel);
-
-thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',durAfterActive,'plotfcn',0,...
-                        'firstTrial',firstTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
-
-rho_theta_acrossSubj = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
-                                    'firstTrial',firstTrial,'corrMethod',corrMethod,'plotfcn',1,'clim',clim);
-
-rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
-                                    'firstTrial',firstTrial,'corrMethod',corrMethod,'includeSubj',includeSubjAvgModel);
-
-biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
-                            'firstTrial',firstTrial,'plotfcn',0);
+% rho_medRT_WithinSubject = efc1_analyze('corr_within_subj_runs',data,'corrMethod',corrMethod,'excludeChord',excludeChord);
+% 
+% rho_medRT_acrossSubj = efc1_analyze('corr_across_subj',data,'plotfcn',1,'clim',clim,'corrMethod',corrMethod,'excludeChord',excludeChord);
+% 
+% rho_medRT_AvgModel = efc1_analyze('corr_medRT_avg_model',data,'corrMethod',corrMethod,'excludeChord',excludeChord,'includeSubj',includeSubjAvgModel);
+% 
+% thetaCell = efc1_analyze('thetaExp_vs_thetaStd',data,'durAfterActive',durAfterActive,'plotfcn',0,...
+%                         'firstTrial',firstTrial,'onlyActiveFing',onlyActiveFing,'selectRun',selectRun);
+% 
+% rho_theta_acrossSubj = efc1_analyze('corr_mean_theta_across_subj',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
+%                                     'firstTrial',firstTrial,'corrMethod',corrMethod,'plotfcn',1,'clim',clim);
+% 
+% rho_theta_avgModel = efc1_analyze('corr_mean_theta_avg_model',data,'thetaCell',thetaCell,'onlyActiveFing',onlyActiveFing, ...
+%                                     'firstTrial',firstTrial,'corrMethod',corrMethod,'includeSubj',includeSubjAvgModel);
+% 
+% biasVarCell = efc1_analyze('theta_bias',data,'durAfterActive',durAfterActive,'selectRun',selectRun,...
+%                             'firstTrial',firstTrial,'plotfcn',0);
 
 [meanDevCell,rho_meanDev_acrossSubj] = efc1_analyze('meanDev',data,'selectRun',selectRun,...
-                                                    'corrMethod',corrMethod,'plotfcn',0,'clim',clim);
+                                                    'corrMethod',corrMethod,'plotfcn',1,'clim',clim);
 
 rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',selectRun,'corrMethod',corrMethod,...
                                     'includeSubj',includeSubjAvgModel);
@@ -149,6 +149,105 @@ rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',se
 %% ========================================================================
 %% TEMPORARY CODES AND ANALYSIS FROM HERE !<UNDER CONSTRUCTION>!
 %% ========================================================================
+
+%% Cognitive modelling of difficulty
+clc;
+close all;
+clearvars -except data
+
+
+
+
+%% MD bias check
+clc;
+close all;
+clearvars -except data
+
+% global params:
+corrMethod = 'pearson';
+
+selectRun = -2;
+clim = [0,1];
+
+[meanDevCell,rho_meanDev_acrossSubj] = efc1_analyze('meanDev',data,'selectRun',selectRun,...
+                                                    'corrMethod',corrMethod,'plotfcn',0,'clim',clim);
+
+chordVec = generateAllChords();
+chordVecSep = sepChordVec(chordVec);
+
+% container for mean MD:
+meanMD_container = [];
+
+% going through subjects and extracting mean devs of chordIdx:
+for subj = 1:size(meanDevCell,1)
+    % calculating the mean MD for each chord of each subject:
+    tmp = [meanDevCell{subj,1}(:,2)];
+    meanMD = cellfun(@(x) mean(x,'all'), tmp);
+
+    % adding the trial avg to the container as columns
+    meanMD_container = [meanMD meanMD_container];
+end
+
+% going through chord groups (numActFing) and calculating the correlation:
+subjCorrs = cell(size(chordVecSep,1),1);
+figure;
+for i = 1:size(chordVecSep,1)
+    % getting the indices of the chord group:
+    chordIdx = chordVecSep{i,2};
+
+    % extracting the meanMD for selected chords:
+    tmpMD = meanMD_container(chordIdx,:);
+
+    % calculating the correlations between subjects:
+    corrTmp = corrcoef(tmpMD);
+    subjCorrs{i} = unique(corrTmp(corrTmp ~= 1));
+
+    % making an avg subject:
+    avgSubj = mean(tmpMD,2);
+
+    % calculating correlation of each subj with the avgSubj - cross validated:
+    corrAvgSubj = zeros(1,size(tmpMD,2));
+    for j = 1:size(tmpMD,2)
+        one_out = tmpMD(:,j);
+        others = tmpMD(:,setdiff(1:size(tmpMD,2),j));
+        avgSubj = mean(others,2);
+        corrTmp = corrcoef(avgSubj,one_out);
+        corrAvgSubj(j) = corrTmp(1,2);
+    end
+%     corrAvgSubj = corrcoef([avgSubj tmpMD]);
+%     corrAvgSubj = corrAvgSubj(2,1:end-1)
+    mean_corr_avg_subj = mean(corrAvgSubj);
+    sem_corr_avg_subj = std(corrAvgSubj)/sqrt(length(corrAvgSubj));
+
+    % scatter plot of the mean_corr across num act finger:
+    errorbar(i,mean_corr_avg_subj,sem_corr_avg_subj, 'k', 'LineStyle','none')
+    hold on
+    scatter(i,mean_corr_avg_subj,'k','filled')
+    xlim([0 6])
+    ylabel("mean correlation with avg subject - cross validated")
+    xlabel("num active finger")
+    title("Mean Deviation noise bias")
+    
+    % color plot of correlations to compare across num act finger:
+%     figure;
+%     imagesc(corrTmp, [0,1])
+%     colorbar
+%     title(sprintf("num active finger = %d , n = %d", i, length(chordIdx)))
+%     xlabel("subj")
+%     ylabel("subj")
+end
+
+% distribution of 'subject correlations' across chord groups:
+figure;
+for i = 1:length(subjCorrs)
+    subplot(length(subjCorrs),1,i)
+    histogram(subjCorrs{i},5)
+    xline(mean(subjCorrs{i}),'--r')
+    title("num active fingers: "+num2str(i))
+    xlabel('correlation')
+    xlim([-1,1])
+end
+
 
 %% pie chart
 clc;
@@ -379,8 +478,8 @@ durAfterActive = 200;
 excludeChord = [];
 
 
-featureCell = {"singleFingExt","numActiveFing-oneHot","singleFinger",...
-    "neighbourFingers+singleFinger","singleFinger+2FingerCombinations","all"};
+featureCell = {"singleFingExt","singleFinger",...
+    "neighbourFingers+singleFinger"};
 
 efc1_analyze('modelTesting',data,'dataName',dataName,'featureCell',featureCell,'corrMethod',corrMethod,'onlyActiveFing',onlyActiveFing,...
             'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive,'excludeChord',excludeChord);
