@@ -5,11 +5,11 @@ flexThreshold = row.flexBotThresh;
 extThreshold = row.extBotThresh;
 RT = row.RT-600;
 
-if (row.trialErrorType == 2)   % planning error trials
+if (row.trialErrorType == 1)   % planning error trials
     firstRT = 0;
     execRT = 0;
     return
-elseif (row.trialErrorType == 1)    % unsuccessful chord execution 
+elseif (row.trialErrorType == 2)    % unsuccessful chord execution 
     firstRT = 10000;
     execRT = 10000;
     return

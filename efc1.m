@@ -3,11 +3,15 @@ clear;
 close all;
 clc;
 
+% setting paths:
+usr_path = userpath;
+usr_path = usr_path(1:end-17);
+
 % iMac
-cd('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1')
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
+cd(fullfile(usr_path, 'Desktop/Projects/EFC1'));
+addpath(fullfile(usr_path, 'Desktop/Projects/EFC1/functions'));
+addpath(fullfile(usr_path, 'Desktop/Projects/EFC1'))
+addpath(genpath(fullfile(usr_path,'Desktop/matlab/dataframe-2016.1')),'-begin')
 
 % macbook
 % cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
@@ -18,7 +22,7 @@ addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin'
 % temporary fix:
 % loading data
 % analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = '/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/analysis';  % iMac
+analysisDir = fullfile(usr_path,'Desktop/Projects/EFC1/analysis');  % iMac
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
@@ -128,8 +132,8 @@ efc1_analyze('RT_vs_run',data,'plotfcn','median');
 [meanDevCell,rho_meanDev_acrossSubj] = efc1_analyze('meanDev',data,'selectRun',selectRun,...
                                                     'corrMethod',corrMethod,'plotfcn',1,'clim',clim);
 
-rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',selectRun,'corrMethod',corrMethod,...
-                                    'includeSubj',includeSubjAvgModel);
+% rho_meanDev_avgModel = efc1_analyze('corr_meanDev_avg_model',data,'selectRun',selectRun,'corrMethod',corrMethod,...
+%                                     'includeSubj',includeSubjAvgModel);
 
 % [rho_OLS_medRT, crossValModels_medRT, singleSubjModel_medRT] = efc1_analyze('reg_OLS_medRT',data,...
 %     'regSubjNum',0,'excludeChord',excludeChord,'corrMethod',corrMethod);
