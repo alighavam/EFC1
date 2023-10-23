@@ -6,7 +6,10 @@ addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin'
 subjName = {'subj09'};
 
 switch (what)
-    case 'all_subj'     % create .mat data files for subjects   
+    case 'create_'
+        
+        
+    case 'all_subj'     % create dataframe .mat files for subjects   
         for s = 1:length(subjName)
             efc1_subj(subjName{s},0);
         end

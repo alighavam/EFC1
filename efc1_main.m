@@ -7,22 +7,14 @@ clc;
 usr_path = userpath;
 usr_path = usr_path(1:end-17);
 
-% iMac
 cd(fullfile(usr_path, 'Desktop/Projects/EFC1'));
 addpath(fullfile(usr_path, 'Desktop/Projects/EFC1/functions'));
 addpath(fullfile(usr_path, 'Desktop/Projects/EFC1'))
 addpath(genpath(fullfile(usr_path,'Desktop/matlab/dataframe-2016.1')),'-begin')
 
-% macbook
-% cd('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/functions');
-% addpath('/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1')
-% addpath(genpath('/Users/alighavam/Documents/MATLAB/dataframe-2016.1'),'-begin')
-
 % temporary fix:
 % loading data
-% analysisDir = '/Users/alighavam/Desktop/Projects/ExtFlexChord/efc1/analysis';
-analysisDir = fullfile(usr_path,'Desktop/Projects/EFC1/analysis');  % iMac
+analysisDir = fullfile(usr_path,'Desktop/Projects/EFC1/analysis');
 cd(analysisDir)
 matFiles = dir("*.mat");
 data = {};
