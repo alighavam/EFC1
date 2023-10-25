@@ -1,20 +1,52 @@
 function varargout=efc1_analyze(what, data, varargin)
 
-addpath(genpath('/Users/aghavampour/Documents/MATLAB/dataframe-2016.1'),'-begin');
-
-%GLOBALS:
-subjName = {'subj09'};
+% setting paths:
+usr_path = userpath;
+usr_path = usr_path(1:end-17);
 
 switch (what)
-    case 'create_'
+    case 'subject_routine'
+        % handling input arguments:
+        subject_name = 'subj01';
+        smoothing_win_length = 25;
+        vararginoptions(varargin,{'subject_name','smoothing_win_length'});
         
-        
-    case 'all_subj'     % create dataframe .mat files for subjects   
-        for s = 1:length(subjName)
-            efc1_subj(subjName{s},0);
+        % if a cell containing multiple subjects was given:
+        if (iscell(subject_name))
+            for i = 1:length(subject_name)
+                efc1_subj(subject_name{i},'smoothing_win_length',smoothing_win_length)
+            end
+        % if a single subject as a char was given:
+        else
+            efc1_subj(subject_name,'smoothing_win_length',smoothing_win_length);
         end
-    
-    % =====================================================================
+        
+    case 'merge_data'
+        % container for the data struct:
+        ANA = [];
+
+        % read single subject files in analysis folder:
+        files = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_raw.mat'));
+
+        % looping through files:
+        for i = 1:length(files.name)
+            % loading the data:
+            tmp = load(fullfile(files(i).fodler,files(i).name));
+
+            % making subject name field:
+            sn = ones(length(tmp.BN),1) * str2double(files(i).name(10:11));
+
+            % adding sn to the data struct:
+            tmp.sn = sn;
+
+            % adding to ANA:
+            ANA = addstruct(ANA,tmp,'row','force');
+            
+        end
+        
+        % save the merged struct:
+        save('efc1_all_raw.mat','-struct','ANA');
+        
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
         % lineplot subplot for each subj
         plotfcn = 'mean';
