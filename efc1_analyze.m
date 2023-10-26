@@ -21,7 +21,7 @@ switch (what)
             efc1_subj(subject_name,'smoothing_win_length',smoothing_win_length);
         end
         
-    case 'merge_data'
+    case 'merge_data' 
         % container for the data struct:
         ANA = [];
 
@@ -29,9 +29,9 @@ switch (what)
         files = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_raw.mat'));
 
         % looping through files:
-        for i = 1:length(files.name)
+        for i = 1:length({files(:).name})
             % loading the data:
-            tmp = load(fullfile(files(i).fodler,files(i).name));
+            tmp = load(fullfile(files(i).folder,files(i).name));
 
             % making subject name field:
             sn = ones(length(tmp.BN),1) * str2double(files(i).name(10:11));
@@ -45,7 +45,7 @@ switch (what)
         end
         
         % save the merged struct:
-        save('efc1_all_raw.mat','-struct','ANA');
+        save(fullfile(usr_path,'Desktop', 'Projects', 'EFC1','analysis','efc1_all_raw.mat'),'-struct','ANA','-v7.3');
         
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
         % lineplot subplot for each subj
