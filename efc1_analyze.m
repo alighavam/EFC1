@@ -20,7 +20,25 @@ switch (what)
         else
             efc1_subj(subject_name,'smoothing_win_length',smoothing_win_length);
         end
+    
+    case 'make_analysis_data'
+        % Calculate RT, MT, Mean Deviation for each trial of each subejct
+        % and create a struct without the mov signals and save it as a
+        % single struct called efc1_all.mat
         
+        % getting subject files:
+        files = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_raw.mat'));
+        
+        % looping through subjects' data:
+        for i = 1:length({files(:).name})
+            % load subject data:
+            tmp_data = load(fullfile(files(i).folder,files(i).name));
+
+            % loop through trials:
+            
+        end
+        
+
         
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
         % lineplot subplot for each subj
