@@ -115,7 +115,7 @@ durAfterActive = completion_time-600;
 % getting the force from idxStart to idxStart+durAfterActive
 for j = 1:5     
     % durAfterActive is in ms. 500Hz is the fs.
-    forceSelceted = [forceSelceted mov(idxStart:find(tVec==tGoCue)+round(durAfterActive/1000*500),13+j)];
+    forceSelceted = [forceSelceted fGainVec(j)*mov(idxStart:find(tVec==tGoCue)+round(durAfterActive/1000*500),13+j)];
 end
 
 % the container for temporal difference needed to calculate Mean Deviation:
