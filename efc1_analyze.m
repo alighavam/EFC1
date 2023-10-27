@@ -1,5 +1,7 @@
 function varargout=efc1_analyze(what, data, varargin)
 
+addpath('functions/')
+
 % setting paths:
 usr_path = userpath;
 usr_path = usr_path(1:end-17);
@@ -29,15 +31,60 @@ switch (what)
         % getting subject files:
         files = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_raw.mat'));
         
+        % container to hold all subjects' data:
+        ANA = [];
+        
         % looping through subjects' data:
         for i = 1:length({files(:).name})
             % load subject data:
             tmp_data = load(fullfile(files(i).folder,files(i).name));
-
-            % loop through trials:
             
+            mean_dev_tmp = zeros(length(tmp_data.BN),1);
+            rt_tmp = zeros(length(tmp_data.BN),1);
+            mt_tmp = zeros(size(rt_tmp));
+            % loop through trials:
+            for j = 1:length(tmp_data.BN)
+                % if trial was correct:
+                if (tmp_data.trialCorr(j) == 1)
+                    % calculate and store mean dev:
+                    mean_dev_tmp(j) = calculate_mean_dev(tmp_data.mov{j}, tmp_data.chordID(j), ...
+                                                         tmp_data.baselineTopThresh(j), tmp_data.RT(j), ...
+                                                         tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
+                                                         tmp_data.fGain4(j), tmp_data.fGain5(j));
+                    % calculate and stor rt and mt:
+                    [rt_tmp(j),mt_tmp(j)] = calculate_rt_mt(tmp_data.mov{j}, tmp_data.chordID(j), ...
+                                                         tmp_data.baselineTopThresh(j), tmp_data.RT(j), ...
+                                                         tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
+                                                         tmp_data.fGain4(j), tmp_data.fGain5(j));
+                
+                % if trial was incorrect:
+                else
+                    % mean dev:
+                    mean_dev_tmp(j) = -1;
+                    rt_tmp(j) = -1;
+                    mt_tmp(j) = -1;
+                end
+            end
+            
+            % removing unnecessary fields:
+            tmp_data = rmfield(tmp_data,'mov');
+            tmp_data = rmfield(tmp_data,'RT');
+            tmp_data = rmfield(tmp_data,'trialPoint');
+                
+            % adding subject name to the struct:
+            sn = ones(length(tmp_data.BN),1) * str2double(files(i).name(10:11));
+
+            % adding the calculated parameters to the subject struct:
+            tmp_data.SN = sn;
+            tmp_data.RT = rt_tmp;
+            tmp_data.MT = mt_tmp;
+            tmp_data.mean_dev = mean_dev_tmp;
+            
+            % adding subject data to ANA:
+            ANA=addstruct(ANA,tmp_data,'row','force');
         end
-        
+
+        save(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.mat'),'-struct','ANA');
 
         
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
@@ -1236,15 +1283,15 @@ switch (what)
                 meanDevCellSubj{i,1} = chordVec(i);      % first columns: chordID
                 
                 if (selectRun == -1)        % selecting the last 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-12));
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-12));
                 elseif (selectRun == -2)    % selectign the last 24 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-24));
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > vecBN(end-24));
                 elseif (selectRun == 1)     % selecting the first 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN < 13);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN < 13);
                 elseif (selectRun == 2)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 12 & subjData.BN < 25);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 12 & subjData.BN < 25);
                 elseif (selectRun == 3)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 24 & subjData.BN < 37);
+                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType == 0 & subjData.BN > 24 & subjData.BN < 37);
                     iTmp = find(subjData.BN > 24 & subjData.BN < 37,1);
                     if (isempty(iTmp))
                         error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
