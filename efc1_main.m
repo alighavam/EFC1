@@ -16,7 +16,7 @@ addpath(genpath(fullfile(usr_path,'Desktop/matlab/dataframe-2016.1')),'-begin')
 % loading data
 analysisDir = fullfile(usr_path,'Desktop/Projects/EFC1/analysis');
 cd(analysisDir)
-matFiles = dir("*.mat");
+matFiles = dir("efc1_*_raw.mat");
 data = {};
 cnt = 1;
 for i = 1:length(matFiles)
