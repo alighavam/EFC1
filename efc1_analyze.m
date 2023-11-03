@@ -29,7 +29,8 @@ switch (what)
         % single struct called efc1_all.mat
         
         % getting subject files:
-        files = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_raw.mat'));
+        files = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_raw.tsv'));
+        movFiles = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_mov.mat'));
         
         % container to hold all subjects' data:
         ANA = [];
@@ -37,7 +38,9 @@ switch (what)
         % looping through subjects' data:
         for i = 1:length({files(:).name})
             % load subject data:
-            tmp_data = load(fullfile(files(i).folder,files(i).name));
+            tmp_data = dload(fullfile(files(i).folder, files(i).name));
+            tmp_mov = load(fullfile(movFiles(i).folder, movFiles(i).name));
+            tmp_mov = tmp_mov.MOV_struct;
             
             mean_dev_tmp = zeros(length(tmp_data.BN),1);
             rt_tmp = zeros(length(tmp_data.BN),1);
@@ -47,12 +50,12 @@ switch (what)
                 % if trial was correct:
                 if (tmp_data.trialCorr(j) == 1)
                     % calculate and store mean dev:
-                    mean_dev_tmp(j) = calculate_mean_dev(tmp_data.mov{j}, tmp_data.chordID(j), ...
+                    mean_dev_tmp(j) = calculate_mean_dev(tmp_mov{j}, tmp_data.chordID(j), ...
                                                          tmp_data.baselineTopThresh(j), tmp_data.RT(j), ...
                                                          tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
                                                          tmp_data.fGain4(j), tmp_data.fGain5(j));
                     % calculate and stor rt and mt:
-                    [rt_tmp(j),mt_tmp(j)] = calculate_rt_mt(tmp_data.mov{j}, tmp_data.chordID(j), ...
+                    [rt_tmp(j),mt_tmp(j)] = calculate_rt_mt(tmp_mov{j}, tmp_data.chordID(j), ...
                                                          tmp_data.baselineTopThresh(j), tmp_data.RT(j), ...
                                                          tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
                                                          tmp_data.fGain4(j), tmp_data.fGain5(j));
@@ -67,15 +70,10 @@ switch (what)
             end
             
             % removing unnecessary fields:
-            tmp_data = rmfield(tmp_data,'mov');
             tmp_data = rmfield(tmp_data,'RT');
             tmp_data = rmfield(tmp_data,'trialPoint');
-                
-            % adding subject name to the struct:
-            sn = ones(length(tmp_data.BN),1) * str2double(files(i).name(10:11));
 
             % adding the calculated parameters to the subject struct:
-            tmp_data.SN = sn;
             tmp_data.RT = rt_tmp;
             tmp_data.MT = mt_tmp;
             tmp_data.mean_dev = mean_dev_tmp;
@@ -84,7 +82,9 @@ switch (what)
             ANA=addstruct(ANA,tmp_data,'row','force');
         end
 
-        save(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.mat'),'-struct','ANA');
+        disp(size(ANA))
+
+        dsave(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.tsv'),ANA);
 
         
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
