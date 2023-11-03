@@ -7,74 +7,129 @@ clc;
 usr_path = userpath;
 usr_path = usr_path(1:end-17);
 
-cd(fullfile(usr_path, 'Desktop/Projects/EFC1'));
-addpath(fullfile(usr_path, 'Desktop/Projects/EFC1/functions'));
-addpath(fullfile(usr_path, 'Desktop/Projects/EFC1'))
-addpath(genpath(fullfile(usr_path,'Desktop/matlab/dataframe-2016.1')),'-begin')
+cd(fullfile(usr_path, 'Desktop','Projects','EFC1'));
+addpath(fullfile(usr_path, 'Desktop','Projects','EFC1','functions'));
+addpath(genpath(fullfile(usr_path,'Desktop','matlab','dataframe-2016.1')),'-begin')
 
-% temporary fix:
-% loading data
-analysisDir = fullfile(usr_path,'Desktop/Projects/EFC1/analysis');
-cd(analysisDir)
-matFiles = dir("efc1_*_raw.mat");
-data = {};
-cnt = 1;
-for i = 1:length(matFiles)
-    tmp = load(matFiles(i).name);
-    if (length(tmp.BN) >= 2420 && ~strcmp(matFiles(i).name(6:11),'subj03'))         % more than or equal to 24 runs
-        data{cnt,1} = tmp;
-        data{cnt,2} = matFiles(i).name(6:11);
-        cnt = cnt + 1;
+analysisDir = fullfile(usr_path,'Desktop', 'Projects', 'EFC1', 'analysis');
+
+
+% analysis playground
+data = dload(fullfile(analysisDir, 'efc1_all.tsv'));
+
+% Create a figure or specify an existing figure handle:
+h = figure;
+
+% Get the default MATLAB colors:
+colors = get(h, 'DefaultAxesColorOrder');
+
+% Close the figure:
+close(h);
+
+% get subject numbers:
+subjects = unique(data.sn);
+
+% meanDev vs run
+figure;
+y_avg = 0;
+for i = 1:length(subjects)
+    rows = data.trialCorr==1 & data.sn==subjects(i);
+    [x_coord,PLOT,ERROR] = lineplot(data.BN(rows), data.mean_dev(rows), 'linecolor', colors(i,:));
+    y_avg = y_avg + PLOT/length(subjects);
+    hold on
+end
+plot(x_coord,y_avg,'k','LineWidth',2)
+title('MeanDev vs Run')
+
+% movement time vs run
+figure;
+y_avg = 0;
+for i = 1:length(subjects)
+    rows = data.trialCorr==1 & data.sn==subjects(i);
+    [x_coord,PLOT,ERROR] = lineplot(data.BN(rows), data.MT(rows), 'linecolor', colors(i,:));
+    y_avg = y_avg + PLOT/length(subjects);
+    hold on
+end
+plot(x_coord,y_avg,'k','LineWidth',2)
+title('MT vs Run')
+
+% RT vs run:
+figure;
+y_avg = 0;
+for i = 1:length(subjects)
+    rows = data.trialCorr==1 & data.sn==subjects(i);
+    [x_coord,PLOT,ERROR] = lineplot(data.BN(rows), data.RT(rows), 'linecolor', colors(i,:));
+    y_avg = y_avg + PLOT/length(subjects);
+    hold on
+end
+plot(x_coord,y_avg,'k','LineWidth',2)
+title('RT vs Run')
+
+
+% mean_dev avg in each 12 runs , num finger separated:
+figure;
+n = get_num_active_fingers(data.chordID);
+for j = 1:5
+    subplot(1,5,j)
+    for i = 1:length(subjects)
+        sess = [0,12,24,36,48];
+        sess_vec = [ones(1210,1) ; 2*ones(1210,1) ; 3*ones(1210,1) ; 4*ones(1210,1)];
+        sess_vec = repmat(sess_vec,length(subjects),1);
+        row = data.trialCorr==1 & data.sn==subjects(i) & n==j;
+        lineplot(sess_vec(row), data.mean_dev(row) ...
+                 ,'linecolor', colors(i,:), 'errorbars', '')
+        hold on;
     end
+    lineplot(sess_vec(n==j), data.mean_dev(n==j) ...
+                 ,'linecolor', [0,0,0], 'linewidth', 4)
+    ylabel('avg meanDev')
+    xlabel('session number')
+    title(sprintf('n_{active} = %d',j))
+    ylim([0.2,3])
 end
 
-% temporary fix for the ongoing data recording
-dataTmp = [];
-for i = 1:size(data,1)
-    if (length(unique(data{i,1}.BN)) >= 37 && length(unique(data{i,1}.BN)) <= 47)   % if data was not complete
-        for j = 1:length(data{i,1}.BN)
-            if (data{i,1}.BN(j) <= 36)
-                dataTmp = addstruct(dataTmp,getrow(data{i,1},j),'row','force');
-            end
-        end
-        data{i,1} = dataTmp;
+% MT avg in each 12 runs , num fingers separated:
+figure;
+n = get_num_active_fingers(data.chordID);
+for j = 1:5
+    subplot(1,5,j)
+    for i = 1:length(subjects)
+        sess = [0,12,24,36,48];
+        sess_vec = [ones(1210,1) ; 2*ones(1210,1) ; 3*ones(1210,1) ; 4*ones(1210,1)];
+        sess_vec = repmat(sess_vec,length(subjects),1);
+        row = data.trialCorr==1 & data.sn==subjects(i) & n==j;
+        lineplot(sess_vec(row), data.MT(row) ...
+                 ,'linecolor', colors(i,:), 'errorbars', '')
+        hold on;
     end
+    lineplot(sess_vec(n==j), data.MT(n==j) ...
+                 ,'linecolor', [0,0,0], 'linewidth', 4)
+    ylabel('avg MT')
+    xlabel('session number')
+    title(sprintf('n_{active} = %d',j))
+    ylim([500,3500])
 end
 
-% temporary RT correction:
-for i = 1:size(data,1)  % loop on subjects
-    for i_t = 1:length(data{i,1}.BN)  % loop on trials
-        if (data{i,1}.trialErrorType(i_t) == 1)     % errorType: '1'->planning error , '2'->exec error
-            data{i,1}.RT(i_t) = 0;
-        end
+% RT avg in each 12 runs , num fingers separated:
+figure;
+n = get_num_active_fingers(data.chordID);
+for j = 1:5
+    subplot(1,5,j)
+    for i = 1:length(subjects)
+        sess = [0,12,24,36,48];
+        sess_vec = [ones(1210,1) ; 2*ones(1210,1) ; 3*ones(1210,1) ; 4*ones(1210,1)];
+        sess_vec = repmat(sess_vec,length(subjects),1);
+        row = data.trialCorr==1 & data.sn==subjects(i) & n==j;
+        lineplot(sess_vec(row), data.RT(row) ...
+                 ,'linecolor', colors(i,:), 'errorbars', '')
+        hold on;
     end
-end
-
-% setting the RT type before any analysis:
-RTtype = 'full'; % RT type
-
-if (strcmp(RTtype,'full'))
-    disp('RT type = full')
-end
-if (strcmp(RTtype,'firstRT'))
-    disp('RT type = firstRT')
-    for i = 1:size(data,1)  % loop on subjects
-        disp(i)
-        for i_t = 1:length(data{i,1}.BN)  % loop on trials
-            [firstRT,~] = getSeparateRT(getrow(data{i,1},i_t));
-            data{i,1}.RT(i_t) = firstRT+600;
-        end
-    end
-end
-if (strcmp(RTtype,'execRT'))
-    disp('RT type = execRT')
-    for i = 1:size(data,1)  % loop on subjects
-        disp(i)
-        for i_t = 1:length(data{i,1}.BN)  % loop on trials
-            [~,execRT] = getSeparateRT(getrow(data{i,1},i_t));
-            data{i,1}.RT(i_t) = execRT+600;
-        end
-    end
+    lineplot(sess_vec(n==j), data.RT(n==j) ...
+                 ,'linecolor', [0,0,0], 'linewidth', 4)
+    ylabel('avg MT')
+    xlabel('session number')
+    title(sprintf('n_{active} = %d',j))
+    ylim([50,550])
 end
 
 
