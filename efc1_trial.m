@@ -1,4 +1,4 @@
-function C = efc1_trial(row,mov,smoothing_win_length)
+function C = efc1_trial(row)
 
 % container for the trial data:
 C = [];
@@ -12,10 +12,3 @@ if (row.trialErrorType==2)
 end
 
 C = addstruct(C,row,'row','force');
-
-if (smoothing_win_length ~= 0)
-    for i = 4:size(mov,2)
-        mov(:,i) = movmean(mov(:,i),2*floor(smoothing_win_length/1000*500/2)+1);
-    end
-end
-C.mov = mov;
