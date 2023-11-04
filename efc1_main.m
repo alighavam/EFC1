@@ -126,7 +126,7 @@ for j = 1:5
     end
     lineplot(sess_vec(n==j), data.RT(n==j) ...
                  ,'linecolor', [0,0,0], 'linewidth', 4)
-    ylabel('avg MT')
+    ylabel('avg RT')
     xlabel('session number')
     title(sprintf('n_{active} = %d',j))
     ylim([50,550])
