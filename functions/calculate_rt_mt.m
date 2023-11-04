@@ -1,4 +1,4 @@
-function [rt,mt] = calculate_rt_mt(mov, chordID, force_threshold, completion_time, fGain1, fGain2, fGain3, fGain4, fGain5)
+function [rt,mt,first_finger] = calculate_rt_mt(mov, chordID, force_threshold, completion_time, fGain1, fGain2, fGain3, fGain4, fGain5)
 % Description: 
 %       Calculate rt and mt of the trial.
 %
@@ -38,6 +38,7 @@ fGainVec = [fGain1 fGain2 fGain3 fGain4 fGain5];
 
 % thresholding force of the fingers after "Go Cue" to find the first time
 % a finger goes out of the baseline zone:
+active_fingers = [];
 % Looping through fingers:
 for j = 1:5
     % if instructed movement was extension:
@@ -47,6 +48,9 @@ for j = 1:5
         % instructed state:
         forceTmp = [forceTmp (mov(tVec>=tGoCue,13+j)*fGainVec(j) > force_threshold)];
         
+        % Save the active finger:
+        active_fingers = [active_fingers j];
+
         % just as a sanity check that the finger has gone out of the 
         % baseline if instructed:
         if (isempty(find(forceTmp(:,end),1)))
@@ -60,6 +64,9 @@ for j = 1:5
         % reaction time only counts when finger moves towards the
         % instructed state:
         forceTmp = [forceTmp (mov(tVec>=tGoCue,13+j)*fGainVec(j) < -force_threshold)];
+
+        % Save the active finger:
+        active_fingers = [active_fingers j];
         
         % just as a sanity check that the finger has gone out of the 
         % baseline if instructed:
@@ -75,14 +82,17 @@ for j = 1:5
         % flexion- it counts as RT:
         forceTmp = [forceTmp (mov(tVec>=tGoCue,13+j)*fGainVec(j) < -force_threshold | mov(tVec>=tGoCue,13+j)*fGainVec(j) > force_threshold)]; 
         
+        % Save the active finger:
+        active_fingers = [active_fingers j];
+
         % If finger never left the baseline zone as it should have, remove
         % the thresholded signal because it is all 0:
         if (isempty(find(forceTmp(:,end),1)))
             forceTmp(:,end) = [];
+            active_fingers(end) = [];
         end
     end
 end
-
 
 % find the first index where each finger moved out of the baseline:
 tmpIdx = [];
@@ -94,6 +104,9 @@ end
 % sortIdx(1) is the first index after "Go Cue" that the first finger 
 % crossed the baseline threshold:
 [sortIdx,~] = sort(tmpIdx);
+
+% the finger that moved out of baseline:
+first_finger = sortIdx(1);
 
 % reaction time, from tGoCue until the first finger goes out of baseline:
 rt = sortIdx(1)/500 * 1000; % 500Hz is the fs
