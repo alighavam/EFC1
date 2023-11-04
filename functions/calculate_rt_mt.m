@@ -106,7 +106,7 @@ end
 [sortIdx,~] = sort(tmpIdx);
 
 % the finger that moved out of baseline:
-first_finger = sortIdx(1);
+first_finger = active_fingers(find(tmpIdx == sortIdx(1),1));
 
 % reaction time, from tGoCue until the first finger goes out of baseline:
 rt = sortIdx(1)/500 * 1000; % 500Hz is the fs
