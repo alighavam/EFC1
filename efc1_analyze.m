@@ -45,6 +45,7 @@ switch (what)
             mean_dev_tmp = zeros(length(tmp_data.BN),1);
             rt_tmp = zeros(length(tmp_data.BN),1);
             mt_tmp = zeros(size(rt_tmp));
+            first_finger_tmp = zeros(size(rt_tmp));
             % loop through trials:
             for j = 1:length(tmp_data.BN)
                 % if trial was correct:
@@ -55,10 +56,10 @@ switch (what)
                                                          tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
                                                          tmp_data.fGain4(j), tmp_data.fGain5(j));
                     % calculate and stor rt and mt:
-                    [rt_tmp(j),mt_tmp(j)] = calculate_rt_mt(tmp_mov{j}, tmp_data.chordID(j), ...
-                                                         tmp_data.baselineTopThresh(j), tmp_data.RT(j), ...
-                                                         tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
-                                                         tmp_data.fGain4(j), tmp_data.fGain5(j));
+                    [rt_tmp(j),mt_tmp(j),first_finger_tmp(j)] = calculate_rt_mt(tmp_mov{j}, tmp_data.chordID(j), ...
+                                                                tmp_data.baselineTopThresh(j), tmp_data.RT(j), ...
+                                                                tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
+                                                                tmp_data.fGain4(j), tmp_data.fGain5(j));
                 
                 % if trial was incorrect:
                 else
@@ -66,6 +67,7 @@ switch (what)
                     mean_dev_tmp(j) = -1;
                     rt_tmp(j) = -1;
                     mt_tmp(j) = -1;
+                    first_finger_tmp(j) = -1;
                 end
             end
             
@@ -76,13 +78,12 @@ switch (what)
             % adding the calculated parameters to the subject struct:
             tmp_data.RT = rt_tmp;
             tmp_data.MT = mt_tmp;
+            tmp_data.first_finger = first_finger_tmp;
             tmp_data.mean_dev = mean_dev_tmp;
             
             % adding subject data to ANA:
             ANA=addstruct(ANA,tmp_data,'row','force');
         end
-
-        disp(size(ANA))
 
         dsave(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.tsv'),ANA);
 
