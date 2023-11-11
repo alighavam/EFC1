@@ -115,7 +115,7 @@ end
 rt = sortIdx(1)/500 * 1000; % 500Hz is the fs
 
 % movement time:
-mt = completion_time - rt;
+mt = completion_time - rt - 600;
 
 % check if rt and mt make sense:
 if (rt <= 0 || isnan(rt))
@@ -123,7 +123,7 @@ if (rt <= 0 || isnan(rt))
         'be negative or 0 if the trial is correct and everything is saved correctly.'],rt)
 end
 
-if (mt <= 0 || mt > completion_time)
+if (mt <= 0 || mt > completion_time - 600)
     warning(['calc_rt_mt: The calculated rt is %.2f. The value of mt should not ' ...
         'be negative or 0 if the trial is correct and everything is saved correctly.'],mt)
 end
