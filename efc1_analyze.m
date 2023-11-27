@@ -5,6 +5,7 @@ addpath('functions/')
 % setting paths:
 usr_path = userpath;
 usr_path = usr_path(1:end-17);
+project_path = fullfile(usr_path, 'Desktop', 'Projects', 'EFC1');
 
 switch (what)
     case 'subject_routine'
@@ -86,6 +87,65 @@ switch (what)
         end
 
         dsave(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.tsv'),ANA);
+    
+    case 'avg_MD'
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+
+        sn = unique(data.sn);
+
+        % defining sessions:
+        sess = {'sess03','sess04'};
+        sess_blocks = {25:36,37:48};
+        
+        % dataframe to hold the MDs:
+        avg_MD = [];
+        % loop on subjects:
+        for i = 1:length(sn)
+            subj_row = data.sn == sn(i);
+            sess01_row = subj_row & data.BN>=sess_blocks{1}(1) & data.BN<=sess_blocks{1}(end) & data.trialCorr==1;
+            sess02_row = subj_row & data.BN>=sess_blocks{2}(1) & data.BN<=sess_blocks{2}(end) & data.trialCorr==1;
+            
+            chords = generateAllChords();
+            C = [];
+            for i_ch = 1:length(chords)
+                tmp01 = data.mean_dev(sess01_row & data.chordID==chords(i_ch));
+                tmp02 = data.mean_dev(sess02_row & data.chordID==chords(i_ch));
+                C.sn(i_ch,1) = sn(i);
+                C.chordID(i_ch,1) = chords(i_ch);
+                if ~isempty(tmp01)
+                    C.MD_sess01(i_ch,1) = mean(tmp01);
+                else
+                    C.MD_sess01(i_ch,1) = -1;
+                end
+
+                if ~isempty(tmp02)
+                    C.MD_sess02(i_ch,1) = mean(tmp02);
+                else
+                    C.MD_sess02(i_ch,1) = -1;
+                end
+            end
+            
+            avg_MD = addstruct(avg_MD,C,'row','force');
+        end
+        
+        varargout{1} = avg_MD;
+
+    case 'MD_reliability'
+        avg_MD = efc1_analyze('avg_MD');
+        
+        sn = unique(avg_MD.sn);
+
+        % within subj corr:
+        corr_w_subj = [];
+        for i = 1:length(sn)
+            corr_w_subj(i) = corr(avg_MD.MD_sess01(avg_MD.sn==sn(i)),...
+                                  avg_MD.MD_sess02(avg_MD.sn==sn(i)));
+        end
+
+        % across subj corr:
+        for i = 1:length(sn)
+            
+        end
 
         
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
