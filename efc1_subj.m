@@ -56,7 +56,7 @@ ANA.sn = sn;
 dsave(subjFileName,ANA);
 
 % saving mov data as a binary file:
-save(movFileName ,'MOV_struct')
+save(movFileName, 'MOV_struct', '-v7.3')
 
 
 
