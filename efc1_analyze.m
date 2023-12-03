@@ -1,4 +1,4 @@
-function varargout=efc1_analyze(what, data, varargin)
+function varargout=efc1_analyze(what, varargin)
 
 addpath('functions/')
 
@@ -91,10 +91,159 @@ switch (what)
         dsave(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.tsv'),ANA);
     
 
-    case 'MD_reliability'
+    case 'behavior_reliability'
+        blocks = [25 48];
+        vararginoptions(varargin,{'blocks'})
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        
+        subjects = unique(data.sn);
+
+        % extracting avg mean dev of all subjects:
+        C = [];
+        for sn = 1:length(subjects)
+            tmp = [];
+            % all possible chords:
+            chords = generateAllChords();
+
+            for i = 1:length(chords)
+                tmp.sn(i,1) = subjects(sn);
+                tmp.chordID(i,1) = chords(i);
+                tmp.num_fingers(i,1) = get_num_active_fingers(chords(i));
+
+                row = data.sn==subjects(sn) & data.BN>=blocks(1) & data.BN<=blocks(2) & data.chordID==chords(i) & data.trialCorr==1;
+                tmp.mean_dev(i,1) = mean(data.mean_dev(row));
+                tmp.RT(i,1) = median(data.RT(row));
+                tmp.MT(i,1) = median(data.MT(row));
+            end
+
+            % concatenating subjects:
+            C = addstruct(C,tmp,'row','force');
+        end
+
+        % getting the values in matrix format
+        MD = zeros(length(chords),length(sn));
+        RT = zeros(length(chords),length(sn));
+        MT = zeros(length(chords),length(sn));
+        for sn = 1:length(subjects)
+            MD(:,sn) = C.mean_dev(C.sn==subjects(sn));
+            RT(:,sn) = C.RT(C.sn==subjects(sn));
+            MT(:,sn) = C.MT(C.sn==subjects(sn));
+        end
+        
+        % num active fingers:
+        n = C.num_fingers(C.sn==1);
+
+        % corr behavior leave-one-out:
+        corr_MD = [];
+        corr_MT = [];
+        corr_RT = [];
+        
+        corr_struct = [];
+        for i = 1:length(unique(n))
+            tmp = [];
+            for sn = 1:length(subjects)
+                tmp.num_fingers(sn,1) = i;
+
+                [r,p] = corrcoef(MD(n==i,sn),mean(MD(n==i,subjects~=subjects(sn)),2));
+                tmp.MD(sn,1) = r(2);
+                tmp.MD_p(sn,1) = p(2);
+
+                [r,p] = corrcoef(MT(n==i,sn),mean(MT(n==i,subjects~=subjects(sn)),2));
+                tmp.MT(sn,1) = r(2);
+                tmp.MT_p(sn,1) = p(2);
+
+                [r,p] = corrcoef(RT(n==i,sn),mean(RT(n==i,subjects~=subjects(sn)),2));
+                tmp.RT(sn,1) = r(2);
+                tmp.RT_p(sn,1) = p(2);
+            end
+            corr_struct = addstruct(corr_struct,tmp,'row','force');
+        end
+        
+        % plots:
+        figure;
+        subplot(1,3,1)
+        lineplot(corr_struct.num_fingers,corr_struct.MD,'markertype','o','markersize',5,'linecolor',[1 1 1]);
+        title(sprintf('MD reliability , block %d to %d',blocks(1),blocks(2)))
+        xlabel('num fingers')
+        ylabel('corr leave one out subj')
+        ylim([0,1])
+
+        subplot(1,3,2)
+        lineplot(corr_struct.num_fingers,corr_struct.MT,'markertype','o','markersize',5,'linecolor',[1 1 1]);
+        title(sprintf('MT reliability , block %d to %d',blocks(1),blocks(2)))
+        xlabel('num fingers')
+        ylabel('corr leave one out subj')
+        ylim([0,1])
+
+        subplot(1,3,3)
+        lineplot(corr_struct.num_fingers,corr_struct.RT,'markertype','o','markersize',5,'linecolor',[1 1 1]);
+        title(sprintf('RT reliability , block %d to %d',blocks(1),blocks(2)))
+        xlabel('num fingers')
+        ylabel('corr leave one out subj')
+        ylim([0,1])
+
+        varargout{1} = C;
+        varargout{2} = corr_struct;
+
+    case 'behavior_trends'
+        measure = 'mean_dev';
+        vararginoptions(varargin,{'measure'})
+
+        % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
 
+        % getting the values of measure:
+        values = eval(['data.' measure]);
 
+        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+
+        % avg trend acorss sessions:
+        figure;
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'linecolor',[0.4660, 0.6740, 0.1880]);hold on;
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'linecolor',[0.3010, 0.7450, 0.9330]);
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'linecolor',[0.9290, 0.6940, 0.1250]);
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',[0.8500, 0.3250, 0.0980]);
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',[0.4940, 0.1840, 0.5560]);
+        xlabel('session')
+        ylabel(['avg ' measure ' across subj'])
+        
+        % significance test of differences across num fingers:
+        H_num_fingers = [];
+        for i = 1:4
+            tmp = [];
+            for j = 1:4
+                tmp.sess(j,1) = i;
+                [~, tmp.p(j,1)] = ttest2(values(sess==i & data.trialCorr==1 & data.num_fingers==j),values(sess==i & data.trialCorr==1 & data.num_fingers==j+1));
+            end
+            H_num_fingers = addstruct(H_num_fingers,tmp,'row','force');
+        end
+
+        % significance test of differences across sessions:
+        H_sess = [];
+        for i = 1:5
+            tmp = [];
+            for j = 1:3
+                tmp.num_fingers(j,1) = i;
+                [~, tmp.p(j,1)] = ttest2(values(sess==j & data.trialCorr==1 & data.num_fingers==i),values(sess==j+1 & data.trialCorr==1 & data.num_fingers==i));
+            end
+            H_sess = addstruct(H_sess,tmp,'row','force');
+        end
+
+        % avg trends across blocks:
+        figure;
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'linecolor',[0.4660, 0.6740, 0.1880]);hold on;
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'linecolor',[0.3010, 0.7450, 0.9330]);
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'linecolor',[0.9290, 0.6940, 0.1250]);
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',[0.8500, 0.3250, 0.0980]);
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',[0.4940, 0.1840, 0.5560]);
+        xlabel('Block')
+        ylabel(['avg ' measure ' across subj'])
+        
+
+        varargout{1} = H_num_fingers;
+        varargout{2} = H_sess;
 
         
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
@@ -106,54 +255,8 @@ switch (what)
         efc1_RTvsRun(data,plotfcn);
     
     % =====================================================================
-    case 'corr_within_subj_runs'
-        corrMethod = 'pearson';     % default correlation method
-        excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
-        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'plotfcn' option for lineplot()
-        end   
-        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
-            excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
-        end  
-        % correlation of median RT within subject runs
-        rhoWithinSubject = efc1_corr_within_subj_runs(data,corrMethod,excludeVec);
-        varargout{1} = rhoWithinSubject;
-    
-    % =====================================================================
-    case 'corr_across_subj'
-        corrMethod = 'pearson';     % default correlation method
-        excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
-        plotfcn = 0;                % default is not to plot
-        clim = [0,1];               % default for colorbar limit
-        if (~isempty(find(strcmp(varargin,'plotfcn'),1)))
-            plotfcn = varargin{find(strcmp(varargin,'plotfcn'),1)+1};           % setting 'plotfcn' option
-        end
-        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};     % setting 'corrMethod' option
-        end
-        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
-            excludeVec = varargin{find(strcmp(varargin,'excludeChord'),1)+1};   % setting 'excludeChord' option for calcMedRT
-        end  
-        if (~isempty(find(strcmp(varargin,'clim'),1)))
-            clim = varargin{find(strcmp(varargin,'clim'),1)+1};                 % setting 'colorbar' option
-        end
-        % correlation of median RT across subjects
-        rhoAcrossSubjects = efc1_corr_across_subj(data,corrMethod,excludeVec);
-        varargout{1} = rhoAcrossSubjects;
-        if (plotfcn)
-            figure;
-            if (~isempty(clim))
-                imagesc(rhoAcrossSubjects{1},clim)
-            else
-                imagesc(rhoAcrossSubjects{1})
-            end
-            colorbar
-            title(sprintf("corr medRT across subjects - corrMethod: %s",corrMethod))
-            xlabel("subj")
-            ylabel("subj")
-        end
 
-    % =====================================================================
+    
     case 'corr_medRT_avg_model'
         corrMethod = 'pearson';     % default correlation method
         excludeVec = [];            % default exclude chord vector. Not excluding any chords by default.
