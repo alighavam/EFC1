@@ -7,6 +7,9 @@ usr_path = userpath;
 usr_path = usr_path(1:end-17);
 project_path = fullfile(usr_path, 'Desktop', 'Projects', 'EFC1');
 
+% colors:
+colors = [[0.4660, 0.6740, 0.1880] ; [0.3010, 0.7450, 0.9330] ; [0.9290, 0.6940, 0.1250] ; [0.8500, 0.3250, 0.0980] ; [0.4940, 0.1840, 0.5560]];
+
 switch (what)
     case 'subject_routine'
         % handling input arguments:
@@ -164,7 +167,7 @@ switch (what)
         % plots:
         figure;
         subplot(1,3,1)
-        lineplot(corr_struct.num_fingers,corr_struct.MD,'markertype','o','markersize',5,'linecolor',[1 1 1]);
+        lineplot(corr_struct.num_fingers,corr_struct.MD, 'markertype','o','markersize',5,'linecolor',[1 1 1]);
         title(sprintf('MD reliability , block %d to %d',blocks(1),blocks(2)))
         xlabel('num fingers')
         ylabel('corr leave one out subj')
@@ -199,15 +202,18 @@ switch (what)
 
         sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
 
+        % colors:
+        colors = [[0.4660, 0.6740, 0.1880] ; [0.3010, 0.7450, 0.9330] ; [0.9290, 0.6940, 0.1250] ; [0.8500, 0.3250, 0.0980] ; [0.4940, 0.1840, 0.5560]];
+
         % avg trend acorss sessions:
         figure;
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'linecolor',[0.4660, 0.6740, 0.1880]);hold on;
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'linecolor',[0.3010, 0.7450, 0.9330]);
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'linecolor',[0.9290, 0.6940, 0.1250]);
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',[0.8500, 0.3250, 0.0980]);
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',[0.4940, 0.1840, 0.5560]);
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'linecolor',colors(1,:));hold on;
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'linecolor',colors(2,:));
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'linecolor',colors(3,:));
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',colors(4,:));
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',colors(5,:));
         xlabel('session')
-        ylabel(['avg ' measure ' across subj'])
+        ylabel(['avg ' measure(measure~='_') ' across subj'])
         
         % significance test of differences across num fingers:
         H_num_fingers = [];
@@ -239,13 +245,249 @@ switch (what)
         lineplot(data.BN(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',[0.8500, 0.3250, 0.0980]);
         lineplot(data.BN(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',[0.4940, 0.1840, 0.5560]);
         xlabel('Block')
-        ylabel(['avg ' measure ' across subj'])
+        ylabel(['avg ' measure(measure~='_') ' across subj'])
         
 
         varargout{1} = H_num_fingers;
         varargout{2} = H_sess;
 
+    case 'selected_chord_reliability'
+        % handling input args:
+        blocks = [25, 48];
+        % check reliability for these chords:
+        chords = [11912,22921,21911,12922,12191,21292,19121,29212,12112,21221,21121,21121,12212,11212,22121,21211,21122]';
+        vararginoptions(varargin,{'blocks','chords'})
         
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        
+        subjects = unique(data.sn);
+
+        % extracting avg mean dev of all subjects:
+        C = [];
+        % loop on subjs:
+        for sn = 1:length(subjects)
+            % container for subjects:
+            tmp = [];
+            % loop on chords:
+            for i = 1:length(chords)
+                tmp.sn(i,1) = subjects(sn);
+                tmp.chordID(i,1) = chords(i);
+                tmp.num_fingers(i,1) = get_num_active_fingers(chords(i));
+
+                row = data.sn==subjects(sn) & data.BN>=blocks(1) & data.BN<=blocks(2) & data.chordID==chords(i) & data.trialCorr==1;
+                tmp.mean_dev(i,1) = mean(data.mean_dev(row));
+                tmp.RT(i,1) = median(data.RT(row));
+                tmp.MT(i,1) = median(data.MT(row));
+            end
+
+            % concatenating subjects:
+            C = addstruct(C,tmp,'row','force');
+        end
+
+        % getting the values in matrix format
+        MD = zeros(length(chords),length(sn));
+        RT = zeros(length(chords),length(sn));
+        MT = zeros(length(chords),length(sn));
+        for sn = 1:length(subjects)
+            MD(:,sn) = C.mean_dev(C.sn==subjects(sn));
+            RT(:,sn) = C.RT(C.sn==subjects(sn));
+            MT(:,sn) = C.MT(C.sn==subjects(sn));
+        end
+        
+        % calculating correlations leave_one_out:
+        corr_struct = [];
+        for sn = 1:length(subjects)
+            [r,p] = corrcoef(MD(:,sn),mean(MD(:,subjects~=subjects(sn)),2));
+            corr_struct.MD(sn,1) = r(2);
+            corr_struct.MD_p(sn,1) = p(2);
+
+            [r,p] = corrcoef(MT(:,sn),mean(MT(:,subjects~=subjects(sn)),2));
+            corr_struct.MT(sn,1) = r(2);
+            corr_struct.MT_p(sn,1) = p(2);
+
+            [r,p] = corrcoef(RT(:,sn),mean(RT(:,subjects~=subjects(sn)),2));
+            corr_struct.RT(sn,1) = r(2);
+            corr_struct.RT_p(sn,1) = p(2);
+        end
+        
+        % calculating correlations subejct to subject:
+        [r_MD,p_MD] = corrcoef(MD);
+        [r_MT,p_MT] = corrcoef(MT);
+        [r_RT,p_RT] = corrcoef(RT);
+        
+        % figures:
+        figure;
+        subplot(1,3,1)
+        bar(1,mean(corr_struct.MD))
+        hold on
+        scatter(ones(length(subjects),1),corr_struct.MD,20,'k','filled');
+        title(sprintf('MD reliability , block %d to %d',blocks(1),blocks(2)))
+        ylabel('corr leave one out subj')
+        ylim([-1,1])
+
+        subplot(1,3,2)
+        bar(1,mean(corr_struct.MT))
+        hold on
+        scatter(ones(length(subjects),1),corr_struct.MT,20,'k','filled');
+        title(sprintf('MT reliability , block %d to %d',blocks(1),blocks(2)))
+        ylabel('corr leave one out subj')
+        ylim([-1,1])
+
+        subplot(1,3,3)
+        bar(1,mean(corr_struct.RT))
+        hold on
+        scatter(ones(length(subjects),1),corr_struct.RT,20,'k','filled');
+        title(sprintf('RT reliability , block %d to %d',blocks(1),blocks(2)))
+        ylabel('corr leave one out subj')
+        ylim([-1,1])
+        
+        % subject-subject figures;
+        figure; imagesc(r_MD); title('MD , subject-subject correlation')
+        colorbar
+        caxis([-1 1])
+
+        figure; imagesc(r_MT); title('MT , subject-subject correlation')
+        colorbar
+        caxis([-1 1])
+        
+        figure; imagesc(r_RT); title('RT , subject-subject correlation')
+        colorbar
+        caxis([-1 1])
+
+        varargout{1} = C;
+        varargout{2} = corr_struct;
+
+    case 'selected_chord_trends'
+        % handling input args:
+        % check reliability for these chords:
+        chords = [11912,22921,21911,12922,12191,21292,19121,29212,12112,21221,21121,21121,12212,11212,22121,21211,21122]';
+        measure = 'mean_dev';
+        vararginoptions(varargin,{'measure','chords'})
+
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+
+        % getting the values of measure:
+        values = eval(['data.' measure]);
+
+        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+
+        % colors:
+        colors = [[0.4660, 0.6740, 0.1880] ; [0.3010, 0.7450, 0.9330] ; [0.9290, 0.6940, 0.1250] ; [0.8500, 0.3250, 0.0980] ; [0.4940, 0.1840, 0.5560]];
+        
+        % rows for selected chords:
+        row = arrayfun(@(x) ~isempty(intersect(x,chords)), data.chordID);
+
+        % avg trend acorss sessions:
+        figure;
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==1 & row),values(data.trialCorr==1 & data.num_fingers==1 & row),'linecolor',colors(1,:));hold on;
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==2 & row),values(data.trialCorr==1 & data.num_fingers==2 & row),'linecolor',colors(2,:));
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==3 & row),values(data.trialCorr==1 & data.num_fingers==3 & row),'linecolor',colors(3,:));
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==4 & row),values(data.trialCorr==1 & data.num_fingers==4 & row),'linecolor',colors(4,:));
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==5 & row),values(data.trialCorr==1 & data.num_fingers==5 & row),'linecolor',colors(5,:));
+        xlabel('session')
+        ylabel(['avg ' measure(measure~='_') ' across subj'])
+        xlim([0.7,4.3])
+        
+        % significance test of differences across num fingers:
+        H_num_fingers = [];
+        for i = 1:4
+            tmp = [];
+            for j = 1:4
+                tmp.sess(j,1) = i;
+                [~, tmp.p(j,1)] = ttest2(values(sess==i & data.trialCorr==1 & data.num_fingers==j & row),values(sess==i & data.trialCorr==1 & data.num_fingers==j+1 & row));
+            end
+            H_num_fingers = addstruct(H_num_fingers,tmp,'row','force');
+        end
+
+        % significance test of differences across sessions:
+        H_sess = [];
+        for i = 1:5
+            tmp = [];
+            for j = 1:3
+                tmp.num_fingers(j,1) = i;
+                [~, tmp.p(j,1)] = ttest2(values(sess==j & data.trialCorr==1 & data.num_fingers==i & row),values(sess==j+1 & data.trialCorr==1 & data.num_fingers==i & row));
+            end
+            H_sess = addstruct(H_sess,tmp,'row','force');
+        end
+
+        % avg trends across blocks:
+        figure;
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==1 & row),values(data.trialCorr==1 & data.num_fingers==1 & row),'linecolor',[0.4660, 0.6740, 0.1880]);hold on;
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==2 & row),values(data.trialCorr==1 & data.num_fingers==2 & row),'linecolor',[0.3010, 0.7450, 0.9330]);
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==3 & row),values(data.trialCorr==1 & data.num_fingers==3 & row),'linecolor',[0.9290, 0.6940, 0.1250]);
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==4 & row),values(data.trialCorr==1 & data.num_fingers==4 & row),'linecolor',[0.8500, 0.3250, 0.0980]);
+        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==5 & row),values(data.trialCorr==1 & data.num_fingers==5 & row),'linecolor',[0.4940, 0.1840, 0.5560]);
+        xlabel('Block')
+        ylabel(['avg ' measure(measure~='_') ' across subj'])
+        
+        varargout{1} = H_num_fingers;
+        varargout{2} = H_sess;
+
+    case 'model_testing'
+        % handling input args:
+        blocks = [25,48];
+        model_names = {'extension','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
+        chords = generateAllChords;
+        measure = 'mean_dev';
+        vararginoptions(varargin,{'model_names','blocks','chords','measure'})
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        subjects = unique(data.sn);
+
+        % getting the values of measure:
+        values = eval(['data.' measure]);
+        
+        % loop on subjects and regression with leave-one-out:
+        results = [];
+        for i = 1:length(subjects)
+            fprintf('running for subj %d/%d out...\n',i,length(subjects))
+            % container for regression results:
+            tmp = [];
+
+            % loop on models:
+            for j = 1:length(model_names)
+                % making design matrix:
+                X = make_design_matrix(data.chordID(data.sn~=subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)),model_names{j});
+                
+                % train linear model on subject-out data:
+                y = values(data.sn~=subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2));
+                % mdl = fitlm(X,y)
+                [B,STATS]=linregress(y,X,'intercept',1,'contrast',eye(size(X,2)+1));
+                % mdl = fitlm(X,y)
+                
+                % test model on subject data:
+                X_test = make_design_matrix(data.chordID(data.sn==subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)),model_names{j});
+                X_test = [ones(size(X_test,1),1) X_test];
+                y_pred = X_test*B;
+                [r,p] = corrcoef(y_pred,values(data.sn==subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)));
+
+                % storing the regression results:
+                tmp.model_name{j,1} = model_names{j};
+                tmp.model_num(j,1) = j;
+                tmp.sn_out(j,1) = subjects(i);
+                tmp.B{j,1} = B;
+                tmp.stats{j,1} = STATS;
+                tmp.r_test(j,1) = r(2);
+                tmp.p_value(j,1) = p(2);
+            end
+            
+            results = addstruct(results,tmp,'row','force');
+        end
+        
+        % plotting:
+        figure;
+        lineplot(results.model_num, results.r_test)
+        xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
+        ylabel('rho')
+        ylim([0,1])
+
+        varargout{1} = results;
+        
+
+
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
         % lineplot subplot for each subj
         plotfcn = 'mean';
