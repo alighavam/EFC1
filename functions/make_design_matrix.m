@@ -8,6 +8,12 @@ switch model_name
             X(i,n(i)) = 1;
         end
     
+    case 'flexion'
+        X = zeros(length(chords),5);
+        for i = 1:length(chords)
+            X(i,:) = num2str(chords(i)) == '2';
+        end
+    
     case 'extension'
         X = zeros(length(chords),5);
         for i = 1:length(chords)
