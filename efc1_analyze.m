@@ -431,7 +431,7 @@ switch (what)
     case 'model_testing'
         % handling input args:
         blocks = [25,48];
-        model_names = {'extension','num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
+        model_names = {'num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
@@ -445,7 +445,7 @@ switch (what)
         values = eval(['data.' measure]);
 
         % noise ceiling calculation:
-        [~,corr_struct] = efc1_analyze('selected_chord_reliability','blocks',blocks,'chords',chords,'plot_option',0);
+        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
         noise_ceil = mean(corr_struct.MD);
 
         % loop on subjects and regression with leave-one-out:
@@ -527,7 +527,7 @@ switch (what)
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
-        model_names = {'extension','num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
+        model_names = {'num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
@@ -550,18 +550,20 @@ switch (what)
         end
 
         % noise ceiling calculation:
-        [~,corr_struct] = efc1_analyze('selected_chord_reliability','blocks',blocks,'chords',chords,'plot_option',0);
+        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
         noise_ceil = mean(corr_struct.MD);
 
         % loop on subjects and regression with leave-one-out:
         results = [];
         for i = 1:length(subjects)
+            fprintf('running for subj %d/%d out...\n',i,length(subjects))
+
             % container for regression results:
             tmp = [];
 
             % loop on models:
             for j = 1:length(model_names)
-                fprintf('running for subj %d/%d out , model: %s\n',i,length(subjects),model_names{j})
+                
                 % making design matrix:
                 X = make_design_matrix(chords,model_names{j});
                 X = repmat(X,length(subjects)-1,1);
@@ -584,7 +586,7 @@ switch (what)
                 y_test = values(:,i);
 
                 if remove_mean
-                    y_test = y_test-mean(y_test);
+                    % y_test = y_test-mean(y_test);
                 end
 
                 % storing the regression results:
@@ -649,7 +651,7 @@ switch (what)
 
         for i = 1:5
             % noise ceiling calculation:
-            [~,corr_struct] = efc1_analyze('selected_chord_reliability','blocks',blocks,'chords',chords(n==i),'plot_option',0);
+            [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords(n==i),'plot_option',0);
             noise_ceil = mean(corr_struct.MD);
 
             figure;
