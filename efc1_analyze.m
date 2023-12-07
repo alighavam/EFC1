@@ -779,10 +779,6 @@ switch (what)
                 y_pred = X_test*B;
                 y_test = values(:,i);
 
-                if remove_mean
-                    % y_test = y_test-mean(y_test);
-                end
-
                 % storing the regression results:
                 tmp.model_name{j,1} = model_names{j};
                 tmp.model_num(j,1) = j;
@@ -863,6 +859,103 @@ switch (what)
         varargout{1} = results;
         varargout{2} = H_across_models;
         varargout{3} = H_model_ceil;
+
+    case 'model_observation'
+        % handling input args:
+        blocks = [25,48];
+        model_names = {'num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
+        chords = generateAllChords;
+        measure = 'mean_dev';
+        remove_mean = 0;
+        vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        subjects = unique(data.sn);
+
+        % getting the values of measure:
+        values_tmp = eval(['data.' measure]);
+
+        n = get_num_active_fingers(chords);
+
+        % avg trials of subjects:
+        for i = 1:length(subjects)
+            for j = 1:length(chords)
+                values(j,i) = mean(values_tmp(data.chordID==chords(j) & data.sn==subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)));
+            end
+        end
+
+        % noise ceiling calculation:
+        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
+        noise_ceil = mean(corr_struct.MD);
+
+        % loop on subjects and regression with leave-one-out:
+        results = [];
+        for i = 1:length(subjects)
+            fprintf('running for subj %d/%d out...\n',i,length(subjects))
+
+            % container for regression results:
+            tmp = [];
+
+            % loop on models:
+            for j = 1:length(model_names)
+                
+                % making design matrix:
+                X = make_design_matrix(chords,model_names{j});
+                X = repmat(X,length(subjects)-1,1);
+                
+                % train linear model on subject-out data:
+                y = values(:,setdiff(1:length(subjects),i));
+                y = y(:);
+                
+                if remove_mean
+                    % removing sample mean:
+                    y = y - mean(y);
+                end
+
+                % regression:
+                [B,STATS]=linregress(y,X,'intercept',0,'contrast',eye(size(X,2)));
+                
+                % test model on subject data:
+                X_test = make_design_matrix(chords,model_names{j});
+                y_pred = X_test*B;
+                y_test = values(:,i);
+
+                if remove_mean
+                    % y_test = y_test-mean(y_test);
+                end
+
+                % storing the regression results:
+                tmp.model_name{j,1} = model_names{j};
+                tmp.model_num(j,1) = j;
+                tmp.sn_out(j,1) = subjects(i);
+                tmp.B{j,1} = B;
+                tmp.stats{j,1} = STATS;
+                tmp.pred{j,1} = y_pred;
+
+                [r,p] = corrcoef(y_pred,y_test);
+                tmp.r_test(j,1) = r(2);
+                tmp.p_value(j,1) = p(2);
+
+                for k = 1:5
+                    [r,p] = corrcoef(y_pred(n==k),y_test(n==k));
+                    eval(['tmp.r_test_n' num2str(k) '(j,1) = r(2);']);
+                    eval(['tmp.p_value_n' num2str(k) '(j,1) = p(2);']);
+                end
+            end
+            
+            results = addstruct(results,tmp,'row','force');
+        end
+
+        % plots:
+        for i = 1:length(model_names)
+            figure;
+            
+        end
+
+
+
+        varargout{1} = results;
 
 
     case 'RT_vs_run'    % varargin options: 'plotfcn',{'mean' or 'median'} default is 'mean'
