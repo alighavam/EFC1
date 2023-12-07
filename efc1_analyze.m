@@ -231,12 +231,13 @@ switch (what)
         MD = zeros(length(chords)*length(unique(sess)),length(sn));
         RT = zeros(length(chords)*length(unique(sess)),length(sn));
         MT = zeros(length(chords)*length(unique(sess)),length(sn));
+        sess_reduced = kron([1;2;3;4],ones(length(chords),1));
         for sn = 1:length(subjects)
             MD(:,sn) = C.mean_dev(C.sn==subjects(sn));
             RT(:,sn) = C.RT(C.sn==subjects(sn));
             MT(:,sn) = C.MT(C.sn==subjects(sn));
         end
-        
+
         % num active fingers:
         n = C.num_fingers(C.sn==1);
 
@@ -251,20 +252,19 @@ switch (what)
                 tmp.num_fingers(sn,1) = i;
                 tmp.sn(sn,1) = subjects(sn);
                 
-                % retest correlation within subj:
+
+                % simple across session correlation within subj:
                 row01 = C.num_fingers==i & C.sn==subjects(sn) & C.sess==3;
                 row02 = C.num_fingers==i & C.sn==subjects(sn) & C.sess==4;
                 [r,p] = corrcoef(C.mean_dev(row01),C.mean_dev(row02));
                 tmp.MD_within(sn,1) = r(2);
-                tmp.MD_within_pval(sn,1) = p(2);
 
                 [r,p] = corrcoef(C.MT(row01),C.MT(row02));
                 tmp.MT_within(sn,1) = r(2);
-                tmp.MT_within_pval(sn,1) = p(2);
 
                 [r,p] = corrcoef(C.RT(row01),C.RT(row02));
                 tmp.RT_within(sn,1) = r(2);
-                tmp.RT_within_pval(sn,1) = p(2);
+
 
                 % cronbach's alpha within subj:
                 alpha = cronbach([C.mean_dev(row01), C.mean_dev(row02)]);
@@ -276,19 +276,97 @@ switch (what)
                 alpha = cronbach([C.RT(row01), C.RT(row02)]);
                 tmp.RT_within_alpha(sn,1) = alpha;
 
+
+                % avg sess , leave-one-out:
+                x = mean([MD(n==i & sess_reduced==3,sn),MD(n==i & sess_reduced==4,sn)],2,"omitnan");
+                y = mean([MD(n==i & sess_reduced==3,setdiff(1:length(subjects),sn)),MD(n==i & sess_reduced==4,setdiff(1:length(subjects),sn))],2,"omitnan");
+                [r,p] = corrcoef(x,y);
+                tmp.MD_across_avg(sn,1) = r(2);
+
+                x = mean([MT(n==i & sess_reduced==3,sn),MT(n==i & sess_reduced==4,sn)],2,"omitnan");
+                y = mean([MT(n==i & sess_reduced==3,setdiff(1:length(subjects),sn)),MT(n==i & sess_reduced==4,setdiff(1:length(subjects),sn))],2,"omitnan");
+                [r,p] = corrcoef(x,y);
+                tmp.MT_across_avg(sn,1) = r(2);
+
+                x = mean([RT(n==i & sess_reduced==3,sn),RT(n==i & sess_reduced==4,sn)],2,"omitnan");
+                y = mean([RT(n==i & sess_reduced==3,setdiff(1:length(subjects),sn)),RT(n==i & sess_reduced==4,setdiff(1:length(subjects),sn))],2,"omitnan");
+                [r,p] = corrcoef(x,y);
+                tmp.RT_across_avg(sn,1) = r(2);
+
+
+                % cat sess , leave-one-out:
+                x = MD(n==i & sess_reduced>=3,sn);
+                y = mean(MD(n==i & sess_reduced>=3,setdiff(1:length(subjects),sn)),2,"omitnan");
+                [r,p] = corrcoef(x,y);
+                tmp.MD_across_cat(sn,1) = r(2);
+
+                x = MT(n==i & sess_reduced>=3,sn);
+                y = mean(MT(n==i & sess_reduced>=3,setdiff(1:length(subjects),sn)),2,"omitnan");
+                [r,p] = corrcoef(x,y);
+                tmp.MT_across_cat(sn,1) = r(2);
+
+                x = RT(n==i & sess_reduced>=3,sn);
+                y = mean(RT(n==i & sess_reduced>=3,setdiff(1:length(subjects),sn)),2,"omitnan");
+                [r,p] = corrcoef(x,y);
+                tmp.RT_across_cat(sn,1) = r(2);
+
+
+                % avg sess cronbach , leave-one-out:
+                x = mean([MD(n==i & sess_reduced==3,sn),MD(n==i & sess_reduced==4,sn)],2,"omitnan");
+                y = mean([MD(n==i & sess_reduced==3,setdiff(1:length(subjects),sn)),MD(n==i & sess_reduced==4,setdiff(1:length(subjects),sn))],2,"omitnan");
+                alpha = cronbach([x,y]);
+                tmp.MD_avg_alpha(sn,1) = alpha;
+
+                x = mean([MT(n==i & sess_reduced==3,sn),MT(n==i & sess_reduced==4,sn)],2,"omitnan");
+                y = mean([MT(n==i & sess_reduced==3,setdiff(1:length(subjects),sn)),MT(n==i & sess_reduced==4,setdiff(1:length(subjects),sn))],2,"omitnan");
+                alpha = cronbach([x,y]);
+                tmp.MT_avg_alpha(sn,1) = alpha;
+
+                x = mean([RT(n==i & sess_reduced==3,sn),RT(n==i & sess_reduced==4,sn)],2,"omitnan");
+                y = mean([RT(n==i & sess_reduced==3,setdiff(1:length(subjects),sn)),RT(n==i & sess_reduced==4,setdiff(1:length(subjects),sn))],2,"omitnan");
+                alpha = cronbach([x,y]);
+                tmp.RT_avg_alpha(sn,1) = alpha;
+
+                % cat sess cronbach , leave-one-out:
+                x = MD(n==i & sess_reduced>=3,sn);
+                y = mean(MD(n==i & sess_reduced>=3,setdiff(1:length(subjects),sn)),2,"omitnan");
+                alpha = cronbach([x,y]);
+                tmp.MD_across_cat(sn,1) = alpha;
+
+                x = MT(n==i & sess_reduced>=3,sn);
+                y = mean(MT(n==i & sess_reduced>=3,setdiff(1:length(subjects),sn)),2,"omitnan");
+                alpha = cronbach([x,y]);
+                tmp.MT_across_cat(sn,1) = alpha;
+
+                x = RT(n==i & sess_reduced>=3,sn);
+                y = mean(RT(n==i & sess_reduced>=3,setdiff(1:length(subjects),sn)),2,"omitnan");
+                alpha = cronbach([x,y]);
+                tmp.RT_across_cat(sn,1) = alpha;
+                
             end
             corr_struct = addstruct(corr_struct,tmp,'row','force');
         end
         
         % plots:
-        % figure;
-        % subplot(1,3,1)
-        % lineplot(corr_struct.num_fingers,corr_struct.MD, 'markertype','o','markersize',5,'linecolor',[1 1 1]);
-        % title(sprintf('MD reliability , block %d to %d',blocks(1),blocks(2)))
-        % xlabel('num fingers')
-        % ylabel('corr leave one out subj')
-        % ylim([0,1])
-        % 
+        figure;
+        subplot(1,2,1)
+        lineplot(corr_struct.num_fingers,corr_struct.MD_within, 'markertype','o','markersize',5,'markercolor',[0 0.4470 0.7410],'linecolor',[0 0.4470 0.7410]);
+        hold on
+        lineplot(corr_struct.num_fingers,corr_struct.MD_within_alpha, 'markertype','s','markersize',5,'markercolor',[0.8500 0.3250 0.0980],'linecolor',[0.8500 0.3250 0.0980]);
+        title(sprintf('within'))
+        xlabel('num fingers')
+        ylabel('')
+        ylim([0,1])
+
+        subplot(1,2,2)
+        lineplot(corr_struct.num_fingers,corr_struct.MD_across_cat, 'markertype','o','markersize',5,'markercolor',[0 0.4470 0.7410],'linecolor',[0 0.4470 0.7410]);
+        hold on
+        lineplot(corr_struct.num_fingers,corr_struct.MD_avg_alpha, 'markertype','s','markersize',5,'markercolor',[0.8500 0.3250 0.0980],'linecolor',[0.8500 0.3250 0.0980]);
+        title(sprintf('across'))
+        xlabel('num fingers')
+        ylabel('')
+        ylim([0,1])
+        
         % subplot(1,3,2)
         % lineplot(corr_struct.num_fingers,corr_struct.MT,'markertype','o','markersize',5,'linecolor',[1 1 1]);
         % title(sprintf('MT reliability , block %d to %d',blocks(1),blocks(2)))
