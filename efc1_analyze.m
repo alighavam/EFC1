@@ -190,6 +190,122 @@ switch (what)
         varargout{1} = C;
         varargout{2} = corr_struct;
 
+    case 'behavior_reliability_v2'
+        vararginoptions(varargin,{'blocks'})
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+        
+        subjects = unique(data.sn);
+
+        % extracting avg mean dev of all subjects:
+        C = [];
+        for sn = 1:length(subjects)
+            tmp = [];
+            % all possible chords:
+            chords = generateAllChords();
+            
+            % get the behavior data for all sessions and chords:
+            cnt = 1;
+            for j = 1:length(unique(sess))
+                for i = 1:length(chords)
+                    tmp.sn(cnt,1) = subjects(sn);
+                    tmp.chordID(cnt,1) = chords(i);
+                    tmp.num_fingers(cnt,1) = get_num_active_fingers(chords(i));
+                    tmp.sess(cnt,1) = j;
+                    
+                    row = data.sn==subjects(sn) & sess==j & data.chordID==chords(i) & data.trialCorr==1;
+                    tmp.mean_dev(cnt,1) = mean(data.mean_dev(row));
+                    tmp.RT(cnt,1) = median(data.RT(row));
+                    tmp.MT(cnt,1) = median(data.MT(row));
+                    cnt = cnt+1;
+                end
+            end
+
+            % concatenating subjects:
+            C = addstruct(C,tmp,'row','force');
+        end
+
+        % getting the values in matrix format
+        MD = zeros(length(chords)*length(unique(sess)),length(sn));
+        RT = zeros(length(chords)*length(unique(sess)),length(sn));
+        MT = zeros(length(chords)*length(unique(sess)),length(sn));
+        for sn = 1:length(subjects)
+            MD(:,sn) = C.mean_dev(C.sn==subjects(sn));
+            RT(:,sn) = C.RT(C.sn==subjects(sn));
+            MT(:,sn) = C.MT(C.sn==subjects(sn));
+        end
+        
+        % num active fingers:
+        n = C.num_fingers(C.sn==1);
+
+        % corr behavior leave-one-out:
+        corr_struct = [];
+
+        % loop on number of fingers:
+        for i = 1:length(unique(n))
+            tmp = [];
+            % loop on subjs:
+            for sn = 1:length(subjects)
+                tmp.num_fingers(sn,1) = i;
+                tmp.sn(sn,1) = subjects(sn);
+                
+                % retest correlation within subj:
+                row01 = C.num_fingers==i & C.sn==subjects(sn) & C.sess==3;
+                row02 = C.num_fingers==i & C.sn==subjects(sn) & C.sess==4;
+                [r,p] = corrcoef(C.mean_dev(row01),C.mean_dev(row02));
+                tmp.MD_within(sn,1) = r(2);
+                tmp.MD_within_pval(sn,1) = p(2);
+
+                [r,p] = corrcoef(C.MT(row01),C.MT(row02));
+                tmp.MT_within(sn,1) = r(2);
+                tmp.MT_within_pval(sn,1) = p(2);
+
+                [r,p] = corrcoef(C.RT(row01),C.RT(row02));
+                tmp.RT_within(sn,1) = r(2);
+                tmp.RT_within_pval(sn,1) = p(2);
+
+                % cronbach's alpha within subj:
+                alpha = cronbach([C.mean_dev(row01), C.mean_dev(row02)]);
+                tmp.MD_within_alpha(sn,1) = alpha;
+
+                alpha = cronbach([C.MT(row01), C.MT(row02)]);
+                tmp.MT_within_alpha(sn,1) = alpha;
+
+                alpha = cronbach([C.RT(row01), C.RT(row02)]);
+                tmp.RT_within_alpha(sn,1) = alpha;
+
+            end
+            corr_struct = addstruct(corr_struct,tmp,'row','force');
+        end
+        
+        % plots:
+        % figure;
+        % subplot(1,3,1)
+        % lineplot(corr_struct.num_fingers,corr_struct.MD, 'markertype','o','markersize',5,'linecolor',[1 1 1]);
+        % title(sprintf('MD reliability , block %d to %d',blocks(1),blocks(2)))
+        % xlabel('num fingers')
+        % ylabel('corr leave one out subj')
+        % ylim([0,1])
+        % 
+        % subplot(1,3,2)
+        % lineplot(corr_struct.num_fingers,corr_struct.MT,'markertype','o','markersize',5,'linecolor',[1 1 1]);
+        % title(sprintf('MT reliability , block %d to %d',blocks(1),blocks(2)))
+        % xlabel('num fingers')
+        % ylabel('corr leave one out subj')
+        % ylim([0,1])
+        % 
+        % subplot(1,3,3)
+        % lineplot(corr_struct.num_fingers,corr_struct.RT,'markertype','o','markersize',5,'linecolor',[1 1 1]);
+        % title(sprintf('RT reliability , block %d to %d',blocks(1),blocks(2)))
+        % xlabel('num fingers')
+        % ylabel('corr leave one out subj')
+        % ylim([0,1])
+
+        varargout{1} = C;
+        varargout{2} = corr_struct;
+
     case 'behavior_trends'
         measure = 'mean_dev';
         vararginoptions(varargin,{'measure'})
