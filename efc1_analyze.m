@@ -721,7 +721,7 @@ switch (what)
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
-        model_names = {'num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
+        model_names = {'num_fingers','single_finger','num_fingers+single_finger','num_fingers+single_finger+neighbour_fingers','num_fingers+single_finger+two_finger_interactions'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
@@ -863,7 +863,7 @@ switch (what)
     case 'model_observation'
         % handling input args:
         blocks = [25,48];
-        model_names = {'num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
+        model_names = {'num_fingers','single_finger','num_fingers+single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
@@ -932,6 +932,7 @@ switch (what)
                 tmp.B{j,1} = B;
                 tmp.stats{j,1} = STATS;
                 tmp.pred{j,1} = y_pred;
+                tmp.y{j,1} = y_test;
 
                 [r,p] = corrcoef(y_pred,y_test);
                 tmp.r_test(j,1) = r(2);
@@ -948,11 +949,29 @@ switch (what)
         end
 
         % plots:
+        figure;
         for i = 1:length(model_names)
-            figure;
-            
+            subplot(1,length(model_names),i)
+            pred = cell2mat(results.pred(results.model_num==i)');
+            lineplot(n,pred);
+            title(replace(model_names{i},'_',' '))
+            xlabel('n fingers')
+            ylabel(['predicted ' replace(measure,'_',' ')])
         end
-
+    
+        figure;
+        for i = 1:length(model_names)
+            subplot(1,length(model_names),i)
+            pred = cell2mat(results.pred(results.model_num==i)');
+            y = cell2mat(results.y(results.model_num==i)');
+            for j = 1:length(unique(n))
+                scatter(pred(n==j,1),y(n==j,1),20,colors(j,:),'filled')
+                hold on
+            end
+            title(replace(model_names{i},'_',' '))
+            xlabel([replace(measure,'_',' ') ' predicted'])
+            ylabel(replace(measure,'_',' '))
+        end
 
 
         varargout{1} = results;
