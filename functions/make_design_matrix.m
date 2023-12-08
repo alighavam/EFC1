@@ -61,4 +61,12 @@ switch model_name
         for i = 1:length(names)
             X = [X, make_design_matrix(chords,names{i})];
         end
+
+        if(sum(contains(names,'num_fingers')))
+            X(:,1) = [];
+        end
+
+        if(sum(contains(names,'num_fingers') + contains(names,'two_finger_interactions')))
+            X(:,1:2) = [];
+        end
 end
