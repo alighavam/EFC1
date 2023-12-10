@@ -851,6 +851,32 @@ switch (what)
         legend boxoff
         ylim([0,1.2])
 
+        % Just another figure of the same thing:
+        y = [];
+        fig = figure();
+        fontsize(fig,my_font.tick_label,"points")
+        for i = 1:length(unique(n))
+            y(i,:) = [v_g(i)/v_gse(i) (v_gs(i)-v_g(i))/v_gse(i) (v_gse(i)-v_gs(i))/v_gse(i)];
+        end
+
+        scatter(1:5,y(:,1),80,'MarkerFaceColor', [0.8500 0.3250 0.0980], 'MarkerEdgeColor', [0.8500 0.3250 0.0980])
+        hold on
+        plot(1:5,y(:,1),'Color',)
+        scatter(1:5,y(:,2),80,'MarkerFaceColor',[0 0.4470 0.7410],'MarkerEdgeColor',[0 0.4470 0.7410])
+        
+        drawline(1,'dir','horz','color',[0.7 0.7 0.7])
+        
+        box off;
+        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title)
+        xlabel('num fingers','FontSize',my_font.xlabel)
+        ylabel('percent variance','FontSize',my_font.ylabel)
+        % legend('g','s','e')
+        % legend boxoff
+        ylim([0,1.2])
+        xlim([0,6])
+        % xticks(1:5)
+
+
         varargout{1} = [v_g, v_gs, v_gse];
         
 
