@@ -8,7 +8,20 @@ usr_path = usr_path(1:end-17);
 project_path = fullfile(usr_path, 'Desktop', 'Projects', 'EFC1');
 
 % colors:
-colors = [[0.4660, 0.6740, 0.1880] ; [0.3010, 0.7450, 0.9330] ; [0.9290, 0.6940, 0.1250] ; [0.8500, 0.3250, 0.0980] ; [0.4940, 0.1840, 0.5560]];
+colors_red = [[255, 219, 219] ; [255, 146, 146] ; [255, 73, 73] ; [255, 0, 0] ; [182, 0, 0]]/255;
+colors_gray = ['#d3d3d3' ; '#b9b9b9' ; '#868686' ; '#6d6d6d' ; '#535353'];
+colors_blue = ['#dbecff' ; '#a8d1ff' ; '#429bff' ; '#0f80ff' ; '#0067db'];
+colors_cyan = ['#adecee' ; '#83e2e5' ; '#2ecfd4' ; '#23a8ac' ; '#1b7e81'];
+
+colors_blue = hex2rgb(colors_blue);
+colors_gray = hex2rgb(colors_gray);
+
+% figure properties:
+my_font.xlabel = 11;
+my_font.ylabel = 11;
+my_font.title = 12;
+my_font.tick_label = 9;
+my_font.legend = 9;
 
 switch (what)
     case 'subject_routine'
@@ -93,6 +106,68 @@ switch (what)
 
         dsave(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.tsv'),ANA);
     
+
+    case 'subject_chords_doability'
+        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+        
+        subjects = unique(data.sn);
+
+        C = [];
+        for i = 1:length(subjects)
+            % the trials that subject could not make the chords:
+            hard_chords = data.chordID(data.sn==subjects(i) & data.trialCorr~=1 & data.trialErrorType ~= 1);
+
+            % most undoable chords for subject i:
+            hard_chords = unique(hard_chords);
+
+            % selecting from hard_chords:
+            n_incorr = [];
+            for j = 1:length(hard_chords)
+                corr_trials = data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chords(j) & sess<=2 & data.trialErrorType~=1);
+                n_incorr(j) = 10-sum(corr_trials);
+            end
+            hard_chord = hard_chords(n_incorr == max(n_incorr));
+            
+            if (~isempty(hard_chord))
+                tmp = [];
+                for j = 1:length(hard_chord)
+                    tmp.sn(j,1) = subjects(i);
+                    tmp.chordID(j,1) = hard_chord(j);
+                    % number of correct trials:
+                    tmp.n_sess01(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==1));
+                    tmp.n_sess02(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==2));
+                    tmp.n_sess03(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==3));
+                    tmp.n_sess04(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==4));
+                end
+                C = addstruct(C,tmp,'row','force');
+            end
+        end
+
+        % plot:
+        subjects = unique(C.sn);
+        for i = 1:length(subjects)
+            fig = figure();
+            fontsize(fig, my_font.tick_label, 'points')
+            scatter(ones(length(C.n_sess01(C.sn==subjects(i)))), C.n_sess01(C.sn==subjects(i)), 40, 'k', 'filled')
+            hold on
+            scatter(2*ones(length(C.n_sess02(C.sn==subjects(i)))), C.n_sess02(C.sn==subjects(i)), 40, 'k', 'filled')
+            scatter(3*ones(length(C.n_sess03(C.sn==subjects(i)))), C.n_sess03(C.sn==subjects(i)), 40, 'k', 'filled')
+            scatter(4*ones(length(C.n_sess04(C.sn==subjects(i)))), C.n_sess04(C.sn==subjects(i)), 40, 'k', 'filled')
+            drawline(5,'dir','horz','color',[0.7,0.7,0.7])
+            plot(1:4, ...
+                [C.n_sess01(C.sn==subjects(i))' ; C.n_sess02(C.sn==subjects(i))' ; C.n_sess03(C.sn==subjects(i))' ; C.n_sess04(C.sn==subjects(i))'] ...
+                ,'Color',[0 0 0],'LineWidth',1.5)
+            ylim([0 5.5])
+            xticks([1 2 3 4])
+            yticks([0 1 2 3 4 5])
+            title(['subj ' num2str(subjects(i))],'FontSize',my_font.title)
+            ylabel('num correct executions','FontSize',my_font.ylabel)
+            xlabel('sess','FontSize',my_font.xlabel)
+        end
+
+        varargout{1} = C;
+        
 
     case 'behavior_reliability'
         blocks = [25 48];
@@ -346,40 +421,25 @@ switch (what)
             end
             corr_struct = addstruct(corr_struct,tmp,'row','force');
         end
+
+        % corr across for all chords:
+        [~,corr_all] = efc1_analyze('selected_chords_reliability','chords',generateAllChords,'plot_option',0);
         
         % plots:
-        figure;
-        subplot(1,2,1)
-        lineplot(corr_struct.num_fingers,corr_struct.MD_within, 'markertype','o','markersize',5,'markercolor',[0 0.4470 0.7410],'linecolor',[0 0.4470 0.7410]);
+        fig = figure();
+        fontsize(fig,my_font.tick_label,'points')
+        lineplot(corr_struct.num_fingers,corr_struct.MD_within_alpha, 'markertype','o','markersize',8,'markercolor',[0 0.4470 0.7410],'markerfill',[0 0.4470 0.7410],'linecolor',[0.8588 0.9451 1.0000],'linewidth',2,'errorbars','');
         hold on
-        lineplot(corr_struct.num_fingers,corr_struct.MD_within_alpha, 'markertype','s','markersize',5,'markercolor',[0.8500 0.3250 0.0980],'linecolor',[0.8500 0.3250 0.0980]);
-        title(sprintf('within'))
-        xlabel('num fingers')
-        ylabel('')
+        lineplot(corr_struct.num_fingers,corr_struct.MD_across_cat, 'markertype','s','markersize',8,'markercolor',[0.8500 0.3250 0.0980],'markerfill',[0.8500 0.3250 0.0980],'linecolor',[0.9843 0.9059 0.8706],'linewidth',2,'errorbars','');
+        drawline(mean(corr_all.MD),'dir','horz','color',[0.7 0.7 0.7])
+        legend('within subjects','across subjects')
+        legend boxoff
+        title(sprintf('MD Reliability'),'FontSize',my_font.title)
+        xlabel('num fingers','FontSize',my_font.xlabel)
+        ylabel('rho leave-one-out','FontSize',my_font.ylabel)
         ylim([0,1])
-
-        subplot(1,2,2)
-        lineplot(corr_struct.num_fingers,corr_struct.MD_across_cat, 'markertype','o','markersize',5,'markercolor',[0 0.4470 0.7410],'linecolor',[0 0.4470 0.7410]);
-        hold on
-        lineplot(corr_struct.num_fingers,corr_struct.MD_avg_alpha, 'markertype','s','markersize',5,'markercolor',[0.8500 0.3250 0.0980],'linecolor',[0.8500 0.3250 0.0980]);
-        title(sprintf('across'))
-        xlabel('num fingers')
-        ylabel('')
-        ylim([0,1])
-        
-        % subplot(1,3,2)
-        % lineplot(corr_struct.num_fingers,corr_struct.MT,'markertype','o','markersize',5,'linecolor',[1 1 1]);
-        % title(sprintf('MT reliability , block %d to %d',blocks(1),blocks(2)))
-        % xlabel('num fingers')
-        % ylabel('corr leave one out subj')
-        % ylim([0,1])
-        % 
-        % subplot(1,3,3)
-        % lineplot(corr_struct.num_fingers,corr_struct.RT,'markertype','o','markersize',5,'linecolor',[1 1 1]);
-        % title(sprintf('RT reliability , block %d to %d',blocks(1),blocks(2)))
-        % xlabel('num fingers')
-        % ylabel('corr leave one out subj')
-        % ylim([0,1])
+        h = gca;
+        h.YAxis.TickValues = linspace(h.YAxis.TickValues(1), h.YAxis.TickValues(end), 6);
 
         varargout{1} = C;
         varargout{2} = corr_struct;
@@ -396,18 +456,21 @@ switch (what)
 
         sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
 
-        % colors:
-        colors = [[0.4660, 0.6740, 0.1880] ; [0.3010, 0.7450, 0.9330] ; [0.9290, 0.6940, 0.1250] ; [0.8500, 0.3250, 0.0980] ; [0.4940, 0.1840, 0.5560]];
-
         % avg trend acorss sessions:
-        figure;
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'linecolor',colors(1,:));hold on;
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'linecolor',colors(2,:));
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'linecolor',colors(3,:));
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',colors(4,:));
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',colors(5,:));
-        xlabel('session')
-        ylabel(['avg ' measure(measure~='_') ' across subj'])
+        fig = figure('Position', [500 500 310 310]);
+        fontsize(fig, my_font.tick_label, 'points')
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'markertype','o','markersize',7,'markerfill',colors_blue(1,:),'markercolor',colors_blue(1,:),'linecolor',colors_blue(1,:),'linewidth',2,'errorbars','');hold on;
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'markertype','o','markersize',7,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',2,'errorbars','');
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'markertype','o','markersize',7,'markerfill',colors_blue(3,:),'markercolor',colors_blue(3,:),'linecolor',colors_blue(3,:),'linewidth',2,'errorbars','');
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'markertype','o','markersize',7,'markerfill',colors_blue(4,:),'markercolor',colors_blue(4,:),'linecolor',colors_blue(4,:),'linewidth',2,'errorbars','');
+        lineplot(sess(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'markertype','o','markersize',7,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
+        % legend('n_{fingers}=1','n_{fingers}=2','n_{fingers}=3','n_{fingers}=4','n_{fingers}=5');
+        % legend boxoff
+        xlabel('sess','FontSize',my_font.xlabel)
+        ylabel(['avg ' replace(measure,'_',' ') ' across subj'],'FontSize',my_font.ylabel)
+        title([replace(measure,'_',' ')],'FontSize',my_font.title)
+        h = gca;
+        h.YTick = linspace(h.YTick(1),h.YTick(end),5);
         
         % significance test of differences across num fingers:
         H_num_fingers = [];
@@ -432,15 +495,14 @@ switch (what)
         end
 
         % avg trends across blocks:
-        figure;
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'linecolor',[0.4660, 0.6740, 0.1880]);hold on;
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'linecolor',[0.3010, 0.7450, 0.9330]);
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'linecolor',[0.9290, 0.6940, 0.1250]);
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',[0.8500, 0.3250, 0.0980]);
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',[0.4940, 0.1840, 0.5560]);
-        xlabel('Block')
-        ylabel(['avg ' measure(measure~='_') ' across subj'])
-        
+        % fig = figure('Position', [10 10 900 600]);
+        % lineplot(data.BN(data.trialCorr==1 & data.num_fingers==1),values(data.trialCorr==1 & data.num_fingers==1),'linecolor',colors(1,:));hold on;
+        % lineplot(data.BN(data.trialCorr==1 & data.num_fingers==2),values(data.trialCorr==1 & data.num_fingers==2),'linecolor',colors(2,:));
+        % lineplot(data.BN(data.trialCorr==1 & data.num_fingers==3),values(data.trialCorr==1 & data.num_fingers==3),'linecolor',colors(3,:));
+        % lineplot(data.BN(data.trialCorr==1 & data.num_fingers==4),values(data.trialCorr==1 & data.num_fingers==4),'linecolor',colors(4,:));
+        % lineplot(data.BN(data.trialCorr==1 & data.num_fingers==5),values(data.trialCorr==1 & data.num_fingers==5),'linecolor',colors(5,:));
+        % xlabel('Block','FontSize',my_font.xlabel);
+        % ylabel(['avg ' measure(measure~='_') ' across subj'],'FontSize',my_font.ylabel)
 
         varargout{1} = H_num_fingers;
         varargout{2} = H_sess;
@@ -621,6 +683,177 @@ switch (what)
         
         varargout{1} = H_num_fingers;
         varargout{2} = H_sess;
+
+    case 'MD_var_decomp_overall'
+        chords = generateAllChords;
+        measure = 'mean_dev';
+        centered = 0;
+        vararginoptions(varargin,{'chords','measure','centered'})
+
+        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+
+        subjects = unique(data.sn);
+
+        % getting the values of measure:
+        values = eval(['data.' measure]);
+
+        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+        
+        % container for subj MDs:
+        subj_MD = {};
+        % estimating (v_g + v_s + v_e) and (v_g + v_s):
+        v_gse = 0;
+        v_gs = 0;
+        for i = 1:length(subjects)
+            A = [];
+            for j = 3:4
+                tmp_val = 0;
+                % loop on chords:
+                for k = 1:length(chords)
+                    tmp_val(k) = mean(values(data.sn==subjects(i) & data.trialCorr==1 & data.chordID==chords(k) & sess==j));
+                end
+                if centered
+                    tmp_val = tmp_val-mean(tmp_val);
+                end
+                A = [A,tmp_val'];
+            end
+            subj_MD{i} = A;
+            B = A' * A;
+            % number of partitions:
+            N = size(A,2);
+
+            % adding sum of diagonal elems (y_ij' * y_ij):
+            v_gse = v_gse + trace(B)/N/length(subjects);
+
+            % adding sum of off-diagonal elems (y_ij' * y_ik):
+            mean_cov = B .* (1-eye(N));
+            mean_cov = sum(mean_cov(:))/(N*(N-1));
+            v_gs = v_gs + mean_cov/length(subjects);
+        end
+
+        % estimating v_g:
+        v_g = 0;
+        N = length(subjects);
+        for i = 1:length(subjects)-1
+            for j = i+1:length(subjects)
+                B = subj_MD{i}' * subj_MD{j};
+                v_g = v_g + sum(B(:))/size(B,1)^2/(N*(N-1)/2);
+            end
+        end
+
+        % plot:
+        fig = figure();
+        fontsize(fig, my_font.tick_label, "points")
+        bar(1,1,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',4,'CData',[0.8 0.8 0.8])
+        hold on
+        bar(1,1-(v_gs-v_g)/v_gse,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',4,'CData',[36, 168, 255]/255)
+        bar(1,v_g/v_gse,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',4,'CData',[238, 146, 106]/255)
+        drawline(1,'dir','horz','color',[0.8 0.8 0.8])
+        legend('e','s','g')
+        legend boxoff
+        box off
+        ylim([0 1.2])
+        xticklabels('all chords')
+        ylabel('percent variance','FontSize',my_font.ylabel)
+
+        varargout{1} = [v_g, v_gs, v_gse];
+
+
+    case 'MD_var_decomp_nfingers'
+        chords = generateAllChords;
+        measure = 'mean_dev';
+        centered = 0;
+        vararginoptions(varargin,{'chords','measure','centered'})
+
+        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+
+        subjects = unique(data.sn);
+
+        % getting the values of measure:
+        values = eval(['data.' measure]);
+
+        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+
+        n = get_num_active_fingers(chords);
+        
+        % container for subj MDs:
+        subj_MD = {};
+        % estimating (v_g + v_s + v_e) and (v_g + v_s):
+        v_gse = zeros(length(unique(n)),1);
+        v_gs = zeros(length(unique(n)),1);
+        for i_n = 1:length(unique(n))
+            for i = 1:length(subjects)
+                A = [];
+                for j = 3:4
+                    tmp_val = 0;
+                    % loop on chords:
+                    for k = 1:length(chords)
+                        tmp_val(k) = mean(values(data.sn==subjects(i) & data.trialCorr==1 & data.chordID==chords(k) & sess==j));
+                    end
+                    tmp_val = tmp_val(n==i_n);
+                    if centered
+                        tmp_val = tmp_val-mean(tmp_val);
+                    end
+                    A = [A,tmp_val'];
+                end
+                subj_MD{i,i_n} = A;
+                B = A' * A;
+                % number of partitions:
+                N = size(A,2);
+    
+                % adding sum of diagonal elems (y_ij' * y_ij):
+                v_gse(i_n) = v_gse(i_n) + trace(B)/N/length(subjects);
+    
+                % adding sum of off-diagonal elems (y_ij' * y_ik):
+                mean_cov = B .* (1-eye(N));
+                mean_cov = sum(mean_cov(:))/(N*(N-1));
+                v_gs(i_n) = v_gs(i_n) + mean_cov/length(subjects);
+            end
+        end
+
+        % estimating v_g:
+        v_g = zeros(length(unique(n)),1);
+        N = length(subjects);
+        for i_n = 1:length(unique(n))
+            for i = 1:length(subjects)-1
+                for j = i+1:length(subjects)
+                    B = subj_MD{i,i_n}' * subj_MD{j,i_n};
+                    v_g(i_n) = v_g(i_n) + sum(B(:))/size(B,1)^2/(N*(N-1)/2);
+                end
+            end
+        end
+            
+        % plot:
+        y = [];
+        fig = figure();
+        fontsize(fig,my_font.tick_label,"points")
+        for i = 1:length(unique(n))
+            y(i,:) = [v_g(i)/v_gse(i) (v_gs(i)-v_g(i))/v_gse(i) (v_gse(i)-v_gs(i))/v_gse(i)];
+            b = bar(i,y(i,:),'stacked','FaceColor','flat');
+            b(1).CData = [238, 146, 106]/255;   % global var
+            b(2).CData = [36, 168, 255]/255;  % subj var
+            b(3).CData = [0.8 0.8 0.8];  % noise var
+            b(1).EdgeColor = [1 1 1];
+            b(2).EdgeColor = [1 1 1];
+            b(3).EdgeColor = [1 1 1];
+            b(1).LineWidth = 3;
+            b(2).LineWidth = 3;
+            b(3).LineWidth = 3;
+            hold on
+        end
+        drawline(1,'dir','horz','color',[0.7 0.7 0.7])
+        set(gca, 'XTick', 1:5);
+        box off;
+        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title)
+        xlabel('num fingers','FontSize',my_font.xlabel)
+        ylabel('percent variance','FontSize',my_font.ylabel)
+        legend('g','s','e')
+        legend boxoff
+        ylim([0,1.2])
+
+        varargout{1} = [v_g, v_gs, v_gse];
+        
+
 
     case 'model_testing'
         % handling input args:
@@ -855,7 +1088,6 @@ switch (what)
             ylim([0,1])
         end
 
-
         varargout{1} = results;
         varargout{2} = H_across_models;
         varargout{3} = H_model_ceil;
@@ -973,11 +1205,7 @@ switch (what)
             ylabel(replace(measure,'_',' '))
         end
 
-
         varargout{1} = results;
-    
-    
-   
  
     
     
