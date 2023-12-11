@@ -12,9 +12,11 @@ colors_red = [[255, 219, 219] ; [255, 146, 146] ; [255, 73, 73] ; [255, 0, 0] ; 
 colors_gray = ['#d3d3d3' ; '#b9b9b9' ; '#868686' ; '#6d6d6d' ; '#535353'];
 colors_blue = ['#dbecff' ; '#a8d1ff' ; '#429bff' ; '#0f80ff' ; '#0067db'];
 colors_cyan = ['#adecee' ; '#83e2e5' ; '#2ecfd4' ; '#23a8ac' ; '#1b7e81'];
+colors_random = ['#773344' ; '#E3B5A4' ; '#83A0A0' ; '#0B0014' ; '#D44D5C'];
 
 colors_blue = hex2rgb(colors_blue);
 colors_gray = hex2rgb(colors_gray);
+colors_random = hex2rgb(colors_random);
 
 % figure properties:
 my_font.xlabel = 11;
@@ -859,12 +861,11 @@ switch (what)
             y(i,:) = [v_g(i)/v_gse(i) (v_gs(i)-v_g(i))/v_gse(i) (v_gse(i)-v_gs(i))/v_gse(i)];
         end
 
-        scatter(1:5,y(:,1),80,'MarkerFaceColor', [0.8500 0.3250 0.0980], 'MarkerEdgeColor', [0.8500 0.3250 0.0980])
+        plot(1:5,y(:,1),'Color',[0.9843 0.9059 0.8706],'LineWidth',2)
         hold on
-        plot(1:5,y(:,1),'Color',)
+        scatter(1:5,y(:,1),80,'MarkerFaceColor', [0.8500 0.3250 0.0980], 'MarkerEdgeColor', [0.8500 0.3250 0.0980])
+        plot(1:5,y(:,2),'Color',[0.8588 0.9451 1.0000],'LineWidth',2)
         scatter(1:5,y(:,2),80,'MarkerFaceColor',[0 0.4470 0.7410],'MarkerEdgeColor',[0 0.4470 0.7410])
-        
-        drawline(1,'dir','horz','color',[0.7 0.7 0.7])
         
         box off;
         title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title)
@@ -874,7 +875,7 @@ switch (what)
         % legend boxoff
         ylim([0,1.2])
         xlim([0,6])
-        % xticks(1:5)
+        xticks(1:5)
 
 
         varargout{1} = [v_g, v_gs, v_gse];
@@ -980,7 +981,7 @@ switch (what)
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
-        model_names = {'num_fingers','single_finger','num_fingers+single_finger','num_fingers+single_finger+neighbour_fingers','num_fingers+single_finger+two_finger_interactions'};
+        model_names = {'n_trans','n_fing','additive','n_fing+n_trans','n_fing+additive','n_trans+additive','n_fing+n_trans+additive'};%,'n_fing+neighbour','n_fing+n_trans+additive+neighbour'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
@@ -1051,6 +1052,13 @@ switch (what)
 
                 for k = 1:5
                     [r,p] = corrcoef(y_pred(n==k),y_test(n==k));
+                    % if the model was num_fingers, then calculating r give
+                    % nan as the denominator is 0 (which is the var of
+                    % y_pred):
+                    if strcmp(model_names{j},'n_fing')
+                        r = [0 0 ; 0 0];
+                        p = [0 0 ; 0 0];
+                    end
                     eval(['tmp.r_test_n' num2str(k) '(j,1) = r(2);']);
                     eval(['tmp.p_value_n' num2str(k) '(j,1) = p(2);']);
                 end
@@ -1089,28 +1097,35 @@ switch (what)
         end
         
         % plotting:
-        figure;
-        lineplot(results.model_num, results.r_test ,'markersize', 5);
+        fig = figure('Position',[500 500 450 400]);
+        fontsize(fig,my_font.tick_label,"points")
+        lineplot(results.model_num, results.r_test ,'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
         hold on;
-        scatter(results.model_num, results.r_test, 10, 'r', 'filled');
-        drawline(noise_ceil,'dir','horz')
+        scatter(results.model_num, results.r_test, 5, 'MarkerFaceColor', colors_red(2,:), 'MarkerEdgeColor', colors_red(2,:));
+        drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
         xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
-        ylabel('rho')
+        ax = gca(fig);
+        ax.XAxis.FontSize = my_font.xlabel;
+        ax.YAxis.TickValues = linspace(0, 1, 6);
+        ylabel('rho model','FontSize',my_font.ylabel)
+        title(['rho with ' replace(measure,'_',' ')], 'FontSize', my_font.title)
+        
         ylim([0,1])
 
-        for i = 1:5
+        for i = 2:5
             % noise ceiling calculation:
             [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords(n==i),'plot_option',0);
             noise_ceil = mean(corr_struct.MD);
 
-            figure;
-            lineplot(results.model_num, eval(['results.r_test_n' num2str(i)]), 'markersize', 5);
+            fig = figure('Position',[500 500 400 400]);
+            fontsize(fig,my_font.tick_label,"points")
+            lineplot(results.model_num, eval(['results.r_test_n' num2str(i)]),'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
             hold on;
-            scatter(results.model_num, eval(['results.r_test_n' num2str(i)]), 10, 'r', 'filled');
-            drawline(noise_ceil,'dir','horz')
+            scatter(results.model_num, eval(['results.r_test_n' num2str(i)]), 5, 'MarkerFaceColor', colors_red(2,:), 'MarkerEdgeColor', colors_red(2,:));
+            drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
             xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
-            ylabel('rho')
-            title(sprintf('num fingers = %d',i))
+            ylabel('rho','FontSize',my_font.ylabel)
+            title(sprintf('num fingers = %d',i),'FontSize',my_font.title)
             ylim([0,1])
         end
 
@@ -1121,7 +1136,7 @@ switch (what)
     case 'model_observation'
         % handling input args:
         blocks = [25,48];
-        model_names = {'num_fingers','single_finger','num_fingers+single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
+        model_names = {'n_fing','n_trans','n_fing+n_trans','additive','n_fing+additive','n_fing+n_trans+additive','neighbour','2fing'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
@@ -1223,7 +1238,7 @@ switch (what)
             pred = cell2mat(results.pred(results.model_num==i)');
             y = cell2mat(results.y(results.model_num==i)');
             for j = 1:length(unique(n))
-                scatter(pred(n==j,1),y(n==j,1),20,colors(j,:),'filled')
+                scatter(pred(n==j,1),y(n==j,1),40,colors_random(j,:),'filled')
                 hold on
             end
             title(replace(model_names{i},'_',' '))
