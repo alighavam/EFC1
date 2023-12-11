@@ -17,10 +17,7 @@ function num_transition = get_num_transition(chordVec)
 chordVec_char = int2str(chordVec);
 
 % container for num transitions:
-num_transition = zeros(size(chordVec_char,1),2);
-
-% adding chordIDs to the container:
-num_transition(:,1) = chordVec;
+num_transition = zeros(size(chordVec_char,1),1);
 
 % looping through digits and calculating the num_transition
 for j = 2:5
@@ -30,5 +27,5 @@ for j = 2:5
     % subtracting col2 and col1 and adding to transitions:
     col_transition = (str2num(col2) - str2num(col1));
     col_transition(col_transition~=0) = 1; 
-    num_transition(:,2) = num_transition(:,2) + col_transition;
+    num_transition(:,1) = num_transition(:,1) + col_transition;
 end
