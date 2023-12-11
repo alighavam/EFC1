@@ -981,7 +981,7 @@ switch (what)
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
-        model_names = {'n_trans','n_fing','additive','n_fing+n_trans','n_fing+additive','n_trans+additive','n_fing+n_trans+additive'};%,'n_fing+neighbour','n_fing+n_trans+additive+neighbour'};
+        model_names = {'n_trans','n_fing','additive','n_fing+n_trans','n_fing+additive','n_trans+additive','n_fing+n_trans+additive','n_fing+n_trans+neighbour','n_fing+n_trans+additive+neighbour'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
@@ -1005,7 +1005,13 @@ switch (what)
 
         % noise ceiling calculation:
         [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
-        noise_ceil = mean(corr_struct.MD);
+        if (strcmp(measure,'mean_dev'))
+            noise_ceil = mean(corr_struct.MD);
+        elseif (strcmp(measure,'MT'))
+            noise_ceil = mean(corr_struct.MT);
+        else
+            noise_ceil = mean(corr_struct.RT);
+        end
 
         % loop on subjects and regression with leave-one-out:
         results = [];
@@ -1101,7 +1107,7 @@ switch (what)
         fontsize(fig,my_font.tick_label,"points")
         lineplot(results.model_num, results.r_test ,'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
         hold on;
-        scatter(results.model_num, results.r_test, 5, 'MarkerFaceColor', colors_red(2,:), 'MarkerEdgeColor', colors_red(2,:));
+        scatter(results.model_num, results.r_test, 5, 'MarkerFaceColor', colors_blue(2,:), 'MarkerEdgeColor', colors_blue(2,:));
         drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
         xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
         ax = gca(fig);
@@ -1109,21 +1115,32 @@ switch (what)
         ax.YAxis.TickValues = linspace(0, 1, 6);
         ylabel('rho model','FontSize',my_font.ylabel)
         title(['rho with ' replace(measure,'_',' ')], 'FontSize', my_font.title)
-        
         ylim([0,1])
 
         for i = 2:5
+            x = results.model_num;
+            y = eval(['results.r_test_n' num2str(i)]);
+            z = model_names;
+            z(2) = [];
+            y(x==2) = [];
+            x(x==2) = [];
+            x(x>2) = x(x>2)-1;
             % noise ceiling calculation:
             [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords(n==i),'plot_option',0);
-            noise_ceil = mean(corr_struct.MD);
-
+            if (strcmp(measure,'mean_dev'))
+                noise_ceil = mean(corr_struct.MD);
+            elseif (strcmp(measure,'MT'))
+                noise_ceil = mean(corr_struct.MT);
+            else
+                noise_ceil = mean(corr_struct.RT);
+            end
             fig = figure('Position',[500 500 400 400]);
             fontsize(fig,my_font.tick_label,"points")
-            lineplot(results.model_num, eval(['results.r_test_n' num2str(i)]),'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
+            lineplot(x, y,'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
             hold on;
-            scatter(results.model_num, eval(['results.r_test_n' num2str(i)]), 5, 'MarkerFaceColor', colors_red(2,:), 'MarkerEdgeColor', colors_red(2,:));
+            scatter(x, y, 5, 'MarkerFaceColor', colors_blue(2,:), 'MarkerEdgeColor', colors_blue(2,:));
             drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
-            xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
+            xticklabels(cellfun(@(x) replace(x,'_',' '),z,'uniformoutput',false))
             ylabel('rho','FontSize',my_font.ylabel)
             title(sprintf('num fingers = %d',i),'FontSize',my_font.title)
             ylim([0,1])
