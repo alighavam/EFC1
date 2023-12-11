@@ -1004,16 +1004,6 @@ switch (what)
             end
         end
 
-        % noise ceiling calculation:
-        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
-        if (strcmp(measure,'mean_dev'))
-            noise_ceil = mean(corr_struct.MD);
-        elseif (strcmp(measure,'MT'))
-            noise_ceil = mean(corr_struct.MT);
-        else
-            noise_ceil = mean(corr_struct.RT);
-        end
-
         % loop on subjects and regression with leave-one-out:
         results = [];
         for i = 1:length(subjects)
@@ -1103,7 +1093,13 @@ switch (what)
 
         % all chords noise ceiling -> leave one out correlation:
         [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
-        noise_ceil = mean(corr_struct.MD);
+        if (strcmp(measure,'mean_dev'))
+            noise_ceil = mean(corr_struct.MD);
+        elseif (strcmp(measure,'MT'))
+            noise_ceil = mean(corr_struct.MT);
+        else
+            noise_ceil = mean(corr_struct.RT);
+        end
 
         % hypothesis testing between models and ceiling:
         H_model_ceil = [];
@@ -1117,7 +1113,7 @@ switch (what)
             H_model_ceil.p_value(i,1) = p;
         end
 
-        % plotting overal model performance:
+        % plotting overall model performance:
         fig = figure('Position',[500 500 450 400]);
         fontsize(fig,my_font.tick_label,"points")
         lineplot(results.model_num, results.r_test ,'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
@@ -1141,7 +1137,7 @@ switch (what)
             y(x==2) = [];
             x(x==2) = [];
             x(x>2) = x(x>2)-1;
-            % noise ceiling calculation:
+            % all chords noise ceiling -> leave one out correlation:
             [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords(n==i),'plot_option',0);
             if (strcmp(measure,'mean_dev'))
                 noise_ceil = mean(corr_struct.MD);
