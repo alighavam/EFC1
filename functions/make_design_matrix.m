@@ -1,7 +1,7 @@
 function X = make_design_matrix(chords,model_name)
 
 switch model_name
-    case 'num_fingers'
+    case 'n_fing'
         X = zeros(length(chords),5);
         n = get_num_active_fingers(chords);
         for i = 1:length(n)
@@ -20,14 +20,14 @@ switch model_name
             X(i,:) = num2str(chords(i)) == '1';
         end
     
-    case 'single_finger'
+    case 'additive'
         X = zeros(length(chords),10);
         for i = 1:length(chords)
             X(i,1:5) = num2str(chords(i)) == '1';
             X(i,6:10) = num2str(chords(i)) == '2';
         end
 
-    case 'neighbour_fingers'
+    case 'neighbour'
         X = zeros(length(chords),16);
         neighbour_chords = [11555,12555,21555,22555,...
                    51155,51255,52155,52255,...
@@ -41,15 +41,22 @@ switch model_name
             end
         end
 
-    case 'two_finger_interactions'
+    case '2fing'
         X = [];
-        X1 = make_design_matrix(chords,'single_finger');
+        X1 = make_design_matrix(chords,'additive');
         for j = 1:size(X1,2)-1
             for k = j+1:size(X1,2)
                 if (k ~= j+5)
                     X = [X, X1(:,j).*X1(:,k)]; 
                 end
             end
+        end
+
+    case 'n_trans'
+        n_trans = get_num_transition(chords) + 1;
+        X = zeros(length(chords),5);
+        for i = 1:size(X,1)
+            X(i,n_trans(i)) = 1;
         end
 
     otherwise
@@ -59,14 +66,23 @@ switch model_name
         end
         X = [];
         for i = 1:length(names)
-            X = [X, make_design_matrix(chords,names{i})];
+            tmp = make_design_matrix(chords,names{i});
+            X = [X, tmp];
         end
 
-        if(sum(contains(names,'num_fingers')))
+        if(sum(contains(names,'n_fing')))
             X(:,1) = [];
         end
 
-        if(sum(contains(names,'num_fingers') + contains(names,'two_finger_interactions')))
+        if(sum(contains(names,'n_fing') + contains(names,'2fing'))==2)
             X(:,1:2) = [];
+        end
+
+        if(sum(contains(names,'n_fing') + contains(names,'additive') + contains(names,'n_trans'))==3)
+            X(:,1) = [];
+        end
+
+        if(sum(contains(names,'n_fing') + contains(names,'additive') + contains(names,'n_trans') + contains(names,'neighbour'))==4)
+            X(:,14) = [];
         end
 end
