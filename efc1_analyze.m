@@ -981,16 +981,17 @@ switch (what)
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
-        model_names = {'n_trans','n_fing','additive','n_fing+n_trans','n_fing+additive','n_trans+additive','n_fing+n_trans+additive'};%,'n_fing+neighbour','n_fing+n_trans+additive+neighbour'};
+        model_names = {'n_trans','n_fing','additive','n_fing+n_trans','n_fing+additive','n_trans+additive','n_fing+n_trans+additive','n_fing+n_trans+neighbour','n_fing+n_trans+additive+neighbour'};
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
+        perf_measure = 'r'; % default performance measure is r (pearson correlation). Optional R2 (that is R squared)
         vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
         
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
         subjects = unique(data.sn);
-
+        
         % getting the values of measure:
         values_tmp = eval(['data.' measure]);
 
@@ -1002,10 +1003,6 @@ switch (what)
                 values(j,i) = mean(values_tmp(data.chordID==chords(j) & data.sn==subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)));
             end
         end
-
-        % noise ceiling calculation:
-        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
-        noise_ceil = mean(corr_struct.MD);
 
         % loop on subjects and regression with leave-one-out:
         results = [];
@@ -1046,11 +1043,17 @@ switch (what)
                 tmp.B{j,1} = B;
                 tmp.stats{j,1} = STATS;
 
+                % estimating the model performance:
+                % r:
                 [r,p] = corrcoef(y_pred,y_test);
                 tmp.r_test(j,1) = r(2);
                 tmp.p_value(j,1) = p(2);
-
+                % r squared:
+                tmp.r2_test(j,1) = 1 - sum((y_pred-y_test).^2) / sum((y_test-mean(y_test)).^2);
+                
+                % estimating model performance withing chord groups:
                 for k = 1:5
+                    % r:
                     [r,p] = corrcoef(y_pred(n==k),y_test(n==k));
                     % if the model was num_fingers, then calculating r give
                     % nan as the denominator is 0 (which is the var of
@@ -1061,6 +1064,10 @@ switch (what)
                     end
                     eval(['tmp.r_test_n' num2str(k) '(j,1) = r(2);']);
                     eval(['tmp.p_value_n' num2str(k) '(j,1) = p(2);']);
+
+                    % r squared:
+                    tmp_r2 = 1 - sum((y_pred(n==k)-y_test(n==k)).^2) / sum((y_test(n==k)-mean(y_test(n==k))).^2);
+                    eval(['tmp.r2_test_n' num2str(k) '(j,1) = tmp_r2;']);
                 end
             end
             
@@ -1084,6 +1091,10 @@ switch (what)
             H_across_models = addstruct(H_across_models,tmp,'row','force');
         end
 
+        % all chords noise ceiling -> leave one out correlation:
+        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
+        noise_ceil = mean(corr_struct.MD);
+
         % hypothesis testing between models and ceiling:
         H_model_ceil = [];
         for i = 1:length(model_names)
@@ -1095,13 +1106,13 @@ switch (what)
             H_model_ceil.t(i,1) = t;
             H_model_ceil.p_value(i,1) = p;
         end
-        
-        % plotting:
+
+        % plotting overal model performance:
         fig = figure('Position',[500 500 450 400]);
         fontsize(fig,my_font.tick_label,"points")
         lineplot(results.model_num, results.r_test ,'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
         hold on;
-        scatter(results.model_num, results.r_test, 5, 'MarkerFaceColor', colors_red(2,:), 'MarkerEdgeColor', colors_red(2,:));
+        scatter(results.model_num, results.r_test, 5, 'MarkerFaceColor', colors_blue, 'MarkerEdgeColor', colors_blue(2,:));
         drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
         xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
         ax = gca(fig);
@@ -1112,6 +1123,7 @@ switch (what)
         
         ylim([0,1])
 
+        % plotting model performance within finger groups:
         for i = 2:5
             % noise ceiling calculation:
             [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords(n==i),'plot_option',0);
@@ -1121,7 +1133,7 @@ switch (what)
             fontsize(fig,my_font.tick_label,"points")
             lineplot(results.model_num, eval(['results.r_test_n' num2str(i)]),'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
             hold on;
-            scatter(results.model_num, eval(['results.r_test_n' num2str(i)]), 5, 'MarkerFaceColor', colors_red(2,:), 'MarkerEdgeColor', colors_red(2,:));
+            scatter(results.model_num, eval(['results.r_test_n' num2str(i)]), 5, 'MarkerFaceColor', colors_blue(2,:), 'MarkerEdgeColor', colors_blue(2,:));
             drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
             xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
             ylabel('rho','FontSize',my_font.ylabel)
