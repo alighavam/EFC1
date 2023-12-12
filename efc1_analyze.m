@@ -133,7 +133,7 @@ switch (what)
                     tmp.sess(cnt,1) = j;
                     tmp.chordID(cnt,1) = chords(k);
                     
-                    row = data.sn==subjects(i) & sess==sess(j) & data.chordID==chords(k) & data.trialCorr==1;
+                    row = data.sn==subjects(i) & sess==j & data.chordID==chords(k) & data.trialCorr==1;
                     tmp.num_trials(cnt,1) = sum(row);
                     tmp.num_fingers(cnt,1) = n(k);
                     tmp.MD(cnt,1) = mean(data.mean_dev(row));
@@ -1182,7 +1182,7 @@ switch (what)
 
     case 'model_testing_v2'
         % handling input args:
-        blocks = [25,48];
+        sess = [3 4];
         model_names = {'n_fing','n_fing+n_trans','n_fing+additive','n_fing+n_trans+additive','n_fing+n_trans+neighbour','n_fing+n_trans+additive+neighbour'};
         chords = generateAllChords;
         measure = 'MD';
@@ -1194,6 +1194,11 @@ switch (what)
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         subjects = unique(data.sn);
         
+        % loop on subjects:
+        for i = 1:length(subjects)
+            y = [];
+            
+        end
 
 
     case 'model_observation'
