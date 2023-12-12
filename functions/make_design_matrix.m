@@ -70,19 +70,24 @@ switch model_name
             X = [X, tmp];
         end
 
+        % if(sum(contains(names,'n_fing')))
+        %     X(:,6:end) = X(:,6:end) - mean(X(:,6:end),2);
+        % end
+        
         if(sum(contains(names,'n_fing')))
+            X(:,6:end) = X(:,6:end) - mean(X(:,6:end),1);
             X(:,1) = [];
         end
 
-        if(sum(contains(names,'n_fing') + contains(names,'2fing'))==2)
-            X(:,1:2) = [];
-        end
-
-        if(sum(contains(names,'n_fing') + contains(names,'additive') + contains(names,'n_trans'))==3)
-            X(:,1) = [];
-        end
-
-        if(sum(contains(names,'n_fing') + contains(names,'additive') + contains(names,'n_trans') + contains(names,'neighbour'))==4)
-            X(:,14) = [];
-        end
+        % if(sum(contains(names,'n_fing') + contains(names,'2fing'))==2)
+        %     X(:,1:2) = [];
+        % end
+        % 
+        % if(sum(contains(names,'n_fing') + contains(names,'additive') + contains(names,'n_trans'))==3)
+        %     X(:,1) = [];
+        % end
+        % 
+        % if(sum(contains(names,'n_fing') + contains(names,'additive') + contains(names,'n_trans') + contains(names,'neighbour'))==4)
+        %     X(:,14) = [];
+        % end
 end

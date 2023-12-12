@@ -728,10 +728,10 @@ switch (what)
         varargout{1} = H_num_fingers;
         varargout{2} = H_sess;
 
-    case 'MD_var_decomp_overall'
+    case 'var_decomp_overall'
         chords = generateAllChords;
         measure = 'mean_dev';
-        centered = 0;
+        centered = 1;
         vararginoptions(varargin,{'chords','measure','centered'})
 
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
@@ -799,14 +799,15 @@ switch (what)
         ylim([0 1.2])
         xticklabels('all chords')
         ylabel('percent variance','FontSize',my_font.ylabel)
+        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title);
 
         varargout{1} = [v_g, v_gs, v_gse];
 
 
-    case 'MD_var_decomp_nfingers'
+    case 'var_decomp_nfingers'
         chords = generateAllChords;
         measure = 'mean_dev';
-        centered = 0;
+        centered = 1;
         vararginoptions(varargin,{'chords','measure','centered'})
 
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
@@ -891,34 +892,10 @@ switch (what)
         title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title)
         xlabel('num fingers','FontSize',my_font.xlabel)
         ylabel('percent variance','FontSize',my_font.ylabel)
+        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title);
         legend('g','s','e')
         legend boxoff
         ylim([0,1.2])
-
-        % Just another figure of the same thing:
-        y = [];
-        fig = figure();
-        fontsize(fig,my_font.tick_label,"points")
-        for i = 1:length(unique(n))
-            y(i,:) = [v_g(i)/v_gse(i) (v_gs(i)-v_g(i))/v_gse(i) (v_gse(i)-v_gs(i))/v_gse(i)];
-        end
-
-        plot(1:5,y(:,1),'Color',[0.9843 0.9059 0.8706],'LineWidth',2)
-        hold on
-        scatter(1:5,y(:,1),80,'MarkerFaceColor', [0.8500 0.3250 0.0980], 'MarkerEdgeColor', [0.8500 0.3250 0.0980])
-        plot(1:5,y(:,2),'Color',[0.8588 0.9451 1.0000],'LineWidth',2)
-        scatter(1:5,y(:,2),80,'MarkerFaceColor',[0 0.4470 0.7410],'MarkerEdgeColor',[0 0.4470 0.7410])
-        
-        box off;
-        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title)
-        xlabel('num fingers','FontSize',my_font.xlabel)
-        ylabel('percent variance','FontSize',my_font.ylabel)
-        % legend('g','s','e')
-        % legend boxoff
-        ylim([0,1.2])
-        xlim([0,6])
-        xticks(1:5)
-
 
         varargout{1} = [v_g, v_gs, v_gse];
         
@@ -1027,7 +1004,6 @@ switch (what)
         chords = generateAllChords;
         measure = 'mean_dev';
         remove_mean = 0;
-        perf_measure = 'r'; % default performance measure is r (pearson correlation). Optional R2 (that is R squared)
         vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
         
         % loading data:
