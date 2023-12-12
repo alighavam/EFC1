@@ -27,7 +27,7 @@ switch model_name
             X(i,6:10) = num2str(chords(i)) == '2';
         end
 
-    case 'neighbour'
+    case '2fing_adj'
         X = zeros(length(chords),16);
         neighbour_chords = [11555,12555,21555,22555,...
                    51155,51255,52155,52255,...
@@ -40,6 +40,14 @@ switch model_name
                 end
             end
         end
+
+    case '2fing_nonadj'
+        X = make_design_matrix(chords,'2fing');
+        X1 = make_design_matrix(chords,'2fing_adj');
+        % rounding the correlations bc of precision problems:
+        tmp = round(corr(X,X1),2);
+        [i,~] = find(tmp==1);
+        X(:,i) = [];
 
     case '2fing'
         X = [];
