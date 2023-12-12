@@ -42,7 +42,7 @@ switch (what)
             efc1_subj(subject_name,'smoothing_win_length',smoothing_win_length);
         end
     
-    case 'make_analysis_data'
+    case 'make_all_dataframe'
         % Calculate RT, MT, Mean Deviation for each trial of each subejct
         % and create a struct without the mov signals and save it as a
         % single struct called efc1_all.mat
@@ -107,6 +107,48 @@ switch (what)
         ANA.num_fingers = get_num_active_fingers(ANA.chordID);
 
         dsave(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.tsv'),ANA);
+    
+    case 'make_chord_dataframe'
+        % fields:
+        % sn, sess, chordID, num_trials, num_fingers, MD, MT, RT, MD_std, MT_std, RT_std  
+
+        % load trial dataframe:
+        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+        subjects = unique(data.sn);
+        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+        chords = generateAllChords;
+        n = get_num_active_fingers(chords);
+
+        % container to hold the dataframe:
+        ANA = [];
+        % loop on subjects:
+        for i = 1:length(subjects)
+            tmp = [];
+            % loop on sess:
+            cnt = 1;
+            for j = 1:length(unique(sess))
+                % loop on chords:
+                for k = 1:length(chords)
+                    tmp.sn(cnt,1) = subjects(i);
+                    tmp.sess(cnt,1) = j;
+                    tmp.chordID(cnt,1) = chords(k);
+                    
+                    row = data.sn==subjects(i) & sess==sess(j) & data.chordID==chords(k) & data.trialCorr==1;
+                    tmp.num_trials(cnt,1) = sum(row);
+                    tmp.num_fingers(cnt,1) = n(k);
+                    tmp.MD(cnt,1) = mean(data.mean_dev(row));
+                    tmp.MT(cnt,1) = mean(data.MT(row));
+                    tmp.RT(cnt,1) = mean(data.RT(row));
+                    tmp.MD_std(cnt,1) = std(data.mean_dev(row));
+                    tmp.MT_std(cnt,1) = std(data.MT(row));
+                    tmp.RT_std(cnt,1) = std(data.RT(row));
+
+                    cnt = cnt+1;
+                end
+            end
+            ANA = addstruct(ANA,tmp,'row','force');
+        end
+        dsave(fullfile(project_path,'analysis','efc1_chord.tsv'),ANA);
     
 
     case 'subject_chords_doability'
@@ -1161,6 +1203,22 @@ switch (what)
         varargout{1} = results;
         varargout{2} = H_across_models;
         varargout{3} = H_model_ceil;
+
+    case 'model_testing_v2'
+        % handling input args:
+        blocks = [25,48];
+        model_names = {'n_fing','n_fing+n_trans','n_fing+additive','n_fing+n_trans+additive','n_fing+n_trans+neighbour','n_fing+n_trans+additive+neighbour'};
+        chords = generateAllChords;
+        measure = 'MD';
+        remove_mean = 0;
+        perf_measure = 'r'; % default performance measure is r (pearson correlation). Optional R2 (that is R squared)
+        vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        subjects = unique(data.sn);
+        
+
 
     case 'model_observation'
         % handling input args:
