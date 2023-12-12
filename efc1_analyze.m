@@ -1089,7 +1089,7 @@ switch (what)
     case 'model_testing_stepwise'
         % handling input args:
         sess = [3 4];
-        model_names = {'n_fing','n_fing+n_trans','n_fing+additive'};
+        model_names = {'n_fing','n_fing+n_trans','n_fing+additive','n_fing+2fing_nonadj','n_fing+2fing_adj','n_fing+2fing','n_fing+additive+2fing_adj'};
         chords = generateAllChords;
         measure = 'MD';
         vararginoptions(varargin,{'model_names','sess','chords','measure'})
@@ -1122,10 +1122,15 @@ switch (what)
                 names = strsplit(model_names{j},'+');
                 
                 % making design matrix:
-                X = cell(1,length(names));
-                for k = 1:length(names)
-                    X{k} = repmat(make_design_matrix(chords,names{k}),length(subjects)-1,1);
+                X = [];
+                X{1} = repmat(make_design_matrix(chords,names{1}),length(subjects)-1,1);
+                if (length(names)>=2)
+                    tmp_model = join(names(2:end),'+');
+                    X{2} = repmat(make_design_matrix(chords,tmp_model{1}),length(subjects)-1,1);
                 end
+                % for k = 1:length(names)
+                %     X{k} = repmat(make_design_matrix(chords,names{k}),length(subjects)-1,1);
+                % end
                 
                 % train linear model on subject-out data:
                 y = values(:,setdiff(1:length(subjects),i));
@@ -1144,7 +1149,7 @@ switch (what)
                 tmp.model_num(j,1) = j;
                 tmp.sn_out(j,1) = subjects(i);
                 tmp.B{j,1} = B;
-                tmp.stats{j,1} = STATS;
+                tmp.STATS{j,1} = STATS;
 
                 % estimating the model performance:
                 % r:
@@ -1228,7 +1233,7 @@ switch (what)
             title(sprintf('num fingers = %d',i),'FontSize',my_font.title)
             ylim([0,1])
         end
-
+        
         varargout{1} = results;
 
 
@@ -1346,8 +1351,121 @@ switch (what)
         end
 
         varargout{1} = results;
- 
+
+
+    case 'model_observation_stepwise'
+        % handling input args:
+        sess = [3 4];
+        model_names = {'n_fing','n_fing+n_trans','n_fing+additive','n_fing+additive+additive','n_fing+additive+n_trans','n_fing+additive+2fing_nonadj','n_fing+additive+2fing_adj','n_fing+additive+2fing'};
+        chords = generateAllChords;
+        measure = 'MD';
+        vararginoptions(varargin,{'model_names','sess','chords','measure'})
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        subjects = unique(data.sn);
+
+        % getting the values of measure:
+        values_tmp = eval(['data.' measure]);
+
+        n = get_num_active_fingers(chords);
+
+        % avg trials of subjects:
+        for i = 1:length(subjects)
+            for j = 1:length(chords)
+                values(j,i) = mean(values_tmp(data.chordID==chords(j) & data.sn==subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)));
+            end
+        end
+
+        % noise ceiling calculation:
+        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
+        noise_ceil = mean(corr_struct.MD);
+
+        % loop on subjects and regression with leave-one-out:
+        results = [];
+        for i = 1:length(subjects)
+            fprintf('running for subj %d/%d out...\n',i,length(subjects))
+
+            % container for regression results:
+            tmp = [];
+
+            % loop on models:
+            for j = 1:length(model_names)
+                
+                % making design matrix:
+                X = make_design_matrix(chords,model_names{j});
+                X = repmat(X,length(subjects)-1,1);
+                
+                % train linear model on subject-out data:
+                y = values(:,setdiff(1:length(subjects),i));
+                y = y(:);
+                
+                if remove_mean
+                    % removing sample mean:
+                    y = y - mean(y);
+                end
+
+                % regression:
+                [B,STATS]=linregress(y,X,'intercept',0,'contrast',eye(size(X,2)));
+                
+                % test model on subject data:
+                X_test = make_design_matrix(chords,model_names{j});
+                y_pred = X_test*B;
+                y_test = values(:,i);
+
+                if remove_mean
+                    % y_test = y_test-mean(y_test);
+                end
+
+                % storing the regression results:
+                tmp.model_name{j,1} = model_names{j};
+                tmp.model_num(j,1) = j;
+                tmp.sn_out(j,1) = subjects(i);
+                tmp.B{j,1} = B;
+                tmp.stats{j,1} = STATS;
+                tmp.pred{j,1} = y_pred;
+                tmp.y{j,1} = y_test;
+
+                [r,p] = corrcoef(y_pred,y_test);
+                tmp.r_test(j,1) = r(2);
+                tmp.p_value(j,1) = p(2);
+
+                for k = 1:5
+                    [r,p] = corrcoef(y_pred(n==k),y_test(n==k));
+                    eval(['tmp.r_test_n' num2str(k) '(j,1) = r(2);']);
+                    eval(['tmp.p_value_n' num2str(k) '(j,1) = p(2);']);
+                end
+            end
+            
+            results = addstruct(results,tmp,'row','force');
+        end
+
+        % plots:
+        figure;
+        for i = 1:length(model_names)
+            subplot(1,length(model_names),i)
+            pred = cell2mat(results.pred(results.model_num==i)');
+            lineplot(n,pred);
+            title(replace(model_names{i},'_',' '))
+            xlabel('n fingers')
+            ylabel(['predicted ' replace(measure,'_',' ')])
+        end
     
+        figure;
+        for i = 1:length(model_names)
+            subplot(1,length(model_names),i)
+            pred = cell2mat(results.pred(results.model_num==i)');
+            y = cell2mat(results.y(results.model_num==i)');
+            for j = 1:length(unique(n))
+                scatter(pred(n==j,1),y(n==j,1),40,colors_random(j,:),'filled')
+                hold on
+            end
+            title(replace(model_names{i},'_',' '))
+            xlabel([replace(measure,'_',' ') ' predicted'])
+            ylabel(replace(measure,'_',' '))
+        end
+
+        varargout{1} = results;
     
     
     case 'OLS'
