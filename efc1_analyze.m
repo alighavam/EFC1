@@ -1215,7 +1215,7 @@ switch (what)
         vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
         
         % loading data:
-        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         subjects = unique(data.sn);
         
 
