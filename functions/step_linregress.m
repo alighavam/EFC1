@@ -10,7 +10,7 @@ function [B,STATS] = step_linregress(y, X)
 %       Xi's number of rows should be size(y,1).
 %
 % OUTPUT:
-%       B: Cocefficients.
+%       B: Cocefficients. Length is the sum of number of columns of all Xi.
 %       STATS: stats of the linear regression.
 
 B = [];
