@@ -901,101 +901,7 @@ switch (what)
         
 
 
-    case 'model_testing'
-        % handling input args:
-        blocks = [25,48];
-        model_names = {'num_fingers','single_finger','single_finger+neighbour_fingers','single_finger+two_finger_interactions'};
-        chords = generateAllChords;
-        measure = 'mean_dev';
-        remove_mean = 0;
-        vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
-        
-        % loading data:
-        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
-        subjects = unique(data.sn);
-
-        % getting the values of measure:
-        values = eval(['data.' measure]);
-
-        % noise ceiling calculation:
-        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
-        noise_ceil = mean(corr_struct.MD);
-
-        % loop on subjects and regression with leave-one-out:
-        results = [];
-        for i = 1:length(subjects)
-            fprintf('running for subj %d/%d out...\n',i,length(subjects))
-            % container for regression results:
-            tmp = [];
-
-            % loop on models:
-            for j = 1:length(model_names)
-                % making design matrix:
-                X = make_design_matrix(data.chordID(data.sn~=subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)),model_names{j});
-                
-                % train linear model on subject-out data:
-                y = values(data.sn~=subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2));
-                
-                if remove_mean
-                    y = y - mean(y);
-                end
-                [B,STATS]=linregress(y,X,'intercept',0,'contrast',eye(size(X,2)));
-                
-                
-                % test model on subject data:
-                X_test = make_design_matrix(data.chordID(data.sn==subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2)),model_names{j});
-                % X_test = [ones(size(X_test,1),1) X_test];
-                y_pred = X_test*B;
-                y_test = values(data.sn==subjects(i) & data.trialCorr==1 & data.BN>=blocks(1) & data.BN<=blocks(2));
-
-                if remove_mean
-                    y_test = y_test-mean(y_test);
-                end
-
-                [r,p] = corrcoef(y_pred,y_test);
-
-                % storing the regression results:
-                tmp.model_name{j,1} = model_names{j};
-                tmp.model_num(j,1) = j;
-                tmp.sn_out(j,1) = subjects(i);
-                tmp.B{j,1} = B;
-                tmp.stats{j,1} = STATS;
-                tmp.r_test(j,1) = r(2);
-                tmp.p_value(j,1) = p(2);
-            end
-            
-            results = addstruct(results,tmp,'row','force');
-        end
-
-        % hypohtesis testing between models:
-        H_across_models = [];
-        for i = 1:length(model_names)-1
-            tmp = [];
-            for j = i+1:length(model_names)
-                sample01 = results.r_test(results.model_num==i);
-                sample02 = results.r_test(results.model_num==j);
-                [t,p] = ttest(sample01,sample02,2,'paired');
-
-                tmp.model01{j,1} = model_names{i};
-                tmp.model02{j,1} = model_names{j};
-                tmp.t(j,1) = t;
-                tmp.p_value(j,1) = p;
-            end
-            H_across_models = addstruct(H_across_models,tmp,'row','force');
-        end
-        
-        % plotting:
-        figure;
-        lineplot(results.model_num, results.r_test ,'markersize', 5);
-        hold on;
-        scatter(results.model_num, results.r_test, 10, 'r', 'filled');
-        drawline(noise_ceil,'dir','horz')
-        xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
-        ylabel('rho')
-        ylim([0,1])
-
-        varargout{1} = results;
-        varargout{2} = H_across_models;
+    
         
     case 'model_testing_avg_values'
         % handling input args:
@@ -1069,7 +975,7 @@ switch (what)
                 % r squared:
                 tmp.r2_test(j,1) = 1 - sum((y_pred-y_test).^2) / sum((y_test-mean(y_test)).^2);
                 
-                % estimating model performance withing chord groups:
+                % estimating model performance within chord groups:
                 for k = 1:5
                     % r:
                     [r,p] = corrcoef(y_pred(n==k),y_test(n==k));
@@ -1180,25 +1086,150 @@ switch (what)
         varargout{2} = H_across_models;
         varargout{3} = H_model_ceil;
 
-    case 'model_testing_v2'
+    case 'model_testing_stepwise'
         % handling input args:
         sess = [3 4];
-        model_names = {'n_fing','n_fing+n_trans','n_fing+additive','n_fing+n_trans+additive','n_fing+n_trans+neighbour','n_fing+n_trans+additive+neighbour'};
+        model_names = {'n_fing','n_fing+n_trans','n_fing+additive'};
         chords = generateAllChords;
         measure = 'MD';
-        remove_mean = 0;
-        perf_measure = 'r'; % default performance measure is r (pearson correlation). Optional R2 (that is R squared)
-        vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
+        vararginoptions(varargin,{'model_names','sess','chords','measure'})
         
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         subjects = unique(data.sn);
-        
-        % loop on subjects:
+        n = get_num_active_fingers(chords);
+
+        % getting the values of 'measure':
+        values_tmp = eval(['data.' measure]);
+
+        % loop on subjects to make averaged session data:
         for i = 1:length(subjects)
-            y = [];
-            
+            for j = 1:length(chords)
+                values(j,i) = mean(values_tmp(data.chordID==chords(j) & data.sn==subjects(i) & data.sess>=sess(1) & data.sess<=sess(2)));
+            end
         end
+
+        % loop on subjects and regression with leave-one-out:
+        results = [];
+        for i = 1:length(subjects)
+            fprintf('running for subj %d/%d out...\n',i,length(subjects))
+
+            % container for regression results:
+            tmp = [];
+
+            % loop on models:
+            for j = 1:length(model_names)
+                names = strsplit(model_names{j},'+');
+                
+                % making design matrix:
+                X = cell(1,length(names));
+                for k = 1:length(names)
+                    X{k} = repmat(make_design_matrix(chords,names{k}),length(subjects)-1,1);
+                end
+                
+                % train linear model on subject-out data:
+                y = values(:,setdiff(1:length(subjects),i));
+                y = y(:);
+
+                % regression:
+                [B,STATS] = step_linregress(y, X);
+                
+                % test model on subject data:
+                X_test = make_design_matrix(chords,model_names{j});
+                y_pred = X_test*B;
+                y_test = values(:,i);
+
+                % storing the regression results:
+                tmp.model_name{j,1} = model_names{j};
+                tmp.model_num(j,1) = j;
+                tmp.sn_out(j,1) = subjects(i);
+                tmp.B{j,1} = B;
+                tmp.stats{j,1} = STATS;
+
+                % estimating the model performance:
+                % r:
+                [r,p] = corrcoef(y_pred,y_test);
+                tmp.r_test(j,1) = r(2);
+                tmp.p_value(j,1) = p(2);
+                % r squared:
+                tmp.r2_test(j,1) = 1 - sum((y_pred-y_test).^2) / sum((y_test-mean(y_test)).^2);
+                
+                % estimating model performance within chord groups:
+                for k = 1:5
+                    % r:
+                    [r,p] = corrcoef(y_pred(n==k),y_test(n==k));
+                    % if the model was num_fingers, then calculating r give
+                    % nan as the denominator is 0 (which is the var of
+                    % y_pred):
+                    if strcmp(model_names{j},'n_fing')
+                        r = [0 0 ; 0 0];
+                        p = [0 0 ; 0 0];
+                    end
+                    eval(['tmp.r_test_n' num2str(k) '(j,1) = r(2);']);
+                    eval(['tmp.p_value_n' num2str(k) '(j,1) = p(2);']);
+
+                    % r squared:
+                    tmp_r2 = 1 - sum((y_pred(n==k)-y_test(n==k)).^2) / sum((y_test(n==k)-mean(y_test(n==k))).^2);
+                    eval(['tmp.r2_test_n' num2str(k) '(j,1) = tmp_r2;']);
+                end
+            end
+            
+            results = addstruct(results,tmp,'row','force');
+        end
+        
+        % all chords noise ceiling -> leave one out correlation:
+        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks', [(sess(1)-1)*12+1 sess(2)*12],'chords',chords,'plot_option',0);
+        if (strcmp(measure,'MD'))
+            noise_ceil = mean(corr_struct.MD);
+        elseif (strcmp(measure,'MT'))
+            noise_ceil = mean(corr_struct.MT);
+        else
+            noise_ceil = mean(corr_struct.RT);
+        end
+
+        % plotting overall model performance:
+        fig = figure('Position',[500 500 450 400]);
+        fontsize(fig,my_font.tick_label,"points")
+        lineplot(results.model_num, results.r_test ,'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
+        hold on;
+        scatter(results.model_num, results.r_test, 5, 'MarkerFaceColor', colors_blue(2,:), 'MarkerEdgeColor', colors_blue(2,:));
+        drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
+        xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
+        ax = gca(fig);
+        ax.XAxis.FontSize = my_font.xlabel;
+        ax.YAxis.TickValues = linspace(0, 1, 6);
+        ylabel('rho model','FontSize',my_font.ylabel)
+        title(['rho with ' replace(measure,'_',' ')], 'FontSize', my_font.title)
+        ylim([0,1])
+
+        % plotting model performance within finger groups:
+        for i = 1:5
+            x = results.model_num;
+            y = eval(['results.r_test_n' num2str(i)]);
+
+            % chords noise ceiling -> leave one out correlation:
+            [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',[(sess(1)-1)*12+1 sess(2)*12],'chords',chords(n==i),'plot_option',0);
+            if (strcmp(measure,'MD'))
+                noise_ceil = mean(corr_struct.MD);
+            elseif (strcmp(measure,'MT'))
+                noise_ceil = mean(corr_struct.MT);
+            else
+                noise_ceil = mean(corr_struct.RT);
+            end
+
+            fig = figure('Position',[500 500 400 400]);
+            fontsize(fig,my_font.tick_label,"points")
+            lineplot(x, y,'markersize', 8, 'markerfill', colors_blue(5,:), 'markercolor', colors_blue(5,:), 'linecolor', colors_blue(1,:), 'linewidth', 2, 'errorbars', '');
+            hold on;
+            scatter(x, y, 5, 'MarkerFaceColor', colors_blue(2,:), 'MarkerEdgeColor', colors_blue(2,:));
+            drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7])
+            xticklabels(cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false))
+            ylabel('rho','FontSize',my_font.ylabel)
+            title(sprintf('num fingers = %d',i),'FontSize',my_font.title)
+            ylim([0,1])
+        end
+
+        varargout{1} = results;
 
 
     case 'model_observation'
