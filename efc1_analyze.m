@@ -149,7 +149,6 @@ switch (what)
             ANA = addstruct(ANA,tmp,'row','force');
         end
         dsave(fullfile(project_path,'analysis','efc1_chord.tsv'),ANA);
-    
 
     case 'subject_chords_doability'
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
@@ -664,69 +663,38 @@ switch (what)
     case 'selected_chord_trends'
         % handling input args:
         % check reliability for these chords:
-        chords = [11912,22921,21911,12922,12191,21292,19121,29212,12112,21221,21121,21121,12212,11212,22121,21211,21122]';
-        measure = 'mean_dev';
+        % EFC EMG Pilot 1:
+        % chords = [11912,22921,21911,12922,12191,21292,19121,29212,12112,21221,21121,21121,12212,11212,22121,21211,21122]';
+        % Sheena:
+        chords = [99922,99292,92992,92929,92922,92292,29992,29929,29922,29299,29292,29229,22929,22299]';
+        measure = 'MD';
         vararginoptions(varargin,{'measure','chords'})
 
         % loading data:
-        data = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        subjects = unique(data.sn);
 
         % getting the values of measure:
         values = eval(['data.' measure]);
 
-        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
-
-        % colors:
-        colors = [[0.4660, 0.6740, 0.1880] ; [0.3010, 0.7450, 0.9330] ; [0.9290, 0.6940, 0.1250] ; [0.8500, 0.3250, 0.0980] ; [0.4940, 0.1840, 0.5560]];
-        
         % rows for selected chords:
         row = arrayfun(@(x) ~isempty(intersect(x,chords)), data.chordID);
+        
+        x = [];
+        y = [];
+        for i = 1:length(subjects)
+            y = [y ; ]
+        end
 
         % avg trend acorss sessions:
-        figure;
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==1 & row),values(data.trialCorr==1 & data.num_fingers==1 & row),'linecolor',colors(1,:));hold on;
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==2 & row),values(data.trialCorr==1 & data.num_fingers==2 & row),'linecolor',colors(2,:));
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==3 & row),values(data.trialCorr==1 & data.num_fingers==3 & row),'linecolor',colors(3,:));
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==4 & row),values(data.trialCorr==1 & data.num_fingers==4 & row),'linecolor',colors(4,:));
-        lineplot(sess(data.trialCorr==1 & data.num_fingers==5 & row),values(data.trialCorr==1 & data.num_fingers==5 & row),'linecolor',colors(5,:));
-        xlabel('session')
-        ylabel(['avg ' measure(measure~='_') ' across subj'])
+        fig = figure();
+        fontsize(fig,my_font.tick_label,'points')
+        lineplot(data.sess(row),values(row),'linecolor',colors_blue(4,:),'linewidth',2,'markersize',8,'markerfill',colors_blue(4,:),'markercolor',colors_blue(4,:));
+        xlabel('session','FontSize',my_font.xlabel)
+        ylabel(['avg ' measure(measure~='_') ' across subj'],'FontSize',my_font.ylabel)
         xlim([0.7,4.3])
+        title(measure,'FontSize',my_font.title)
         
-        % significance test of differences across num fingers:
-        H_num_fingers = [];
-        for i = 1:4
-            tmp = [];
-            for j = 1:4
-                tmp.sess(j,1) = i;
-                [~, tmp.p(j,1)] = ttest2(values(sess==i & data.trialCorr==1 & data.num_fingers==j & row),values(sess==i & data.trialCorr==1 & data.num_fingers==j+1 & row));
-            end
-            H_num_fingers = addstruct(H_num_fingers,tmp,'row','force');
-        end
-
-        % significance test of differences across sessions:
-        H_sess = [];
-        for i = 1:5
-            tmp = [];
-            for j = 1:3
-                tmp.num_fingers(j,1) = i;
-                [~, tmp.p(j,1)] = ttest2(values(sess==j & data.trialCorr==1 & data.num_fingers==i & row),values(sess==j+1 & data.trialCorr==1 & data.num_fingers==i & row));
-            end
-            H_sess = addstruct(H_sess,tmp,'row','force');
-        end
-
-        % avg trends across blocks:
-        figure;
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==1 & row),values(data.trialCorr==1 & data.num_fingers==1 & row),'linecolor',[0.4660, 0.6740, 0.1880]);hold on;
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==2 & row),values(data.trialCorr==1 & data.num_fingers==2 & row),'linecolor',[0.3010, 0.7450, 0.9330]);
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==3 & row),values(data.trialCorr==1 & data.num_fingers==3 & row),'linecolor',[0.9290, 0.6940, 0.1250]);
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==4 & row),values(data.trialCorr==1 & data.num_fingers==4 & row),'linecolor',[0.8500, 0.3250, 0.0980]);
-        lineplot(data.BN(data.trialCorr==1 & data.num_fingers==5 & row),values(data.trialCorr==1 & data.num_fingers==5 & row),'linecolor',[0.4940, 0.1840, 0.5560]);
-        xlabel('Block')
-        ylabel(['avg ' measure(measure~='_') ' across subj'])
-        
-        varargout{1} = H_num_fingers;
-        varargout{2} = H_sess;
 
     case 'var_decomp_overall'
         chords = generateAllChords;
