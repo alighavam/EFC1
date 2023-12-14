@@ -680,16 +680,22 @@ switch (what)
         % rows for selected chords:
         row = arrayfun(@(x) ~isempty(intersect(x,chords)), data.chordID);
         
+        % subject avg 
         x = [];
         y = [];
+        cnt = 1;
         for i = 1:length(subjects)
-            y = [y ; ]
+            for j = 1:length(unique(data.sess))
+                x(cnt,1) = j;
+                y(cnt,1) = mean(values(row & data.sess==j & data.sn==subjects(i)));
+                cnt = cnt+1;
+            end
         end
 
-        % avg trend acorss sessions:
-        fig = figure();
+        % plot - avg measure across sessions, error bars are subject sem:
+        fig = figure('Position',[500 500 400 200]);
         fontsize(fig,my_font.tick_label,'points')
-        lineplot(data.sess(row),values(row),'linecolor',colors_blue(4,:),'linewidth',2,'markersize',8,'markerfill',colors_blue(4,:),'markercolor',colors_blue(4,:));
+        lineplot(x,y,'linecolor',colors_blue(4,:),'linewidth',2,'markersize',8,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'errorcolor',colors_blue(2,:),'errorcap',0,'errorwidth',2);
         xlabel('session','FontSize',my_font.xlabel)
         ylabel(['avg ' measure(measure~='_') ' across subj'],'FontSize',my_font.ylabel)
         xlim([0.7,4.3])
