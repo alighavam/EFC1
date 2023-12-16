@@ -704,60 +704,17 @@ switch (what)
 
     case 'var_decomp_overall'
         chords = generateAllChords;
-        measure = 'mean_dev';
+        measure = 'MD';
         centered = 1;
         vararginoptions(varargin,{'chords','measure','centered'})
 
-        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
-
-        subjects = unique(data.sn);
+        data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
 
         % getting the values of measure:
         values = eval(['data.' measure]);
 
-        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
-        
-        % container for subj MDs:
-        subj_MD = {};
-        % estimating (v_g + v_s + v_e) and (v_g + v_s):
-        v_gse = 0;
-        v_gs = 0;
-        for i = 1:length(subjects)
-            A = [];
-            for j = 3:4
-                tmp_val = 0;
-                % loop on chords:
-                for k = 1:length(chords)
-                    tmp_val(k) = mean(values(data.sn==subjects(i) & data.trialCorr==1 & data.chordID==chords(k) & sess==j));
-                end
-                if centered
-                    tmp_val = tmp_val-mean(tmp_val);
-                end
-                A = [A,tmp_val'];
-            end
-            subj_MD{i} = A;
-            B = A' * A;
-            % number of partitions:
-            N = size(A,2);
-
-            % adding sum of diagonal elems (y_ij' * y_ij):
-            v_gse = v_gse + trace(B)/N/length(subjects);
-
-            % adding sum of off-diagonal elems (y_ij' * y_ik):
-            mean_cov = B .* (1-eye(N));
-            mean_cov = sum(mean_cov(:))/(N*(N-1));
-            v_gs = v_gs + mean_cov/length(subjects);
-        end
-
-        % estimating v_g:
-        v_g = 0;
-        N = length(subjects);
-        for i = 1:length(subjects)-1
-            for j = i+1:length(subjects)
-                B = subj_MD{i}' * subj_MD{j};
-                v_g = v_g + sum(B(:))/size(B,1)^2/(N*(N-1)/2);
-            end
-        end
+        % reliability estimation:
+        [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), 'centered', centered);
 
         % plot:
         fig = figure();
@@ -780,74 +737,25 @@ switch (what)
 
     case 'var_decomp_nfingers'
         chords = generateAllChords;
-        measure = 'mean_dev';
+        measure = 'MD';
         centered = 1;
         vararginoptions(varargin,{'chords','measure','centered'})
 
-        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
-
-        subjects = unique(data.sn);
+        data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
 
         % getting the values of measure:
         values = eval(['data.' measure]);
 
-        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
-
-        n = get_num_active_fingers(chords);
-        
-        % container for subj MDs:
-        subj_MD = {};
-        % estimating (v_g + v_s + v_e) and (v_g + v_s):
-        v_gse = zeros(length(unique(n)),1);
-        v_gs = zeros(length(unique(n)),1);
-        for i_n = 1:length(unique(n))
-            for i = 1:length(subjects)
-                A = [];
-                for j = 3:4
-                    tmp_val = 0;
-                    % loop on chords:
-                    for k = 1:length(chords)
-                        tmp_val(k) = mean(values(data.sn==subjects(i) & data.trialCorr==1 & data.chordID==chords(k) & sess==j));
-                    end
-                    tmp_val = tmp_val(n==i_n);
-                    if centered
-                        tmp_val = tmp_val-mean(tmp_val);
-                    end
-                    A = [A,tmp_val'];
-                end
-                subj_MD{i,i_n} = A;
-                B = A' * A;
-                % number of partitions:
-                N = size(A,2);
-    
-                % adding sum of diagonal elems (y_ij' * y_ij):
-                v_gse(i_n) = v_gse(i_n) + trace(B)/N/length(subjects);
-    
-                % adding sum of off-diagonal elems (y_ij' * y_ik):
-                mean_cov = B .* (1-eye(N));
-                mean_cov = sum(mean_cov(:))/(N*(N-1));
-                v_gs(i_n) = v_gs(i_n) + mean_cov/length(subjects);
-            end
-        end
-
-        % estimating v_g:
-        v_g = zeros(length(unique(n)),1);
-        N = length(subjects);
-        for i_n = 1:length(unique(n))
-            for i = 1:length(subjects)-1
-                for j = i+1:length(subjects)
-                    B = subj_MD{i,i_n}' * subj_MD{j,i_n};
-                    v_g(i_n) = v_g(i_n) + sum(B(:))/size(B,1)^2/(N*(N-1)/2);
-                end
-            end
-        end
+        % reliability estimation:
+        [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), ...
+            'cond_vec', data.num_fingers(data.sess>=3), 'centered', centered);
             
         % plot:
         y = [];
         fig = figure();
         fontsize(fig,my_font.tick_label,"points")
-        for i = 1:length(unique(n))
-            y(i,:) = [v_g(i)/v_gse(i) (v_gs(i)-v_g(i))/v_gse(i) (v_gse(i)-v_gs(i))/v_gse(i)];
+        for i = 1:length(unique(data.num_fingers))
+            y(i,:) = [v_g{i}/v_gse{i} (v_gs{i}-v_g{i})/v_gse{i} (v_gse{i}-v_gs{i})/v_gse{i}];
             b = bar(i,y(i,:),'stacked','FaceColor','flat');
             b(1).CData = [238, 146, 106]/255;   % global var
             b(2).CData = [36, 168, 255]/255;  % subj var
@@ -872,10 +780,6 @@ switch (what)
         ylim([0,1.2])
 
         varargout{1} = [v_g, v_gs, v_gse];
-        
-
-
-    
         
     case 'model_testing_avg_values'
         % handling input args:
