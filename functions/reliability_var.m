@@ -48,7 +48,7 @@ function [v_g, v_gs, v_gse] = reliability_var(Y, subj_vec, part_vec, varargin)
 %
 %
 % HOW TO USE: 
-% % Here is an exampled of how to use the function.
+% % Here is an example of how to use the function.
 % % Experiment: Play with the value of n to see how it effects the estimation
 % % of the variance portions.
 %
