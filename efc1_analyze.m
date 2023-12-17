@@ -664,42 +664,84 @@ switch (what)
         % handling input args:
         % check reliability for these chords:
         % EFC EMG Pilot 1:
-        % chords = [11912,22921,21911,12922,12191,21292,19121,29212,12112,21221,21121,21121,12212,11212,22121,21211,21122]';
+        chords = [19999,91999,99199,99919,99991,29999,92999,99299,99929,99992,...
+                  11912,22921,21911,12922,12191,21292,19121,29212,12112,21221,21121,21121,12212,11212,22121,21211,21122]';
         % Sheena:
-        chords = [99922,99292,92992,92929,92922,92292,29992,29929,29922,29299,29292,29229,22929,22299]';
+        % chords = [99922,99292,92992,92929,92922,92292,29992,29929,29922,29299,29292,29229,22929,22299]';
         measure = 'MD';
         vararginoptions(varargin,{'measure','chords'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        % rows for selected chords:
+        row = arrayfun(@(x) ~isempty(intersect(x,chords)), data.chordID);
+        data = getrow(data,row);
+
         subjects = unique(data.sn);
 
         % getting the values of measure:
         values = eval(['data.' measure]);
 
-        % rows for selected chords:
-        row = arrayfun(@(x) ~isempty(intersect(x,chords)), data.chordID);
-        
-        % subject avg 
+        cond_vec = data.num_fingers;
+        cond_vec(cond_vec>1) = 2;
+        sem_subj = get_sem(values, data.sn, data.sess, cond_vec);
+
         x = [];
         y = [];
+        n = [];
+        conditions = unique(cond_vec);
         cnt = 1;
         for i = 1:length(subjects)
             for j = 1:length(unique(data.sess))
-                x(cnt,1) = j;
-                y(cnt,1) = mean(values(row & data.sess==j & data.sn==subjects(i)));
-                cnt = cnt+1;
+                for k = 1:length(conditions)
+                    x(cnt,1) = j;
+                    y(cnt,1) = mean(values(data.sess==j & data.sn==subjects(i) & cond_vec==conditions(k)),'omitmissing');
+                    n(cnt,1) = conditions(k);
+                    cnt = cnt+1;
+                end
             end
         end
 
-        % plot - avg measure across sessions, error bars are subject sem:
-        fig = figure('Position',[500 500 400 200]);
-        fontsize(fig,my_font.tick_label,'points')
-        lineplot(x,y,'linecolor',colors_blue(4,:),'linewidth',2,'markersize',8,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'errorcolor',colors_blue(2,:),'errorcap',0,'errorwidth',2);
-        xlabel('session','FontSize',my_font.xlabel)
-        ylabel(['avg ' measure(measure~='_') ' across subj'],'FontSize',my_font.ylabel)
-        xlim([0.7,4.3])
-        title(measure,'FontSize',my_font.title)
+        % avg trend acorss sessions:
+        fig = figure('Position', [500 500 310 310]);
+        fontsize(fig, my_font.tick_label, 'points')
+        errorbar(sem_subj.partitions(sem_subj.cond==1),sem_subj.y(sem_subj.cond==1),sem_subj.sem(sem_subj.cond==1),'LineStyle','none','Color',colors_blue(2,:)); hold on;
+        lineplot(x(n==conditions(1)),y(n==conditions(1)),'markertype','o','markersize',7,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',2,'errorbars','');
+        errorbar(sem_subj.partitions(sem_subj.cond==2),sem_subj.y(sem_subj.cond==2),sem_subj.sem(sem_subj.cond==2),'LineStyle','none','Color',colors_blue(5,:))
+        lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',7,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
+        legend('','single finger','','chord');
+        legend boxoff
+        xlabel('sess','FontSize',my_font.xlabel)
+        ylabel(['avg ' replace(measure,'_',' ') ' across subj'],'FontSize',my_font.ylabel)
+        title([replace(measure,'_',' ')],'FontSize',my_font.title)
+        % ylim([0.4 2.9])
+        ylim([50 3500])
+        h = gca;
+        h.YTick = linspace(h.YTick(1),h.YTick(end),5);
+
+        % subject avg 
+        % x = [];
+        % y = [];
+        % n = [];
+        % cnt = 1;
+        % for i = 1:length(subjects)
+        %     for j = 1:length(unique(data.sess))
+        %         for k = 1:length(chords)
+        %             x(cnt,1) = j;
+        %             y(cnt,1) = mean(values(row & data.sess==j & data.sn==subjects(i)),'omitmissing');
+        %             cnt = cnt+1;
+        %         end
+        %     end
+        % end
+        % 
+        % % plot - avg measure across sessions, error bars are subject sem:
+        % fig = figure('Position',[500 500 400 200]);
+        % fontsize(fig,my_font.tick_label,'points')
+        % lineplot(x,y,'linecolor',colors_blue(4,:),'linewidth',2,'markersize',8,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'errorcolor',colors_blue(2,:),'errorcap',0,'errorwidth',2);
+        % xlabel('session','FontSize',my_font.xlabel)
+        % ylabel(['avg ' measure(measure~='_') ' across subj'],'FontSize',my_font.ylabel)
+        % xlim([0.7,4.3])
+        % title(measure,'FontSize',my_font.title)
         
 
     case 'var_decomp_overall'
@@ -769,6 +811,7 @@ switch (what)
             hold on
         end
         drawline(1,'dir','horz','color',[0.7 0.7 0.7])
+        drawline(0,'dir','horz','color',[0.7 0.7 0.7])
         set(gca, 'XTick', 1:5);
         box off;
         title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title)
@@ -777,7 +820,7 @@ switch (what)
         title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title);
         legend('g','s','e')
         legend boxoff
-        ylim([0,1.2])
+        ylim([-0.1,1.2])
 
         varargout{1} = [v_g, v_gs, v_gse];
         
