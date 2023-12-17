@@ -669,22 +669,29 @@ switch (what)
         % Sheena:
         % chords = [99922,99292,92992,92929,92922,92292,29992,29929,29922,29299,29292,29229,22929,22299]';
         measure = 'MD';
-        vararginoptions(varargin,{'measure','chords'})
+        subjects = [];
+        vararginoptions(varargin,{'measure','chords','subjects'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+
         % rows for selected chords:
         row = arrayfun(@(x) ~isempty(intersect(x,chords)), data.chordID);
         data = getrow(data,row);
 
-        subjects = unique(data.sn);
+        if isempty(subjects)
+            subjects = unique(data.sn);
+        else
+            row = arrayfun(@(x) ~isempty(intersect(x,subjects)), data.sn);
+            data = getrow(data,row);
+        end
 
         % getting the values of measure:
         values = eval(['data.' measure]);
 
         cond_vec = data.num_fingers;
         cond_vec(cond_vec>1) = 2;
-        sem_subj = get_sem(values, data.sn, data.sess, cond_vec);
+        [sem_subj, X_subj, Y_subj, COND] = get_sem(values, data.sn, data.sess, cond_vec);
 
         x = [];
         y = [];
@@ -703,46 +710,29 @@ switch (what)
         end
 
         % avg trend acorss sessions:
-        fig = figure('Position', [500 500 310 310]);
+        fig = figure('Position', [500 500 190 200]);
         fontsize(fig, my_font.tick_label, 'points')
+        
         errorbar(sem_subj.partitions(sem_subj.cond==1),sem_subj.y(sem_subj.cond==1),sem_subj.sem(sem_subj.cond==1),'LineStyle','none','Color',colors_blue(2,:)); hold on;
-        lineplot(x(n==conditions(1)),y(n==conditions(1)),'markertype','o','markersize',7,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',2,'errorbars','');
+        lineplot(x(n==conditions(1)),y(n==conditions(1)),'markertype','o','markersize',5,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',2,'errorbars','');
+        hold on
+
         errorbar(sem_subj.partitions(sem_subj.cond==2),sem_subj.y(sem_subj.cond==2),sem_subj.sem(sem_subj.cond==2),'LineStyle','none','Color',colors_blue(5,:))
-        lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',7,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
+        lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
+        
+        % scatter(X_subj(COND==1),Y_subj(COND==1),10,'MarkerEdgeColor',colors_blue(1,:),'MarkerFaceColor',colors_blue(1,:))
+        % scatter(X_subj(COND==2),Y_subj(COND==2),10,'MarkerEdgeColor',colors_blue(5,:),'MarkerFaceColor',colors_blue(5,:))
+
         legend('','single finger','','chord');
         legend boxoff
         xlabel('sess','FontSize',my_font.xlabel)
-        ylabel(['avg ' replace(measure,'_',' ') ' across subj'],'FontSize',my_font.ylabel)
-        title([replace(measure,'_',' ')],'FontSize',my_font.title)
-        % ylim([0.4 2.9])
-        ylim([50 3500])
+        ylabel([replace(measure,'_',' ')],'FontSize',my_font.title)
+        % title([replace(measure,'_',' ')],'FontSize',my_font.title)
+        % ylim([0.2 2.7])
+        % ylim([0 3500])
+        ylim([0 500])
         h = gca;
         h.YTick = linspace(h.YTick(1),h.YTick(end),5);
-
-        % subject avg 
-        % x = [];
-        % y = [];
-        % n = [];
-        % cnt = 1;
-        % for i = 1:length(subjects)
-        %     for j = 1:length(unique(data.sess))
-        %         for k = 1:length(chords)
-        %             x(cnt,1) = j;
-        %             y(cnt,1) = mean(values(row & data.sess==j & data.sn==subjects(i)),'omitmissing');
-        %             cnt = cnt+1;
-        %         end
-        %     end
-        % end
-        % 
-        % % plot - avg measure across sessions, error bars are subject sem:
-        % fig = figure('Position',[500 500 400 200]);
-        % fontsize(fig,my_font.tick_label,'points')
-        % lineplot(x,y,'linecolor',colors_blue(4,:),'linewidth',2,'markersize',8,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'errorcolor',colors_blue(2,:),'errorcap',0,'errorwidth',2);
-        % xlabel('session','FontSize',my_font.xlabel)
-        % ylabel(['avg ' measure(measure~='_') ' across subj'],'FontSize',my_font.ylabel)
-        % xlim([0.7,4.3])
-        % title(measure,'FontSize',my_font.title)
-        
 
     case 'var_decomp_overall'
         chords = generateAllChords;
