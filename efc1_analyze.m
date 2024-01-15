@@ -175,40 +175,39 @@ switch (what)
         dsave(fullfile(project_path,'analysis','efc1_chord.tsv'),ANA);
 
     case 'subject_chords_accuracy'
-        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
-        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
+        chords = generateAllChords;
+        data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
+        sess = data.sess;
         
         subjects = unique(data.sn);
         
         C = [];
         for i = 1:length(subjects)
-            % the trials that subject could not make the chords:
-            hard_chords = data.chordID(data.sn==subjects(i) & data.trialCorr~=1 & data.trialErrorType ~= 1);
-
-            % most undoable chords for subject i:
-            hard_chords = unique(hard_chords);
-
-            % selecting from hard_chords:
-            n_incorr = [];
-            for j = 1:length(hard_chords)
-                corr_trials = data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chords(j) & sess<=2 & data.trialErrorType~=1);
-                n_incorr(j) = 10-sum(corr_trials);
+            % loop on chords:
+            acc_tmp = zeros(size(chords));
+            for j = 1:length(chords)
+                % averaging accuracies across sess 1 and 2:
+                acc_tmp(j) = mean(data.accuracy(data.sn==subjects(i) & data.chordID==chords(j) & data.sess<=2));
             end
-            hard_chord = hard_chords(n_incorr == max(n_incorr));
+
+            % The most undoable chords of subject in the first 
+            % two sessions: 
+            [acc,idx] = sort(acc_tmp);
+
+            % the most undoable chord:
+            hard_chord = chords(idx(1));
             
-            if (~isempty(hard_chord))
-                tmp = [];
-                for j = 1:length(hard_chord)
-                    tmp.sn(j,1) = subjects(i);
-                    tmp.chordID(j,1) = hard_chord(j);
-                    % number of correct trials:
-                    tmp.n_sess01(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==1));
-                    tmp.n_sess02(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==2));
-                    tmp.n_sess03(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==3));
-                    tmp.n_sess04(j,1) = sum(data.trialCorr(data.sn==subjects(i) & data.chordID==hard_chord(j) & sess==4));
-                end
-                C = addstruct(C,tmp,'row','force');
-            end
+            C.sn(i,1) = subjects(i);
+            C.chordID(i,1) = hard_chord;
+            % Accuracies:
+            C.acc_diff_s01(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==1 & data.chordID==hard_chord);
+            C.acc_diff_s02(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==2 & data.chordID==hard_chord);
+            C.acc_diff_s03(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==3 & data.chordID==hard_chord);
+            C.acc_diff_s04(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==4 & data.chordID==hard_chord);
+            C.acc_avg_s01(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==1));
+            C.acc_avg_s02(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==2));
+            C.acc_avg_s03(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==3));
+            C.acc_avg_s04(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==4));
         end
 
         % plot:
@@ -238,6 +237,8 @@ switch (what)
         avg_correct = [mean(C.n_sess01(idx_uniq)) ; mean(C.n_sess02(idx_uniq)) ; mean(C.n_sess03(idx_uniq)) ; mean(C.n_sess04(idx_uniq))];
         sem_correct = [std(C.n_sess01(idx_uniq)) ; std(C.n_sess02(idx_uniq)) ; std(C.n_sess03(idx_uniq)) ; std(C.n_sess04(idx_uniq))]/sqrt(length(idx_uniq));
         
+        [sem_tmp, ~, ~, ~] = get_sem(C.acc_diff_s01, C.sn, ones(size(C.sn)), ones(size(C.sn)));
+
         fig = figure('Units','centimeters', 'Position',[15 15 5 5]);
         fontsize(fig, my_font.tick_label, 'points')
         drawline(5,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
