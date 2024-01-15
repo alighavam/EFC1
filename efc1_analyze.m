@@ -158,6 +158,7 @@ switch (what)
                     
                     row = data.sn==subjects(i) & sess==j & data.chordID==chords(k) & data.trialCorr==1;
                     tmp.num_trials(cnt,1) = sum(row);
+                    tmp.accuracy(cnt,1) = sum(row)/5;
                     tmp.num_fingers(cnt,1) = n(k);
                     tmp.MD(cnt,1) = mean(data.MD(row));
                     tmp.MT(cnt,1) = mean(data.MT(row));
@@ -165,7 +166,7 @@ switch (what)
                     tmp.MD_std(cnt,1) = std(data.MD(row));
                     tmp.MT_std(cnt,1) = std(data.MT(row));
                     tmp.RT_std(cnt,1) = std(data.RT(row));
-
+                    
                     cnt = cnt+1;
                 end
             end
@@ -173,7 +174,7 @@ switch (what)
         end
         dsave(fullfile(project_path,'analysis','efc1_chord.tsv'),ANA);
 
-    case 'subject_chords_doability'
+    case 'subject_chords_accuracy'
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
         sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
         
@@ -211,26 +212,26 @@ switch (what)
         end
 
         % plot:
-        % subjects = unique(C.sn);
-        % for i = 1:length(subjects)
-        %     fig = figure();
-        %     fontsize(fig, my_font.tick_label, 'points')
-        %     scatter(ones(length(C.n_sess01(C.sn==subjects(i)))), C.n_sess01(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     hold on
-        %     scatter(2*ones(length(C.n_sess02(C.sn==subjects(i)))), C.n_sess02(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     scatter(3*ones(length(C.n_sess03(C.sn==subjects(i)))), C.n_sess03(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     scatter(4*ones(length(C.n_sess04(C.sn==subjects(i)))), C.n_sess04(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     drawline(5,'dir','horz','color',[0.7,0.7,0.7])
-        %     plot(1:4, ...
-        %         [C.n_sess01(C.sn==subjects(i))' ; C.n_sess02(C.sn==subjects(i))' ; C.n_sess03(C.sn==subjects(i))' ; C.n_sess04(C.sn==subjects(i))'] ...
-        %         ,'Color',[0 0 0],'LineWidth',1.5)
-        %     ylim([0 5.5])
-        %     xticks([1 2 3 4])
-        %     yticks([0 1 2 3 4 5])
-        %     title(['subj ' num2str(subjects(i))],'FontSize',my_font.title)
-        %     ylabel('num correct executions','FontSize',my_font.ylabel)
-        %     xlabel('sess','FontSize',my_font.xlabel)
-        % end
+        subjects = unique(C.sn);
+        for i = 1:length(subjects)
+            fig = figure();
+            fontsize(fig, my_font.tick_label, 'points')
+            scatter(ones(length(C.n_sess01(C.sn==subjects(i)))), C.n_sess01(C.sn==subjects(i)), 40, 'k', 'filled')
+            hold on
+            scatter(2*ones(length(C.n_sess02(C.sn==subjects(i)))), C.n_sess02(C.sn==subjects(i)), 40, 'k', 'filled')
+            scatter(3*ones(length(C.n_sess03(C.sn==subjects(i)))), C.n_sess03(C.sn==subjects(i)), 40, 'k', 'filled')
+            scatter(4*ones(length(C.n_sess04(C.sn==subjects(i)))), C.n_sess04(C.sn==subjects(i)), 40, 'k', 'filled')
+            drawline(5,'dir','horz','color',[0.7,0.7,0.7])
+            plot(1:4, ...
+                [C.n_sess01(C.sn==subjects(i))' ; C.n_sess02(C.sn==subjects(i))' ; C.n_sess03(C.sn==subjects(i))' ; C.n_sess04(C.sn==subjects(i))'] ...
+                ,'Color',[0 0 0],'LineWidth',1.5)
+            ylim([0 5.5])
+            xticks([1 2 3 4])
+            yticks([0 1 2 3 4 5])
+            title(['subj ' num2str(subjects(i))],'FontSize',my_font.title)
+            ylabel('num correct executions','FontSize',my_font.ylabel)
+            xlabel('sess','FontSize',my_font.xlabel)
+        end
 
         % plot:
         [~, idx_uniq] = unique(C.sn);
