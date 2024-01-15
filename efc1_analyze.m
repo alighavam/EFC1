@@ -2072,6 +2072,14 @@ switch (what)
             y(i,4) = data.v_dev4(i);
             y(i,5) = data.v_dev5(i);
         end
+
+        trial_label = zeros(length(data.BN),1);
+        for i = 1:length(subjects)
+            for j = 1:length(chords)
+                idx = data.sn==subjects(i) & data.chordID==chords(j);
+                trial_label(idx) = 1:sum(idx);
+            end
+        end
         
         % mean cetnering the dependent variable (for simpler matrix calculations):
         % y = y - mean(y,1);
