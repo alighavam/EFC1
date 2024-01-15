@@ -115,9 +115,13 @@ end
 c = forceSelceted(end,:)-forceSelceted(1,:);
 
 % Initial trajectory vector:
-v_init = forceSelceted(round(percentage/100*size(forceSelceted,1)),:) - forceSelceted(1,:);
+v_init = mean(forceSelceted(1:round(percentage/100*size(forceSelceted,1)),:),1) - forceSelceted(1,:);
 
 % calculate the initial deviation vector from ideal trajectory:
 v_dev = c/norm(c) - v_init/norm(v_init);
+
+if (v_init == 0)
+    v_dev = -1*ones(1,5);
+end
 
 
