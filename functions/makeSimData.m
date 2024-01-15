@@ -16,7 +16,7 @@ elseif (strcmp(option,'model')) % y_ijk = delta_j + gamma_ij + epsilon_ijk
     varEps = params{2}(3);
     
     vecChord = sqrt(varChord) * randn(242,colNum);
-    vecSubj = repelem(sqrt(varSubj) * randn(6,colNum),242,1);
+    vecSubj = repelem(sqrt(varSubj) * randn(9,colNum),242,1);
     vecEps = sqrt(varEps)*randn(rowNum,colNum);
     
     y = vecEps;
