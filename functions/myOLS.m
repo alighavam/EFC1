@@ -36,17 +36,12 @@ switch option
             % now we have y_shuffled which is a trial-shuffled version of y.
             % Seperating the data into training and validation sets:
             y_train = y_shuffled(trialID>=1 & trialID<=5 , :);
-            y_train = y_train-mean(y_train,1); 
+            % y_train = y_train-mean(y_train,1); 
             X1_train = X1(trialID>=1 & trialID<=5 , :);
             X2_train = X2(trialID>=1 & trialID<=5 , :);
 
-%             y_val = y_shuffled(~(trialID>=1 & trialID<=5) , :);
-%             y_val = y_val-repmat(mean(y_val,1),size(y_val,1),1);
-%             X1_val = X1(~(trialID>=1 & trialID<=5) , :);
-%             X2_val = X2(~(trialID>=1 & trialID<=5) , :);
-
             y_val = y;
-            y_val = y_val-repmat(mean(y_val,1),size(y_val,1),1);
+            % y_val = y_val-mean(y_val,1);
             X1_val = X1;
             X2_val = X2;
             
@@ -60,7 +55,7 @@ switch option
 
             SSRes_X1 = sum(sum((y_val - pred_X1).^2,1));
             SSRes_X2 = sum(sum((y_val - pred_X2).^2,1));
-            SST_tmp = sum(sum(y_val.^2,1));
+            SST_tmp = sum(sum((y_val-mean(y_val,1)).^2,1));
 
             SSR(n,1) = SST_tmp - SSRes_X1;
             SSR(n,2) = SST_tmp - SSRes_X2;
