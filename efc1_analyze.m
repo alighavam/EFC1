@@ -48,7 +48,7 @@ switch (what)
         % single struct called efc1_all.mat
         
         % input arguments:
-        percent_after_RT = 20; % percentage of movement after RT.
+        percent_after_RT = 15; % percentage of movement after RT.
         vararginoptions(varargin,{'percent_after_RT'});
 
         % getting subject files:
@@ -2021,10 +2021,10 @@ switch (what)
     
 
     case 'initial_deviation'
-        chords = generateAllChords;
+        % chords = generateAllChords;
 
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
-        data = getrow(data, data.trialCorr==1 & data.sess>=3 & data.v_dev1~=-1 & data.num_fingers>=4);
+        data = getrow(data, data.trialCorr==1 & data.sess>=3 & data.v_dev1~=-1 & data.num_fingers>=1);
         subjects = unique(data.sn);
 
         chords = unique(data.chordID);
@@ -2071,28 +2071,28 @@ switch (what)
 
         % Simulations ===============================================
         % random noise simulation
-        y = makeSimData(size(y,1),5,'random',[0,1]);
-
-        % ====== Regresison:
-        [beta,SSR,SST] = myOLS(y,{X1,X2},labels,'shuffle_trial_crossVal');
-
-        % var explained:
-        chordVar = mean(SSR(:,1)./SST) * 100;
-        subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
-        trialVar = 100 - (chordVar + subjVar);
-        fprintf("Sim Noisy data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",chordVar,subjVar,trialVar);
+        % y = makeSimData(size(y,1),5,'random',[0,1]);
+        % 
+        % % ====== Regresison:
+        % [beta,SSR,SST] = myOLS(y,{X1,X2},labels,'shuffle_trial_crossVal');
+        % 
+        % % var explained:
+        % chordVar = mean(SSR(:,1)./SST) * 100;
+        % subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
+        % trialVar = 100 - (chordVar + subjVar);
+        % fprintf("Sim Noisy data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",chordVar,subjVar,trialVar);
 
         % pie chart:
-        figure;
-        pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
-        title(sprintf('Simulation , Random noise'))
+        % figure;
+        % pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
+        % title(sprintf('Simulation , Random noise'))
 
         % Model simulation
-        varChord = 5;
-        varSubj = 3;
-        varEps = 1;
-        total = varChord + varSubj + varEps;
-        y = makeSimData(size(y,1),5,'model',{{X1,X2},[varChord,varSubj,varEps]});
+        % varChord = 5;
+        % varSubj = 3;
+        % varEps = 1;
+        % total = varChord + varSubj + varEps;
+        % y = makeSimData(size(y,1),5,'model',{{X1,X2},[varChord,varSubj,varEps]});
 
         % ====== Regresison:
         % [beta,SSR,SST] = myOLS(y,{X1,X2},labels,'shuffle_trial_crossVal');
