@@ -2054,7 +2054,7 @@ switch (what)
 
         % ====== Regresison:
         [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
-        
+
         % var explained:
         chordVar = mean(SSR(:,1)./SST) * 100;
         subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
@@ -2065,49 +2065,53 @@ switch (what)
         figure;
         pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
         title(sprintf('Variance Partitioning'))
-        
-        
+
+
         % Simulations ===============================================
         % random noise simulation
         y = makeSimData(size(y,1),5,'random',[0,1]);
-        
+
         % ====== Regresison:
         [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
-        
+
         % var explained:
         chordVar = mean(SSR(:,1)./SST) * 100;
         subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
         trialVar = 100 - (chordVar + subjVar);
         fprintf("Sim Noisy data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",chordVar,subjVar,trialVar);
-        
+
         % pie chart:
         figure;
         pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
         title(sprintf('Simulation , Random noise'))
-        
+
         % Model simulation
         varChord = 5;
         varSubj = 3;
         varEps = 1;
         total = varChord + varSubj + varEps;
         y = makeSimData(size(y,1),5,'model',{{X1,X2},[varChord,varSubj,varEps]});
-        
+
         % ====== Regresison:
         [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
-        
+
         % var explained:
         chordVar = mean(SSR(:,1)./SST) * 100;
         subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
         trialVar = 100 - (chordVar + subjVar);
         fprintf("Sim Model data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n",chordVar,subjVar,trialVar);
         fprintf("Theoretical Partiotions:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",varChord/total*100,varSubj/total*100,varEps/total*100);
-        
+
         % pie chart:
         figure;
         pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
         title(sprintf('Simulation , chord=%.2f , chord-subj=%.2f , noise=%.2f',varChord/total*100,varSubj/total*100,varEps/total*100))
 
-    
+        norm_y = vecnorm(y');
+        figure; lineplot(data.sess,norm_y');
+        figure; lineplot(data.BN,norm_y');
+        figure; scatter(data.MD,norm_y,5,'filled');
+        
     otherwise
         error('The analysis you entered does not exist!')
 end
