@@ -36,7 +36,7 @@ switch option
             % now we have y_shuffled which is a trial-shuffled version of y.
             % Seperating the data into training and validation sets:
             y_train = y_shuffled(trialID>=1 & trialID<=5 , :);
-            y_train = y_train-repmat(mean(y_train,1),size(y_train,1),1); 
+            y_train = y_train-mean(y_train,1); 
             X1_train = X1(trialID>=1 & trialID<=5 , :);
             X2_train = X2(trialID>=1 & trialID<=5 , :);
 
