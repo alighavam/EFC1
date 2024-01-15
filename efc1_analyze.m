@@ -47,6 +47,10 @@ switch (what)
         % and create a struct without the mov signals and save it as a
         % single struct called efc1_all.mat
         
+        % input arguments:
+        percent_after_RT = 20; % percentage of movement after RT.
+        vararginoptions(varargin,{'percent_after_RT'});
+
         % getting subject files:
         files = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_raw.tsv'));
         movFiles = dir(fullfile(usr_path, 'Desktop', 'Projects', 'EFC1', 'analysis', 'efc1_*_mov.mat'));
@@ -60,10 +64,11 @@ switch (what)
             tmp_data = dload(fullfile(files(i).folder, files(i).name));
             tmp_mov = load(fullfile(movFiles(i).folder, movFiles(i).name));
             tmp_mov = tmp_mov.MOV_struct;
-            
+
             mean_dev_tmp = zeros(length(tmp_data.BN),1);
             rt_tmp = zeros(length(tmp_data.BN),1);
             mt_tmp = zeros(size(rt_tmp));
+            v_dev_tmp = zeros(length(tmp_data.BN),5);
             first_finger_tmp = zeros(size(rt_tmp));
             % loop through trials:
             for j = 1:length(tmp_data.BN)
@@ -79,6 +84,11 @@ switch (what)
                                                                 tmp_data.baselineTopThresh(j), tmp_data.RT(j), ...
                                                                 tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
                                                                 tmp_data.fGain4(j), tmp_data.fGain5(j));
+                    % calculate initial deviation vector from ideal trajectory:
+                    v_dev_tmp(j,:) = calculate_dev_vector(tmp_mov{j}, tmp_data.chordID(j), ...
+                                                          tmp_data.baselineTopThresh(j), tmp_data.RT(j), percent_after_RT, ...
+                                                          tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
+                                                          tmp_data.fGain4(j), tmp_data.fGain5(j));
                 
                 % if trial was incorrect:
                 else
@@ -86,6 +96,7 @@ switch (what)
                     mean_dev_tmp(j) = -1;
                     rt_tmp(j) = -1;
                     mt_tmp(j) = -1;
+                    v_dev_tmp(j,:) = -1*ones(1,size(v_dev_tmp,2));
                     first_finger_tmp(j) = -1;
                 end
             end
@@ -98,7 +109,15 @@ switch (what)
             tmp_data.RT = rt_tmp;
             tmp_data.MT = mt_tmp;
             tmp_data.first_finger = first_finger_tmp;
-            tmp_data.mean_dev = mean_dev_tmp;
+            tmp_data.MD = mean_dev_tmp;
+            tmp_data.v_dev1 = v_dev_tmp(:,1);
+            tmp_data.v_dev2 = v_dev_tmp(:,2);
+            tmp_data.v_dev3 = v_dev_tmp(:,3);
+            tmp_data.v_dev4 = v_dev_tmp(:,4);
+            tmp_data.v_dev5 = v_dev_tmp(:,5);
+
+            sess = (tmp_data.BN<=12) + 2*(tmp_data.BN>=13 & tmp_data.BN<=24) + 3*(tmp_data.BN>=25 & tmp_data.BN<=36) + 4*(tmp_data.BN>=37 & tmp_data.BN<=48);
+            tmp_data.sess = sess;
             
             % adding subject data to ANA:
             ANA=addstruct(ANA,tmp_data,'row','force');
@@ -140,10 +159,10 @@ switch (what)
                     row = data.sn==subjects(i) & sess==j & data.chordID==chords(k) & data.trialCorr==1;
                     tmp.num_trials(cnt,1) = sum(row);
                     tmp.num_fingers(cnt,1) = n(k);
-                    tmp.MD(cnt,1) = mean(data.mean_dev(row));
+                    tmp.MD(cnt,1) = mean(data.MD(row));
                     tmp.MT(cnt,1) = mean(data.MT(row));
                     tmp.RT(cnt,1) = mean(data.RT(row));
-                    tmp.MD_std(cnt,1) = std(data.mean_dev(row));
+                    tmp.MD_std(cnt,1) = std(data.MD(row));
                     tmp.MT_std(cnt,1) = std(data.MT(row));
                     tmp.RT_std(cnt,1) = std(data.RT(row));
 
@@ -218,16 +237,16 @@ switch (what)
         avg_correct = [mean(C.n_sess01(idx_uniq)) ; mean(C.n_sess02(idx_uniq)) ; mean(C.n_sess03(idx_uniq)) ; mean(C.n_sess04(idx_uniq))];
         sem_correct = [std(C.n_sess01(idx_uniq)) ; std(C.n_sess02(idx_uniq)) ; std(C.n_sess03(idx_uniq)) ; std(C.n_sess04(idx_uniq))]/sqrt(length(idx_uniq));
         
-        fig = figure('Position',[500 500 200 200]);
+        fig = figure('Units','centimeters', 'Position',[15 15 5 5]);
         fontsize(fig, my_font.tick_label, 'points')
         drawline(5,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
         errorbar(1:4,avg_correct,sem_correct,'LineStyle','none','CapSize',0,'Color',colors_blue(3,:)); 
         plot(1:4,avg_correct,'Color',colors_blue(5,:),'LineWidth',3)
-        scatter(1:4,avg_correct,70,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
+        scatter(1:4,avg_correct,50,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
         
         % legend({'sem','','avg',''})
         % legend boxoff
-        ylabel('num successful execution','FontSize',my_font.ylabel)
+        ylabel('num successful execution','FontSize',my_font.tick_label)
         ylim([0,5.5])
         xlim([0.8,4.2])
         h = gca;
@@ -527,28 +546,25 @@ switch (what)
         [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, data.num_fingers);
         
         % PLOTS:
-        fig = figure('Position', [500 500 500 500]);
+        fig = figure('Units','centimeters', 'Position', [15 15 5.8 9]);
         fontsize(fig, my_font.tick_label, 'points')
 
-        unique(sem_subj.cond)
-        find(isnan(Y_subj))
-        
         for i = 1:5
-            errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:)); hold on;
+            errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0); hold on;
             lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',5,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',2,'errorbars','');
         end
         
-        legend({'','n_{fingers}=1','','n_{fingers}=2','','n_{fingers}=3','','n_{fingers}=4','','n_{fingers}=5'});
-        legend boxoff
+        % legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
+        % legend boxoff
         title(measure,'FontSize',my_font.title)
         xlabel('sess','FontSize',my_font.xlabel)
         ylabel('','FontSize',my_font.title)
         ylim([0.5 2.5])
-        % ylim([0 2500])
-        % ylim([0 450])
+        % ylim([0 2600])
+        % ylim([140 420])
         xlim([0.8 4.2])
         h = gca;
-        h.YTick = linspace(h.YTick(1),h.YTick(end),5);
+        h.YTick = linspace(h.YTick(1),h.YTick(end),3);
         
 
     case 'selected_chords_reliability'
@@ -750,22 +766,23 @@ switch (what)
         [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), 'centered', centered);
 
         % plot:
-        fig = figure();
+        fig = figure('Units','centimeters','Position',[30 30 6 7]);
         fontsize(fig, my_font.tick_label, "points")
-        bar(1,1,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',4,'CData',[0.8 0.8 0.8])
+        bar(1,1,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',1,'CData',[0.8 0.8 0.8])
         hold on
-        bar(1,1-(v_gs-v_g)/v_gse,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',4,'CData',[36, 168, 255]/255)
-        bar(1,v_g/v_gse,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',4,'CData',[238, 146, 106]/255)
-        drawline(1,'dir','horz','color',[0.8 0.8 0.8])
-        legend('e','s','g')
-        legend boxoff
-        box off
-        ylim([0 1.2])
-        xticklabels('all chords')
-        ylabel('percent variance','FontSize',my_font.ylabel)
-        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title);
-
-        varargout{1} = [v_g, v_gs, v_gse];
+        bar(1,1-(v_gs-v_g)/v_gse,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',1,'CData',[36, 168, 255]/255)
+        bar(1,v_g/v_gse,'FaceColor','flat','EdgeColor',[1,1,1],'LineWidth',1,'CData',[238, 146, 106]/255)
+        drawline(1,'dir','horz','color',[0.7 0.7 0.7])
+        drawline(0,'dir','horz','color',[0.7 0.7 0.7])
+        box off;
+        h = gca;
+        h.YTick = [];
+        % h.XTick = [];
+        title([measure ' Reliability'],'FontSize',my_font.title)
+        xlabel('All Chords','FontSize',my_font.xlabel)
+        % legend('global','subject','noise')
+        % legend boxoff
+        ylim([-0.1,1.2])
 
 
     case 'var_decomp_nfingers'
@@ -782,10 +799,10 @@ switch (what)
         % reliability estimation:
         [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), ...
             'cond_vec', data.num_fingers(data.sess>=3), 'centered', centered);
-            
+        
         % plot:
         y = [];
-        fig = figure();
+        fig = figure('Units','centimeters','Position',[40 40 13 7]);
         fontsize(fig,my_font.tick_label,"points")
         for i = 1:length(unique(data.num_fingers))
             y(i,:) = [v_g{i}/v_gse{i} (v_gs{i}-v_g{i})/v_gse{i} (v_gse{i}-v_gs{i})/v_gse{i}];
@@ -796,24 +813,138 @@ switch (what)
             b(1).EdgeColor = [1 1 1];
             b(2).EdgeColor = [1 1 1];
             b(3).EdgeColor = [1 1 1];
-            b(1).LineWidth = 3;
-            b(2).LineWidth = 3;
-            b(3).LineWidth = 3;
+            b(1).LineWidth = 1;
+            b(2).LineWidth = 1;
+            b(3).LineWidth = 1;
             hold on
         end
         drawline(1,'dir','horz','color',[0.7 0.7 0.7])
         drawline(0,'dir','horz','color',[0.7 0.7 0.7])
         set(gca, 'XTick', 1:5);
+        h = gca;
+        h.YTick = 0:0.2:1;
         box off;
-        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title)
+        title([measure ' Reliability'],'FontSize',my_font.title)
         xlabel('num fingers','FontSize',my_font.xlabel)
         ylabel('percent variance','FontSize',my_font.ylabel)
-        title(['var decomp ' replace(measure,'_',' ')],'FontSize',my_font.title);
-        legend('g','s','e')
+        legend('global','subject','noise')
         legend boxoff
         ylim([-0.1,1.2])
 
         varargout{1} = [v_g, v_gs, v_gse];
+        
+    case 'repetition_effect'
+        chords = generateAllChords;
+        measure = 'MD';
+        vararginoptions(varargin,{'chords','measure'})
+        
+        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+
+        % getting the values of measure:
+        values = eval(['data.' measure]);
+        values(values==-1) = NaN;
+        
+        % putting trials in rows:
+        n_fing = reshape(data.num_fingers,5,[]); 
+        sess = reshape(data.sess,5,[]); 
+        values = reshape(values,5,[]);
+        subj = reshape(data.sn,5,[]);
+        repetitions = 5;
+
+        % getting averages within each session and n_fing:
+        n_fing = n_fing(1,:);
+        sess = sess(1,:);
+        subj = subj(1,:);
+        C = [];
+        % loop on n_fing:
+        cnt = 1;
+        for i = 1:length(unique(n_fing))
+            % loop on sess:
+            for j = 1:length(unique(sess))
+                % selecting the data for each session and finger group
+                values_tmp = values(:, n_fing==i & sess==j);
+                C.value(cnt,:) = mean(values_tmp,2,'omitmissing')';
+
+                % estimating the standard errors:
+                for k = 1:repetitions
+                    [sem_tmp, ~, ~, ~] = get_sem( values_tmp(k,:)', subj(n_fing==i & sess==j)', ones(length(values_tmp(k,:)),1), ones(length(values_tmp(k,:)),1) );
+                    C.sem(cnt,k) = sem_tmp.sem;
+                end
+                C.num_fingers(cnt,1) = i;
+                C.sess(cnt,1) = j;
+                cnt = cnt+1;
+            end
+        end
+
+        % Estimating the benefit from sess1 to sess4:
+        subj_unique = unique(subj);
+        benefit = [];
+        cnt = 1;
+        for i = 2:length(unique(n_fing))
+            for sn = 1:length(subj_unique)
+                % selecting the data for each subj:
+                values_tmp01 = mean(values(:, n_fing==i & sess==1 & subj==subj_unique(sn)), 2, 'omitmissing');
+                values_tmp04 = mean(values(:, n_fing==i & sess==4 & subj==subj_unique(sn)), 2, 'omitmissing');
+                benefit.benefit(cnt,:) = (values_tmp01 - values_tmp04)';
+                benefit.benefit_rep1(cnt,1) = benefit.benefit(cnt,1);
+                benefit.benefit_rep2_5(cnt,1) = mean(benefit.benefit(cnt,2:end));
+                benefit.sn(cnt,1) = subj_unique(sn);
+                benefit.num_fingers(cnt,1) = i;
+                cnt = cnt+1;
+            end
+        end
+
+        % PLOT - repetition trends:
+        fig = figure('Units','centimeters','Position',[40 40 8 8]);
+        fontsize(fig,my_font.tick_label,"points")
+        offset_size = 5;
+        x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
+        for i = 1:length(unique(C.num_fingers))
+            for j = 1:length(unique(C.sess))
+                plot((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :),'Color',colors_blue(i,:),'LineWidth',1.5); hold on;
+                errorbar((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :), C.sem(C.num_fingers==i & C.sess==j, :), 'CapSize', 0, 'Color', colors_blue(i,:));
+                scatter((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :), 15,'MarkerFaceColor',colors_blue(i,:),'MarkerEdgeColor',colors_blue(i,:))
+            end
+        end
+        box off
+        h = gca;
+        h.XTick = 5*(1:length(unique(C.sess))) - 2;
+        h.XTickLabel = {'sess 1','sess 2','sess 3','sess 4'};
+        ylabel(measure,'FontSize',my_font.ylabel)
+        ylim([0.3, 2.8]) % MD
+        % ylim([80, 650]) % RT
+        % ylim([0, 3200]) % MT
+        xlim([0,21])
+        title('Repetition Effect','FontSize',my_font.title)
+        fontname("Arial")
+        
+        % PLOT - benefit:
+        fig = figure('Units','centimeters','Position',[40 40 8 2.5]);
+        fontsize(fig,my_font.tick_label,"points")
+        [sem1, ~, ~, ~] = get_sem(benefit.benefit_rep1, benefit.sn, ones(length(benefit.sn),1), ones(length(benefit.sn),1));
+        [sem2, ~, ~, ~] = get_sem(benefit.benefit_rep2_5, benefit.sn, ones(length(benefit.sn),1), ones(length(benefit.sn),1));
+
+        drawline(0,'dir','horz','color',[0.7 0.7 0.7],'lim',[0.5 2.5]); hold on;
+        plot(1:2, mean([benefit.benefit_rep1, benefit.benefit_rep2_5],1), 'Color', colors_blue(5,:), 'LineWidth', 2);
+        errorbar(1:2, mean([benefit.benefit_rep1, benefit.benefit_rep2_5],1), [sem1.sem, sem2.sem], 'CapSize', 0, 'Color', colors_blue(5,:));
+        scatter(1:2, mean([benefit.benefit_rep1, benefit.benefit_rep2_5],1), 30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:))
+        box off
+        h = gca;
+        h.XTick = 1:2;
+        h.XTickLabel = {'Trial 1','Trial 2 to 5'};
+        ylabel([measure ' Benefit'],'FontSize',my_font.ylabel)
+        h.YTick = -0.2:0.2:0.4; % MD
+        % h.YTick = 500:300:1100; % MT
+        % h.YTick = 0:100:200; % RT
+        ylim([-0.15, 0.45]) % MD
+        % ylim([0, 200]) % RT
+        % ylim([500, 1200]) % MT
+        xlim([0.5,2.5])
+        fontname("Arial")
+
+        varargout{1} = C;
+        varargout{2} = benefit;
+        
         
     case 'model_testing_avg_values'
         % handling input args:
@@ -1889,141 +2020,20 @@ switch (what)
     % =====================================================================
     
 
-    case 'variance_partition'
-        selectRun = -2;
-        holdTime = 600;
-        baseLineForceOption = 0;    % if '0', then the baseline force will be considerred [0,0,0,0,0]. If not,
-                                    % baseline force will be considerred the avg
-                                    % force during baseline duration.
-        durAfterActive = 200;
+    case 'initial_deviation'
+        chords = generateAllChords;
 
-        % setting the input options
-        if (~isempty(find(strcmp(varargin,'selectRun'),1)))    
-            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1};
-        end
-        if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))    
-            durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};
-        end
-        if (~isempty(find(strcmp(varargin,'baseLineForceOption'),1)))    
-            baseLineForceOption = varargin{find(strcmp(varargin,'baseLineForceOption'),1)+1};
-        end
-        
+        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+        data = getrow(data,data.trialCorr==1 & data.sess>=3);
+        subjects = unique(data.sn);
 
-
-        forceData = cell(size(data));   % extracting the force signals for each subj
-        for i = 1:size(data,1)
-            forceData{i,1} = extractDiffForce(data{i,1});
-            forceData{i,2} = data{i,2};
-        end
-        
-        outCell = cell(size(data));
-        for subj = 1:size(data,1)
-            outCell{subj,2} = data{subj,2};
-            chordVec = generateAllChords();  % all chords
-            subjData = data{subj,1};
-            subjForceData = forceData{subj,1};
-            outCellSubj = cell(length(chordVec),2);
-            vecBN = unique(subjData.BN);
-            for i = 1:length(chordVec)
-                outCellSubj{i,2} = chordVec(i);
-                outCellSubj{i,1} = cell(1,3);
-        
-                if (selectRun == -1)        % selecting the last 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-12));
-                elseif (selectRun == -2)    % selectign the last 24 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > vecBN(end-24));
-                elseif (selectRun == 1)     % selecting the first 12 runs
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN < 13);
-                elseif (selectRun == 2)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 12 & subjData.BN < 25);
-                elseif (selectRun == 3)
-                    trialIdx = find(subjData.chordID == chordVec(i) & subjData.trialErrorType ~= 1 & subjData.BN > 24 & subjData.BN < 37);
-                    iTmp = find(subjData.BN > 24 & subjData.BN < 37,1);
-                    if (isempty(iTmp))
-                        error("Error with <selectRun> option , " + data{subj,2} + " does not have block number " + num2str(selectRun))
-                    end
-                else
-                    error("selectRun " + num2str(selectRun) + "does not exist. Possible choices are 1,2,3,-1 and -2.")
-                end
-        
-                
-                if (~isempty(trialIdx))
-                    chordTmp = num2str(chordVec(i));
-                    forceVec_i_holder = [];
-                    idealVec = zeros(1,5);
-                    for trial_i = 1:length(trialIdx)
-                        forceTrial = subjForceData{trialIdx(trial_i)};
-                        baselineIdx = forceTrial(:,1) == 2;
-                        execIdx = find(forceTrial(:,1) == 3);
-                        execIdx = execIdx(end-holdTime/2:end); % 2ms is sampling frequency hence the holdTime/2
-                        
-                        avgBaselineForce = mean(forceTrial(baselineIdx,3:7),1);
-                        if (baseLineForceOption == 0)
-                            avgBaselineForce = zeros(1,5);
-                        end
-                        avgExecForce = mean(forceTrial(execIdx,3:7),1);
-                        idealVec = idealVec + (avgExecForce - avgBaselineForce)/length(trialIdx);
-        
-                        forceTmp = [];
-                        tVec = subjForceData{trialIdx(trial_i)}(:,2); % time vector in trial
-                        tGoCue = subjData.planTime(trialIdx(trial_i));
-                        for j = 1:5     % thresholded force of the fingers after "Go Cue"
-                            if (chordTmp(j) == '1') % extension
-                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
-                                if (isempty(find(forceTmp(:,end),1)))
-                                    forceTmp(:,end) = [];
-                                end
-                            elseif (chordTmp(j) == '2') % flexion
-                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)))]; 
-                                if (isempty(find(forceTmp(:,end),1)))
-                                    forceTmp(:,end) = [];
-                                end
-                            elseif (chordTmp(j) == '9') % finger should be relaxed
-                                forceTmp = [forceTmp (subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) < -subjData.baselineTopThresh(trialIdx(trial_i)) ...
-                                    | subjForceData{trialIdx(trial_i)}(tVec>=tGoCue,2+j) > subjData.baselineTopThresh(trialIdx(trial_i)))]; 
-                                if (isempty(find(forceTmp(:,end),1)))
-                                    forceTmp(:,end) = [];
-                                end
-                            end
-                        end
-                        if (isempty(find(forceTmp,1)))  % if no fingers moved out of threshold, go to next trial
-                            disp("empty trial")
-                            continue
-                        end
-            
-                        tmpIdx = [];
-                        for k = 1:size(forceTmp,2)
-                            tmpIdx(k) = find(forceTmp(:,k),1);
-                        end
-                        [sortIdx,~] = sort(tmpIdx); % sortIdx(1) is the first index after "Go Cue" that the first finger crossed the baseline thresh
-                        idxStart = find(tVec==tGoCue)+sortIdx(1)-1; % index that the first finger passes the baseline threhold after "Go Cue"
-                        %idxStart = idxStart - idxStartShift;
-        
-                        forceSelceted = [];
-                        for j = 1:5     % getting the force from idxStart to idxStart+durAfterActive
-                            forceSelceted = [forceSelceted subjForceData{trialIdx(trial_i)}(idxStart:idxStart+round(durAfterActive/2),2+j)];
-                        end
-                        forceVec_i = mean(forceSelceted,1);  % average of finger forces in the first {durAfterActive} ms
-                        forceVec_i_holder = [forceVec_i_holder ; forceVec_i/norm(forceVec_i)];
-                    end
-        
-                    outCellSubj{i,1}{1} = forceVec_i_holder;
-                    outCellSubj{i,1}{2} = repmat(idealVec/norm(idealVec),size(forceVec_i_holder,1),1);
-                    outCellSubj{i,1}{3} = [ones(size(forceVec_i_holder,1),1)*i (1:size(forceVec_i_holder,1))'];
-                else
-                    outCellSubj{i,1} = [];
-                end 
-            end
-            outCell{subj,1} = outCellSubj;
-        end
-        
         % Making regressors:
         y = [];     % dependent variable -> N by 5 matrix
         X1 = [];    % chord -> N by 242 matrix
-        X2 = [];    % chord and subj -> N by 242*6 matrix
+        X2 = [];    % chord and subj -> N by 242*subj_num matrix
         labels = [];
         chordIDVec = [];
-        for subj = 1:size(outCell,1)
+        for subj = 1:length(subjects)
             tmp = outCell{subj,1};
             forceVec = [tmp{:,1}]';
             idealVec = forceVec(2:3:end);
@@ -2048,8 +2058,23 @@ switch (what)
             y = [y;idealVec-forceVec]; 
         end
         
+        % Building the regressors and y:
+        X1 = zeros(length(data.BN),242);
+        X2 = zeros(length(data.BN),242*length(subjects));
+        y = zeros(length(data.BN),5);
+        for i = 1:length(data.BN)
+            chord_idx = chords==data.chordID(i);
+            X1(i,chord_idx) = 1;
+            X2(i,(find(subjects==data.sn(i))-1)*242+find(chord_idx)) = 1;
+            y(i,1) = data.v_dev1(i);
+            y(i,2) = data.v_dev2(i);
+            y(i,3) = data.v_dev3(i);
+            y(i,4) = data.v_dev4(i);
+            y(i,5) = data.v_dev5(i);
+        end
+        
         % mean cetnering the dependent variable (for simpler matrix calculations):
-        y = y - repmat(mean(y,1),size(y,1),1);
+        % y = y - mean(y,1);
         
         % ====== Regresison:
         [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
