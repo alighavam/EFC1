@@ -10,8 +10,8 @@ switch option
     case 'shuffle_trial_crossVal'   % shuffles trials and does cross-validated regression
         numCrossVal = 20;
 
-        X1 = X(:,1:242);
-        X2 = X(:,243:end);
+        X1 = X{1};
+        X2 = X{2};
         
         trialID = labels(:,3);
         chordID = labels(:,2);
@@ -71,8 +71,8 @@ switch option
         y = y - repmat(mean(y,1),size(y,1),1); 
         numCrossVal = 5;
 
-        X1 = X(:,1:242);
-        X2 = X(:,243:end);
+        X1 = X{1};
+        X2 = X{2};
         
         trialID = labels(:,3);
         chordID = labels(:,2);

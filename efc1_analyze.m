@@ -2024,17 +2024,19 @@ switch (what)
         chords = generateAllChords;
 
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
-        data = getrow(data, data.trialCorr==1 & data.sess>=3 & data.v_dev1~=-1);
+        data = getrow(data, data.trialCorr==1 & data.sess>=3 & data.v_dev1~=-1 & data.num_fingers>=4);
         subjects = unique(data.sn);
+
+        chords = unique(data.chordID);
         
         % Building the regressors and y:
-        X1 = zeros(length(data.BN),242);
-        X2 = zeros(length(data.BN),242*length(subjects));
+        X1 = zeros(length(data.BN),length(chords));
+        X2 = zeros(length(data.BN),length(chords)*length(subjects));
         y = zeros(length(data.BN),5);
         for i = 1:length(data.BN)
             chord_idx = chords==data.chordID(i);
             X1(i,chord_idx) = 1;
-            X2(i,(find(subjects==data.sn(i))-1)*242+find(chord_idx)) = 1;
+            X2(i,(find(subjects==data.sn(i))-1)*length(chords)+find(chord_idx)) = 1;
             y(i,1) = data.v_dev1(i);
             y(i,2) = data.v_dev2(i);
             y(i,3) = data.v_dev3(i);
@@ -2053,7 +2055,7 @@ switch (what)
         labels = [data.sn,data.chordID,trial_label];
 
         % ====== Regresison:
-        [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
+        [beta,SSR,SST] = myOLS(y,{X1,X2},labels,'shuffle_trial_crossVal');
 
         % var explained:
         chordVar = mean(SSR(:,1)./SST) * 100;
@@ -2072,7 +2074,7 @@ switch (what)
         y = makeSimData(size(y,1),5,'random',[0,1]);
 
         % ====== Regresison:
-        [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
+        [beta,SSR,SST] = myOLS(y,{X1,X2},labels,'shuffle_trial_crossVal');
 
         % var explained:
         chordVar = mean(SSR(:,1)./SST) * 100;
@@ -2093,19 +2095,19 @@ switch (what)
         y = makeSimData(size(y,1),5,'model',{{X1,X2},[varChord,varSubj,varEps]});
 
         % ====== Regresison:
-        [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
-
-        % var explained:
-        chordVar = mean(SSR(:,1)./SST) * 100;
-        subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
-        trialVar = 100 - (chordVar + subjVar);
-        fprintf("Sim Model data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n",chordVar,subjVar,trialVar);
-        fprintf("Theoretical Partiotions:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",varChord/total*100,varSubj/total*100,varEps/total*100);
+        % [beta,SSR,SST] = myOLS(y,{X1,X2},labels,'shuffle_trial_crossVal');
+        % 
+        % % var explained:
+        % chordVar = mean(SSR(:,1)./SST) * 100;
+        % subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
+        % trialVar = 100 - (chordVar + subjVar);
+        % fprintf("Sim Model data:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n",chordVar,subjVar,trialVar);
+        % fprintf("Theoretical Partiotions:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",varChord/total*100,varSubj/total*100,varEps/total*100);
 
         % pie chart:
-        figure;
-        pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
-        title(sprintf('Simulation , chord=%.2f , chord-subj=%.2f , noise=%.2f',varChord/total*100,varSubj/total*100,varEps/total*100))
+        % figure;
+        % pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
+        % title(sprintf('Simulation , chord=%.2f , chord-subj=%.2f , noise=%.2f',varChord/total*100,varSubj/total*100,varEps/total*100))
 
         norm_y = vecnorm(y');
         figure; lineplot(data.sess,norm_y');
