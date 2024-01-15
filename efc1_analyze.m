@@ -2024,39 +2024,8 @@ switch (what)
         chords = generateAllChords;
 
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
-        data = getrow(data,data.trialCorr==1 & data.sess>=3);
+        data = getrow(data, data.trialCorr==1 & data.sess>=3 & data.v_dev1~=-1);
         subjects = unique(data.sn);
-
-        % Making regressors:
-        y = [];     % dependent variable -> N by 5 matrix
-        X1 = [];    % chord -> N by 242 matrix
-        X2 = [];    % chord and subj -> N by 242*subj_num matrix
-        labels = [];
-        chordIDVec = [];
-        for subj = 1:length(subjects)
-            tmp = outCell{subj,1};
-            forceVec = [tmp{:,1}]';
-            idealVec = forceVec(2:3:end);
-            tmpChord = forceVec(3:3:end);
-            forceVec = forceVec(1:3:end);
-            idealVec = vertcat(idealVec{:});
-            forceVec = vertcat(forceVec{:});
-            tmpChord = vertcat(tmpChord{:});
-            labels = [labels ; [subj*ones(size(tmpChord,1),1),tmpChord]];
-            tmpChord = tmpChord(:,1);
-            X1_tmp = zeros(size(tmpChord,1),242);
-            X2_tmp = zeros(size(tmpChord,1),242*6);
-            val = unique(tmpChord);
-            
-            for i = 1:length(val)
-                X1_tmp(tmpChord==val(i),val(i)) = 1;
-                X2_tmp(tmpChord==val(i),(subj-1)*242+val(i)) = 1;
-            end
-            chordIDVec = [chordIDVec ; tmpChord];
-            X1 = [X1 ; X1_tmp];
-            X2 = [X2 ; X2_tmp];
-            y = [y;idealVec-forceVec]; 
-        end
         
         % Building the regressors and y:
         X1 = zeros(length(data.BN),242);
@@ -2081,9 +2050,8 @@ switch (what)
             end
         end
         
-        % mean cetnering the dependent variable (for simpler matrix calculations):
-        % y = y - mean(y,1);
-        
+        labels = [data.sn,data.chordID,trial_label];
+
         % ====== Regresison:
         [beta,SSR,SST] = myOLS(y,[X1,X2],labels,'shuffle_trial_crossVal');
         
@@ -2092,7 +2060,7 @@ switch (what)
         subjVar = mean((SSR(:,2) - SSR(:,1))./SST) * 100;
         trialVar = 100 - (chordVar + subjVar);
         fprintf("var partitioning:\nChord = %.4f , Chord-Subj = %.4f , Trial = %.4f\n\n\n",chordVar,subjVar,trialVar);
-        
+
         % pie chart:
         figure;
         pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
@@ -2116,7 +2084,6 @@ switch (what)
         figure;
         pie([chordVar,subjVar,trialVar],{'chord','chord-subj','trial-noise'});
         title(sprintf('Simulation , Random noise'))
-        
         
         % Model simulation
         varChord = 5;
