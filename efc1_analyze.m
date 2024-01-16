@@ -19,11 +19,11 @@ colors_gray = hex2rgb(colors_gray);
 colors_random = hex2rgb(colors_random);
 
 % figure properties:
-my_font.xlabel = 11;
-my_font.ylabel = 11;
-my_font.title = 12;
-my_font.tick_label = 9;
-my_font.legend = 9;
+my_font.xlabel = 10;
+my_font.ylabel = 10;
+my_font.title = 11;
+my_font.tick_label = 8;
+my_font.legend = 8;
 
 switch (what)
     case 'subject_routine'
@@ -210,53 +210,57 @@ switch (what)
             C.acc_avg_s04(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==4));
         end
 
-        % plot:
-        subjects = unique(C.sn);
-        for i = 1:length(subjects)
-            fig = figure();
-            fontsize(fig, my_font.tick_label, 'points')
-            scatter(ones(length(C.n_sess01(C.sn==subjects(i)))), C.n_sess01(C.sn==subjects(i)), 40, 'k', 'filled')
-            hold on
-            scatter(2*ones(length(C.n_sess02(C.sn==subjects(i)))), C.n_sess02(C.sn==subjects(i)), 40, 'k', 'filled')
-            scatter(3*ones(length(C.n_sess03(C.sn==subjects(i)))), C.n_sess03(C.sn==subjects(i)), 40, 'k', 'filled')
-            scatter(4*ones(length(C.n_sess04(C.sn==subjects(i)))), C.n_sess04(C.sn==subjects(i)), 40, 'k', 'filled')
-            drawline(5,'dir','horz','color',[0.7,0.7,0.7])
-            plot(1:4, ...
-                [C.n_sess01(C.sn==subjects(i))' ; C.n_sess02(C.sn==subjects(i))' ; C.n_sess03(C.sn==subjects(i))' ; C.n_sess04(C.sn==subjects(i))'] ...
-                ,'Color',[0 0 0],'LineWidth',1.5)
-            ylim([0 5.5])
-            xticks([1 2 3 4])
-            yticks([0 1 2 3 4 5])
-            title(['subj ' num2str(subjects(i))],'FontSize',my_font.title)
-            ylabel('num correct executions','FontSize',my_font.ylabel)
-            xlabel('sess','FontSize',my_font.xlabel)
-        end
+        % % plot:
+        % subjects = unique(C.sn);
+        % for i = 1:length(subjects)
+        %     fig = figure();
+        %     fontsize(fig, my_font.tick_label, 'points')
+        %     scatter(ones(length(C.acc_diff_s01(C.sn==subjects(i)))), C.acc_diff_s01(C.sn==subjects(i)), 40, 'k', 'filled')
+        %     hold on
+        %     scatter(2*ones(length(C.acc_diff_s02(C.sn==subjects(i)))), C.acc_diff_s02(C.sn==subjects(i)), 40, 'k', 'filled')
+        %     scatter(3*ones(length(C.acc_diff_s03(C.sn==subjects(i)))), C.acc_diff_s03(C.sn==subjects(i)), 40, 'k', 'filled')
+        %     scatter(4*ones(length(C.acc_diff_s04(C.sn==subjects(i)))), C.acc_diff_s04(C.sn==subjects(i)), 40, 'k', 'filled')
+        %     drawline(5,'dir','horz','color',[0.7,0.7,0.7])
+        %     plot(1:4, ...
+        %         [C.acc_diff_s01(C.sn==subjects(i))' ; C.acc_diff_s02(C.sn==subjects(i))' ; C.acc_diff_s03(C.sn==subjects(i))' ; C.acc_diff_s04(C.sn==subjects(i))'] ...
+        %         ,'Color',[0 0 0],'LineWidth',1.5)
+        %     ylim([0 1.2])
+        %     xticks([1 2 3 4])
+        %     yticks([0 0.5 1])
+        %     title(['subj ' num2str(subjects(i))],'FontSize',my_font.title)
+        %     ylabel('num correct executions','FontSize',my_font.ylabel)
+        %     xlabel('sess','FontSize',my_font.xlabel)
+        % end
 
         % plot:
-        [~, idx_uniq] = unique(C.sn);
-        avg_correct = [mean(C.n_sess01(idx_uniq)) ; mean(C.n_sess02(idx_uniq)) ; mean(C.n_sess03(idx_uniq)) ; mean(C.n_sess04(idx_uniq))];
-        sem_correct = [std(C.n_sess01(idx_uniq)) ; std(C.n_sess02(idx_uniq)) ; std(C.n_sess03(idx_uniq)) ; std(C.n_sess04(idx_uniq))]/sqrt(length(idx_uniq));
+        avg_diff = [mean(C.acc_diff_s01) ; mean(C.acc_diff_s02) ; mean(C.acc_diff_s03) ; mean(C.acc_diff_s04)];
+        sem_diff = [std(C.acc_diff_s01) ; std(C.acc_diff_s02) ; std(C.acc_diff_s03) ; std(C.acc_diff_s04)]/sqrt(length(C.sn));
+        avg_all = [mean(C.acc_avg_s01) ; mean(C.acc_avg_s02) ; mean(C.acc_avg_s03) ; mean(C.acc_avg_s04)];
+        sem_all = [std(C.acc_avg_s01) ; std(C.acc_avg_s02) ; std(C.acc_avg_s03) ; std(C.acc_avg_s04)]/sqrt(length(C.sn));
         
-        [sem_tmp, ~, ~, ~] = get_sem(C.acc_diff_s01, C.sn, ones(size(C.sn)), ones(size(C.sn)));
-
         fig = figure('Units','centimeters', 'Position',[15 15 5 5]);
         fontsize(fig, my_font.tick_label, 'points')
-        drawline(5,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
-        errorbar(1:4,avg_correct,sem_correct,'LineStyle','none','CapSize',0,'Color',colors_blue(3,:)); 
-        plot(1:4,avg_correct,'Color',colors_blue(5,:),'LineWidth',3)
-        scatter(1:4,avg_correct,50,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
+        drawline(1,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
+        
+        errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
+        plot(1:4,avg_all,'Color',colors_blue(2,:),'LineWidth',3)
+        scatter(1:4,avg_all,40,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:));
+        
+        errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_blue(5,:)); 
+        plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',2)
+        scatter(1:4,avg_diff,30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
         
         % legend({'sem','','avg',''})
         % legend boxoff
-        ylabel('num successful execution','FontSize',my_font.tick_label)
-        ylim([0,5.5])
+        ylabel('accuracy','FontSize',my_font.tick_label)
+        ylim([0,1.2])
         xlim([0.8,4.2])
         h = gca;
-        h.YAxis.TickValues = 1:5;
+        h.YAxis.TickValues = 0:0.5:1;
         h.XAxis.TickValues = 1:4;
-        xticklabels({'sess 1','sess 2','sess 3','sess 4'})
+        xlabel('sess','FontSize',my_font.xlabel)
         box off
-
+        
         varargout{1} = C;
         
 
