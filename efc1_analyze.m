@@ -242,23 +242,27 @@ switch (what)
         fontsize(fig, my_font.tick_label, 'points')
         drawline(1,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
         
-        errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
-        plot(1:4,avg_all,'Color',colors_blue(2,:),'LineWidth',3)
-        scatter(1:4,avg_all,40,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:));
-        
         errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_blue(5,:)); 
         plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',2)
         scatter(1:4,avg_diff,30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
+
+        % errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
+        plot(1:4,avg_all,'Color',[colors_blue(2,:), 0.6],'LineWidth',3)
+        % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
         
-        % legend({'sem','','avg',''})
-        % legend boxoff
-        ylabel('accuracy','FontSize',my_font.tick_label)
+        lgd = legend({'','','most challenging','','all 242'});
+        legend boxoff
+        fontsize(lgd,6,'points')
+
         ylim([0,1.2])
         xlim([0.8,4.2])
         h = gca;
         h.YAxis.TickValues = 0:0.5:1;
         h.XAxis.TickValues = 1:4;
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
         xlabel('sess','FontSize',my_font.xlabel)
+        ylabel('accuracy','FontSize',my_font.tick_label)
         box off
         
         varargout{1} = C;
@@ -2120,6 +2124,89 @@ switch (what)
         figure; lineplot(data.BN,norm_y');
         figure; scatter(data.MD,norm_y,5,'filled');
         
+    case 'visual_complexity'
+        chords = generateAllChords;
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        
+        symmetries = get_chord_symmetry(chords);
+        sess = unique(data.sess);
+        subj = unique(data.sn);
+        
+        C = [];
+        cnt = 1;
+        for k = 1:length(subj)
+            for i = 1:length(sess)
+                for j = 1:length(symmetries.chord)
+                    C.sn(cnt,1) = subj(k);
+                    C.sess(cnt,1) = sess(i);
+
+                    % calculate difference of values of chord symmetries:
+                    row = data.sess==sess(i) & data.sn==subj(k);
+                    RT_vec = [data.RT(row & data.chordID==symmetries.chord(j)),...
+                              data.RT(row & data.chordID==symmetries.chord_vs(j))];
+                              % data.RT(row & data.chordID==symmetries.chord_hs(j)),...
+                              % data.RT(row & data.chordID==symmetries.chord_vhs(j))];
+
+                    MT_vec = [data.MT(row & data.chordID==symmetries.chord(j)),...
+                              data.MT(row & data.chordID==symmetries.chord_vs(j))];
+                              % data.MT(row & data.chordID==symmetries.chord_hs(j)),...
+                              % data.MT(row & data.chordID==symmetries.chord_vhs(j))];
+
+                    MD_vec = [data.MD(row & data.chordID==symmetries.chord(j)),...
+                              data.MD(row & data.chordID==symmetries.chord_vs(j))];
+                              % data.MD(row & data.chordID==symmetries.chord_hs(j)),...
+                              % data.MD(row & data.chordID==symmetries.chord_vhs(j))];
+    
+                    subtract_RT = subtract_arr_elements(RT_vec);
+                    subtract_MT = subtract_arr_elements(MT_vec);
+                    subtract_MD = subtract_arr_elements(MD_vec);
+                    
+                    % storing the values:
+                    C.RT_diff(cnt,:) = subtract_RT;
+                    C.MT_diff(cnt,:) = subtract_MT;
+                    C.MD_diff(cnt,:) = subtract_MD;
+                    cnt = cnt+1;
+                end
+            end
+        end
+        
+        % PLOT:
+        rt = C.RT_diff(C.sess>=3,:);
+        rt = rt(:);
+        rt(rt==0) = [];
+        rt(isnan(rt)) = [];
+
+        mt = C.MT_diff(C.sess>=3,:);
+        mt = mt(:);
+        mt(mt==0) = [];
+        mt(isnan(mt)) = [];
+
+        md = C.MD_diff(C.sess>=3,:);
+        md = md(:);
+        md(md==0) = [];
+        md(isnan(md)) = [];
+        
+        figure;
+        subplot(1,3,1)
+        histogram(rt,31);
+        subplot(1,3,2)
+        histogram(mt,31);
+        subplot(1,3,3)
+        histogram(md,31);
+        
+        [t,p]=ttest(rt,[],2,'onesample')
+        [t,p]=ttest(mt,[],2,'onesample')
+        [t,p]=ttest(md,[],2,'onesample')
+        
+        figure;
+        errorbar(1:3,[mean(rt),mean(mt),mean(md)],[std(rt)/sqrt(length(rt)),mean(mt)/sqrt(length(mt)),mean(md)/sqrt(length(md))]); hold on;
+        scatter(1:3,[mean(rt),mean(mt),mean(md)],20,'filled');
+        
+
+
+        varargout{1} = C;
+
+
     otherwise
         error('The analysis you entered does not exist!')
 end
