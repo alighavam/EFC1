@@ -79,6 +79,11 @@ function [v_g, v_gs, v_gse] = reliability_var(Y, subj_vec, part_vec, varargin)
 % % estimated:
 % fprintf('Estimated:\nvar_g = %.4f , var_s = %.4f , var_e = %.4f\n\n',v_g/v_gse,(v_gs-v_g)/v_gse,(v_gse-v_gs)/v_gse)  
 
+% check for nans:
+if sum(isnan(Y),'all')~=0
+    warning('Input data contains nan elements')
+end
+
 
 % handling input arguments:
 cond_vec = ones(size(subj_vec));
