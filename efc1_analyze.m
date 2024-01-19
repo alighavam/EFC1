@@ -138,9 +138,9 @@ switch (what)
         % load trial dataframe:
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
         subjects = unique(data.sn);
-        sess = (data.BN<=12) + 2*(data.BN>=13 & data.BN<=24) + 3*(data.BN>=25 & data.BN<=36) + 4*(data.BN>=37 & data.BN<=48);
         chords = generateAllChords;
         n = get_num_active_fingers(chords);
+        sess = unique(data.sess);
 
         % container to hold the dataframe:
         ANA = [];
@@ -149,14 +149,14 @@ switch (what)
             tmp = [];
             % loop on sess:
             cnt = 1;
-            for j = 1:length(unique(sess))
+            for j = 1:length(sess)
                 % loop on chords:
                 for k = 1:length(chords)
                     tmp.sn(cnt,1) = subjects(i);
-                    tmp.sess(cnt,1) = j;
+                    tmp.sess(cnt,1) = sess(j);
                     tmp.chordID(cnt,1) = chords(k);
                     
-                    row = data.sn==subjects(i) & sess==j & data.chordID==chords(k) & data.trialCorr==1;
+                    row = data.sn==subjects(i) & data.sess==sess(j) & data.chordID==chords(k) & data.trialCorr==1;
                     tmp.num_trials(cnt,1) = sum(row);
                     tmp.accuracy(cnt,1) = sum(row)/5;
                     tmp.num_fingers(cnt,1) = n(k);
@@ -556,25 +556,35 @@ switch (what)
         [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, data.num_fingers);
         
         % PLOTS:
-        fig = figure('Units','centimeters', 'Position', [15 15 5.8 9]);
-        fontsize(fig, my_font.tick_label, 'points')
-
+        figure;
+        ax1 = axes('Units','centimeters', 'Position', [2 2 4.8 5],'Box','off');
+        % ax1.PositionConstraint = "innerposition";
+        % axes(ax1);
         for i = 1:5
             errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0); hold on;
-            lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',5,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',2,'errorbars','');
+            lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',1.5,'errorbars','');
         end
         
-        % legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
+        % lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
         % legend boxoff
-        title(measure,'FontSize',my_font.title)
-        xlabel('sess','FontSize',my_font.xlabel)
-        ylabel('','FontSize',my_font.title)
-        ylim([0.5 2.5])
+        % fontsize(lgd,6,'points')
+        ylim([0.5 2.6])
         % ylim([0 2600])
         % ylim([140 420])
         xlim([0.8 4.2])
+        xlabel('session','FontSize',my_font.xlabel)
+        % ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
+        ylabel([measure],'FontSize',my_font.tick_label)
         h = gca;
         h.YTick = linspace(h.YTick(1),h.YTick(end),3);
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        fontname("Arial")
+        
+        % doing stats:
+        idx_exlude_nans = ~isnan(values);
+        stats = rm_anova2(values(idx_exlude_nans),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
+        varargout{1} = stats;
         
 
     case 'selected_chords_reliability'
@@ -806,14 +816,17 @@ switch (what)
         % getting the values of measure:
         values = eval(['data.' measure]);
 
+        % exclude nan values - subjects may have missed all 5 reps:
+        % exclude_
+
         % reliability estimation:
         [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), ...
             'cond_vec', data.num_fingers(data.sess>=3), 'centered', centered);
         
         % plot:
         y = [];
-        fig = figure('Units','centimeters','Position',[40 40 13 7]);
-        fontsize(fig,my_font.tick_label,"points")
+        figure;
+        ax1 = axes('Units','centimeters', 'Position', [2 2 4.8 5],'Box','off');
         for i = 1:length(unique(data.num_fingers))
             y(i,:) = [v_g{i}/v_gse{i} (v_gs{i}-v_g{i})/v_gse{i} (v_gse{i}-v_gs{i})/v_gse{i}];
             b = bar(i,y(i,:),'stacked','FaceColor','flat');
@@ -905,51 +918,33 @@ switch (what)
         end
 
         % PLOT - repetition trends:
-        fig = figure('Units','centimeters','Position',[40 40 8 8]);
-        fontsize(fig,my_font.tick_label,"points")
+        figure;
+        ax1 = axes('Units','centimeters', 'Position', [2 2 4.8 5],'Box','off');
         offset_size = 5;
         x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
         for i = 1:length(unique(C.num_fingers))
             for j = 1:length(unique(C.sess))
-                plot((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :),'Color',colors_blue(i,:),'LineWidth',1.5); hold on;
+                plot((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :),'Color',colors_blue(i,:),'LineWidth',1); hold on;
                 errorbar((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :), C.sem(C.num_fingers==i & C.sess==j, :), 'CapSize', 0, 'Color', colors_blue(i,:));
-                scatter((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :), 15,'MarkerFaceColor',colors_blue(i,:),'MarkerEdgeColor',colors_blue(i,:))
+                scatter((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :), 10,'MarkerFaceColor',colors_blue(i,:),'MarkerEdgeColor',colors_blue(i,:))
             end
         end
         box off
         h = gca;
+        % h.YTick = 100:150:600; % RT
+        % h.YTick = 0:1000:3000; % MT
+        h.YTick = 0.5:1:2.5; % MD
         h.XTick = 5*(1:length(unique(C.sess))) - 2;
-        h.XTickLabel = {'sess 1','sess 2','sess 3','sess 4'};
-        ylabel(measure,'FontSize',my_font.ylabel)
+        xlabel('session','FontSize',my_font.xlabel)
+        h.XTickLabel = {'1','2','3','4'};
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        % ylabel(measure,'FontSize',my_font.ylabel)
         ylim([0.3, 2.8]) % MD
         % ylim([80, 650]) % RT
         % ylim([0, 3200]) % MT
         xlim([0,21])
-        title('Repetition Effect','FontSize',my_font.title)
-        fontname("Arial")
-        
-        % PLOT - benefit:
-        fig = figure('Units','centimeters','Position',[40 40 8 2.5]);
-        fontsize(fig,my_font.tick_label,"points")
-        [sem1, ~, ~, ~] = get_sem(benefit.benefit_rep1, benefit.sn, ones(length(benefit.sn),1), ones(length(benefit.sn),1));
-        [sem2, ~, ~, ~] = get_sem(benefit.benefit_rep2_5, benefit.sn, ones(length(benefit.sn),1), ones(length(benefit.sn),1));
-
-        drawline(0,'dir','horz','color',[0.7 0.7 0.7],'lim',[0.5 2.5]); hold on;
-        plot(1:2, mean([benefit.benefit_rep1, benefit.benefit_rep2_5],1), 'Color', colors_blue(5,:), 'LineWidth', 2);
-        errorbar(1:2, mean([benefit.benefit_rep1, benefit.benefit_rep2_5],1), [sem1.sem, sem2.sem], 'CapSize', 0, 'Color', colors_blue(5,:));
-        scatter(1:2, mean([benefit.benefit_rep1, benefit.benefit_rep2_5],1), 30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:))
-        box off
-        h = gca;
-        h.XTick = 1:2;
-        h.XTickLabel = {'Trial 1','Trial 2 to 5'};
-        ylabel([measure ' Benefit'],'FontSize',my_font.ylabel)
-        h.YTick = -0.2:0.2:0.4; % MD
-        % h.YTick = 500:300:1100; % MT
-        % h.YTick = 0:100:200; % RT
-        ylim([-0.15, 0.45]) % MD
-        % ylim([0, 200]) % RT
-        % ylim([500, 1200]) % MT
-        xlim([0.5,2.5])
+        % title('Repetition Effect','FontSize',my_font.title)
         fontname("Arial")
 
         varargout{1} = C;
