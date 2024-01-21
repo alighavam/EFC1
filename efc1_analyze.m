@@ -771,7 +771,7 @@ switch (what)
         h = gca;
         h.YTick = linspace(h.YTick(1),h.YTick(end),5);
 
-    case 'var_decomp_overall'
+    case 'var_reliability_overall'
         chords = generateAllChords;
         measure = 'MD';
         centered = 1;
@@ -805,7 +805,7 @@ switch (what)
         ylim([-0.1,1.2])
 
 
-    case 'var_decomp_nfingers'
+    case 'var_reliability_nfingers'
         chords = generateAllChords;
         measure = 'MD';
         centered = 1;
@@ -816,9 +816,12 @@ switch (what)
         % getting the values of measure:
         values = eval(['data.' measure]);
 
-        % exclude nan values - subjects may have missed all 5 reps:
-        % exclude_
-
+        % remove nan values - subjects may have missed all 5 reps:
+        nan_idx = isnan(values);
+        values(nan_idx) = 0;
+        
+        size(data.sess)
+        size(values)
         % reliability estimation:
         [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), ...
             'cond_vec', data.num_fingers(data.sess>=3), 'centered', centered);
