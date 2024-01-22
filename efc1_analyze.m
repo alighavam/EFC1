@@ -135,8 +135,19 @@ switch (what)
         % subject_routine and make_all_dataframe before running this
         % function.
 
+        % handling input args:
+        exclude_1st_rep = 0;
+        out_file_name = 'efc1_chord.tsv';
+        vararginoptions(varargin,{'exclude_1st_rep','out_file_name'})
+
         % load trial dataframe:
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+        if exclude_1st_rep
+            tmp_idx = mod(data.TN,5);
+            % removing 1st rep from data:
+            data = getrow(data,tmp_idx~=1);
+        end
+
         subjects = unique(data.sn);
         chords = generateAllChords;
         n = get_num_active_fingers(chords);
@@ -172,7 +183,7 @@ switch (what)
             end
             ANA = addstruct(ANA,tmp,'row','force');
         end
-        dsave(fullfile(project_path,'analysis','efc1_chord.tsv'),ANA);
+        dsave(fullfile(project_path,'analysis',out_file_name),ANA);
 
     case 'subject_chords_accuracy'
         chords = generateAllChords;
@@ -346,9 +357,9 @@ switch (what)
         % lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
         % legend boxoff
         % fontsize(lgd,6,'points')
-        ylim([0.5 2.6])
+        % ylim([0.5 2.6])
         % ylim([0 2600])
-        % ylim([140 420])
+        ylim([140 420])
         xlim([0.8 4.2])
         xlabel('session','FontSize',my_font.xlabel)
         % ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
@@ -392,7 +403,7 @@ switch (what)
                 tmp.num_fingers(i,1) = get_num_active_fingers(chords(i));
 
                 row = data.sn==subjects(sn) & data.BN>=blocks(1) & data.BN<=blocks(2) & data.chordID==chords(i) & data.trialCorr==1;
-                tmp.mean_dev(i,1) = mean(data.mean_dev(row));
+                tmp.MD(i,1) = mean(data.MD(row));
                 tmp.RT(i,1) = median(data.RT(row));
                 tmp.MT(i,1) = median(data.MT(row));
             end
@@ -406,7 +417,7 @@ switch (what)
         RT = zeros(length(chords),length(sn));
         MT = zeros(length(chords),length(sn));
         for sn = 1:length(subjects)
-            MD(:,sn) = C.mean_dev(C.sn==subjects(sn));
+            MD(:,sn) = C.MD(C.sn==subjects(sn));
             RT(:,sn) = C.RT(C.sn==subjects(sn));
             MT(:,sn) = C.MT(C.sn==subjects(sn));
         end
@@ -560,6 +571,10 @@ switch (what)
 
         % getting the values of measure:
         values = eval(['data.' measure]);
+
+        % remove nan values - subjects may have missed all 5 reps:
+        nan_idx = isnan(values);
+        values(nan_idx) = 0;
 
         % reliability estimation:
         [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), 'centered', centered);
@@ -763,9 +778,9 @@ switch (what)
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
-        model_names = {'n_trans','n_fing','additive','n_fing+n_trans','n_fing+additive','n_trans+additive','n_fing+n_trans+additive','n_fing+n_trans+neighbour','n_fing+n_trans+additive+neighbour'};
+        model_names = {'n_trans','n_fing','additive'};
         chords = generateAllChords;
-        measure = 'mean_dev';
+        measure = 'MD';
         remove_mean = 0;
         vararginoptions(varargin,{'model_names','blocks','chords','measure','remove_mean'})
         
@@ -874,7 +889,7 @@ switch (what)
 
         % all chords noise ceiling -> leave one out correlation:
         [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',blocks,'chords',chords,'plot_option',0);
-        if (strcmp(measure,'mean_dev'))
+        if (strcmp(measure,'MD'))
             noise_ceil = mean(corr_struct.MD);
         elseif (strcmp(measure,'MT'))
             noise_ceil = mean(corr_struct.MT);
@@ -946,7 +961,7 @@ switch (what)
     case 'model_testing_stepwise'
         % handling input args:
         sess = [3 4];
-        model_names = {'n_fing','n_fing+n_trans','n_fing+additive','n_fing+2fing_nonadj','n_fing+2fing_adj','n_fing+2fing','n_fing+additive+2fing_adj'};
+        model_names = {'n_fing','n_fing+n_trans','n_fing+additive','n_fing+2fing_nonadj','n_fing+2fing_adj','n_fing+2fing'};
         chords = generateAllChords;
         measure = 'MD';
         vararginoptions(varargin,{'model_names','sess','chords','measure'})
@@ -958,6 +973,10 @@ switch (what)
 
         % getting the values of 'measure':
         values_tmp = eval(['data.' measure]);
+
+        % remove nan values - subjects may have missed all 5 reps:
+        nan_idx = isnan(values_tmp);
+        values_tmp(nan_idx) = 0;
 
         % loop on subjects to make averaged session data:
         for i = 1:length(subjects)
@@ -1323,198 +1342,7 @@ switch (what)
         end
 
         varargout{1} = results;
-    
-    
-    case 'OLS'
-        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};             % setting 'corrMethod' option
-        end
-        if (~isempty(find(strcmp(varargin,'dataset'),1)))                               % setting 'dataset' option
-            dataset = varargin{find(strcmp(varargin,'dataset'),1)+1};                   
-            if (~isempty(find(isnan(dataset),1)))
-                error("you have NaN in your dataset. Please handle them before giving to this function")
-            end
-        else
-            error('dataset not inputted to the function.')
-        end
-        if (~isempty(find(strcmp(varargin,'features'),1)))                              % setting 'features' option
-            features = varargin{find(strcmp(varargin,'features'),1)+1};                   
-            if (size(features,1) ~= size(dataset,1))
-                error("dataset and features must have the same number of rows.")
-            end
-        else
-            error('features not inputted to the function.')
-        end
-        
-        % cross validated linear regression:
-        fullFeatures = repmat(features,size(data,1)-1,1);
-        rho_OLS = zeros(1,size(data,1));
-        models = cell(size(data,1),2);
-        for i = 1:size(data,1)
-            idx = setdiff(1:size(data,1),i);    % excluding one subject from the analysis
-            estimated = [];
-            for j = idx
-                estimated = [estimated ; dataset(:,j)];
-            end
-%             fprintf('============= OLS linear regression with excluded subject: %s =============\n',data{i,2})
-            mdl = fitlm(fullFeatures,estimated);
-%             fprintf('==========================================================================================\n\n')
-            models{i,1} = mdl;
-            models{i,2} = sprintf("excluded subj: %s",data{i,2});
 
-            % testing model:
-            pred = predict(mdl,features);
-            dataOut = dataset(:,i);
-            
-            corrTmp = corr(dataOut,pred,'type',corrMethod);
-            rho_OLS(1,i) = corrTmp;
-        end
-        varargout{2} = models;
-        varargout{1} = rho_OLS;
-        
-    
-    
-    case 'modelTesting'
-        dataName = "meanDev";
-        featureCell = {"numActiveFing-linear","numActiveFing-oneHot","singleFinger","singleFingExt","singleFingFlex",...
-            "neighbourFingers","2FingerCombinations","singleFinger+2FingerCombinations","neighbourFingers+singleFinger","all"};
-
-        if (~isempty(find(strcmp(varargin,'dataName'),1)))
-            dataName = varargin{find(strcmp(varargin,'dataName'),1)+1};   % setting 'dataName' option
-        end
-        if (~isempty(find(strcmp(varargin,'featureCell'),1)))
-            featureCell = varargin{find(strcmp(varargin,'featureCell'),1)+1};   % setting 'featureCell' option
-        end
-        if (~isempty(find(strcmp(varargin,'onlyActiveFing'),1)))
-            onlyActiveFing = varargin{find(strcmp(varargin,'onlyActiveFing'),1)+1};
-        else
-            error("parameter error: you should input onlyActiveFing parameter")
-        end
-        if (~isempty(find(strcmp(varargin,'firstTrial'),1)))
-            firstTrial = varargin{find(strcmp(varargin,'firstTrial'),1)+1};
-        else
-            error("parameter error: you should input firstTrial parameter")
-        end
-        if (~isempty(find(strcmp(varargin,'selectRun'),1)))
-            selectRun = varargin{find(strcmp(varargin,'selectRun'),1)+1}; 
-        else
-            error("parameter error: you should input selectRun parameter")
-        end
-        if (~isempty(find(strcmp(varargin,'durAfterActive'),1)))
-            durAfterActive = varargin{find(strcmp(varargin,'durAfterActive'),1)+1};
-        else
-            error("parameter error: you should input durAfterActive parameter")
-        end
-        if (~isempty(find(strcmp(varargin,'excludeChord'),1)))
-            excludeChord = varargin{find(strcmp(varargin,'excludeChord'),1)+1};
-        else
-            error("parameter error: you should input excludeChord parameter")
-        end
-        if (~isempty(find(strcmp(varargin,'corrMethod'),1)))
-            corrMethod = varargin{find(strcmp(varargin,'corrMethod'),1)+1};
-        else
-            error("parameter error: you should input corrMethod parameter")
-        end
-
-        fprintf("Running model evaluation for %s\n\n",dataName);
-        
-        dataset = regressionDataset(data,dataName,'onlyActiveFing',onlyActiveFing,...
-            'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive);
-        [highCeil,lowCeil] = calcNoiseCeiling(data,dataName,'onlyActiveFing',onlyActiveFing,...
-            'firstTrial',firstTrial,'selectRun',selectRun,'durAfterActive',durAfterActive,'excludeChord',excludeChord);
-        
-        % regression:
-        models_save = cell(size(featureCell,2),1);
-        rho_OLS = [];
-        for i = 1:length(featureCell)
-            features = makeFeatures(featureCell{i});
-            [rho_OLS(i,:), models_save{i}] = efc1_analyze('OLS',data,'dataset',dataset,'features',features,'corrMethod',corrMethod);
-        end
-        
-        modelCorrAvg = zeros(size(rho_OLS,1),1);
-        modelCorrSem = zeros(size(rho_OLS,1),1);
-        for i = 1:size(rho_OLS,1)
-            modelCorrAvg(i) = mean(rho_OLS(i,:));
-            modelCorrSem(i) = std(rho_OLS(i,:))/sqrt(length(rho_OLS(i,:)));
-        end
-        
-        
-        % Plot model performance
-        figure;
-        hold all
-        x = 1:length(modelCorrAvg);
-        h = bar(x,diag(modelCorrAvg),'stacked','BarWidth',0.6);
-%         set(h(1),'facecolor',[1,0,0])
-%         set(h(2),'facecolor',[0,1,0])
-%         set(h(3),'facecolor',[0,0,1])
-        errorbar(x,modelCorrAvg,modelCorrSem,"LineStyle","none",'Color','k')
-%         yline(lowCeil,'linewidth',2)
-        yline(highCeil,'linewidth',3)
-        ylim([0,1])
-        xticks(x)
-        xticklabels(featureCell)
-        title(sprintf("Eplaining the %s",dataName))
-        ylabel("Crossvalidated Correlation")
-        
-        % beta value maps - single + 2finger
-        model = models_save{find(string(featureCell) == "singleFinger+2FingerCombinations")};
-        betaMatCell = cell(size(model,1),1);
-        pValCell = cell(size(model,1),1);
-        for n = 1:size(model,1)
-            betaMat = zeros(10,10);
-            pValMat = zeros(10,10);
-            modelTmp = model{n,1};
-            beta = modelTmp.Coefficients;
-            pVal = table2array(beta(:,4));
-            beta = table2array(beta(:,1));
-            beta(1) = [];
-            pVal(1) = [];
-            
-        %     beta = [zeros(10,1);beta];
-        
-            singleFingerBeta = beta(1:10);
-            singleFinger_pVal = pVal(1:10);
-            cnt_single = 1;
-            twoFingerBeta = beta(11:end);
-            twoFinger_pVal = pVal(11:end);
-            cnt_two = 1;
-            for i = 1:size(betaMat,1)
-                for j = i:size(betaMat,2)
-                    if (i==j)
-                        betaMat(i,j) = singleFingerBeta(cnt_single);
-                        pValMat(i,j) = singleFinger_pVal(cnt_single);
-                        cnt_single = cnt_single+1;
-                    elseif (j ~= i+5)
-                        betaMat(i,j) = twoFingerBeta(cnt_two);
-                        betaMat(j,i) = twoFingerBeta(cnt_two);
-                        pValMat(i,j) = twoFinger_pVal(cnt_two);
-                        pValMat(j,i) = twoFinger_pVal(cnt_two);
-                        cnt_two = cnt_two+1;
-                    end
-                end
-            end
-            betaMatCell{n} = betaMat;
-            pValCell{n} = pValMat;
-        end
-        
-        betaMat = zeros(10,10);
-        for i = 1:size(betaMatCell,1)
-            betaMat = betaMat + betaMatCell{i};
-        end
-        betaMat = betaMat/size(betaMatCell,1);
-        figure;
-        imagesc(betaMat)
-        hold on
-        line([0.5,10.5], [5.5,5.5], 'Color', 'k','LineWidth',2);
-        line([5.5,5.5], [0.5,10.5], 'Color', 'k','LineWidth',2);
-        xticklabels([1:5,1:5])
-        yticklabels([1:5,1:5])
-        colorbar
-        title(sprintf("beta values , %s",dataName))
-        xlabel("digit")
-        ylabel("digit")
-    
-    % =====================================================================
     case 'theta_bias'
         durAfterActive = 200;   % default duration after first finger passed the baseline threshld in ms
         plotfcn = 0;            % default is to plot
