@@ -774,6 +774,9 @@ switch (what)
 
         varargout{1} = C;
         
+    case 'cognitive_motor_testing'
+        
+        
         
     case 'model_testing_avg_values'
         % handling input args:
