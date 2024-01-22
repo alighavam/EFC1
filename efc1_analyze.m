@@ -976,7 +976,8 @@ switch (what)
 
         % remove nan values - subjects may have missed all 5 reps:
         nan_idx = isnan(values_tmp);
-        values_tmp(nan_idx) = 0;
+        values_tmp(nan_idx) = [];
+        data = getrow(data,~nan_idx);
 
         % loop on subjects to make averaged session data:
         for i = 1:length(subjects)
