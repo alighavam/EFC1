@@ -268,8 +268,56 @@ switch (what)
         varargout{1} = C;
         
 
-    case 'behavior_reliability'
+    case 'corr_reliability_nfingers'
+        chords = generateAllChords;
+        measure = 'MD';
+        vararginoptions(varargin,{'chords','measure'})
+
+        data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
+
+        % getting the values of measure:
+        values = eval(['data.' measure]);
+
+        % remove nan values - subjects may have missed all 5 reps:
+        nan_idx = isnan(values);
+        values(nan_idx) = 0;
+
+        % reliability estimation:
+        [c_g, c_gs] = reliability_corr(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), ...
+            'cond_vec', data.num_fingers(data.sess>=3));
         
+        % % plot:
+        % y = [];
+        % figure;
+        % ax1 = axes('Units','centimeters', 'Position', [2 2 4.8 5],'Box','off');
+        % for i = 1:length(unique(data.num_fingers))
+        %     y(i,:) = [c_g{i}/c_gse{i} (c_gs{i}-c_g{i})/c_gse{i} (c_gse{i}-c_gs{i})/c_gse{i}];
+        %     b = bar(i,y(i,:),'stacked','FaceColor','flat');
+        %     b(1).CData = [238, 146, 106]/255;   % global var
+        %     b(2).CData = [36, 168, 255]/255;  % subj var
+        %     b(3).CData = [0.8 0.8 0.8];  % noise var
+        %     b(1).EdgeColor = [1 1 1];
+        %     b(2).EdgeColor = [1 1 1];
+        %     b(3).EdgeColor = [1 1 1];
+        %     b(1).LineWidth = 1;
+        %     b(2).LineWidth = 1;
+        %     b(3).LineWidth = 1;
+        %     hold on
+        % end
+        % drawline(1,'dir','horz','color',[0.7 0.7 0.7])
+        % drawline(0,'dir','horz','color',[0.7 0.7 0.7])
+        % set(gca, 'XTick', 1:5);
+        % h = gca;
+        % h.YTick = 0:0.2:1;
+        % box off;
+        % title([measure ' Reliability'],'FontSize',my_font.title)
+        % xlabel('num fingers','FontSize',my_font.xlabel)
+        % ylabel('correlation','FontSize',my_font.ylabel)
+        % legend('global','subject','noise')
+        % legend boxoff
+        % ylim([-0.1,1.2])
+        % 
+        % varargout{1} = [c_g, c_gs, c_gse];
 
     
 
@@ -287,7 +335,7 @@ switch (what)
         
         % PLOTS:
         figure;
-        ax1 = axes('Units','centimeters', 'Position', [2 2 4.8 5],'Box','off');
+        ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
         % ax1.PositionConstraint = "innerposition";
         % axes(ax1);
         for i = 1:5
@@ -314,6 +362,7 @@ switch (what)
         % doing stats:
         idx_exlude_nans = ~isnan(values);
         stats = rm_anova2(values(idx_exlude_nans),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
+        T = MANOVA2rp(data.sn(idx_exlude_nans),[data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans)],values(idx_exlude_nans));
         varargout{1} = stats;
         
 
@@ -550,8 +599,6 @@ switch (what)
         nan_idx = isnan(values);
         values(nan_idx) = 0;
         
-        size(data.sess)
-        size(values)
         % reliability estimation:
         [v_g, v_gs, v_gse] = reliability_var(values(data.sess>=3), data.sn(data.sess>=3), data.sess(data.sess>=3), ...
             'cond_vec', data.num_fingers(data.sess>=3), 'centered', centered);
@@ -580,12 +627,16 @@ switch (what)
         h = gca;
         h.YTick = 0:0.2:1;
         box off;
-        title([measure ' Reliability'],'FontSize',my_font.title)
+        % title([measure ' Reliability'],'FontSize',my_font.title)
         xlabel('num fingers','FontSize',my_font.xlabel)
         ylabel('percent variance','FontSize',my_font.ylabel)
-        legend('global','subject','noise')
-        legend boxoff
-        ylim([-0.1,1.2])
+        % lgd = legend('global','subject','noise');
+        % legend boxoff
+        % fontsize(lgd,6,'points')
+        ylim([0,1.2])
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        fontname("Arial")
 
         varargout{1} = [v_g, v_gs, v_gse];
         
@@ -611,55 +662,81 @@ switch (what)
         n_fing = n_fing(1,:);
         sess = sess(1,:);
         subj = subj(1,:);
+        subj_unique = unique(subj);
         C = [];
         % loop on n_fing:
         cnt = 1;
         for i = 1:length(unique(n_fing))
             % loop on sess:
             for j = 1:length(unique(sess))
-                % selecting the data for each session and finger group
-                values_tmp = values(:, n_fing==i & sess==j);
-                C.value(cnt,:) = mean(values_tmp,2,'omitmissing')';
+                for sn = 1:length(subj_unique)
+                    C.num_fingers(cnt,1) = i;
+                    C.sess(cnt,1) = j;
+                    C.sn(cnt,1) = subj_unique(sn);
 
-                % estimating the standard errors:
-                for k = 1:repetitions
-                    [sem_tmp, ~, ~, ~] = get_sem( values_tmp(k,:)', subj(n_fing==i & sess==j)', ones(length(values_tmp(k,:)),1), ones(length(values_tmp(k,:)),1) );
-                    C.sem(cnt,k) = sem_tmp.sem;
+                    % selecting the data for each session, finger group and
+                    % subject:
+                    values_tmp = values(:, subj==subj_unique(sn) & n_fing==i & sess==j);
+                    C.value_subj(cnt,:) = mean(values_tmp,2,'omitmissing')';
+
+                    % averaging the values across subjects:
+                    values_tmp = values(:, n_fing==i & sess==j);
+                    C.value(cnt,:) = mean(values_tmp,2,'omitmissing')';
+                    
+                    % estimating the standard errors:
+                    for k = 1:repetitions
+                        [sem_tmp, ~, ~, ~] = get_sem( values_tmp(k,:)', subj(n_fing==i & sess==j)', ones(length(values_tmp(k,:)),1), ones(length(values_tmp(k,:)),1) );
+                        C.sem(cnt,k) = sem_tmp.sem;
+                    end
+                    cnt = cnt+1;
                 end
-                C.num_fingers(cnt,1) = i;
-                C.sess(cnt,1) = j;
-                cnt = cnt+1;
             end
         end
+        
+        % stats, improvement from rep1 to avg of rep2-5:
+        stats = [];
+        rep_improvement = [];
+        for sn = 1:length(subj_unique)
+            % values across repetitions for subj sn:
+            tmp = C.value_subj(C.sn==subj_unique(sn),:);
+            % difference of values from 1st rep to average of rep 2 to 5:
+            diff_rep = tmp(:,1) - mean(tmp(:,2:5),2);
+            rep_improvement = [rep_improvement ; mean(diff_rep,1)];
+        end
+        % onesample t-test on rep_improvement:
+        % size(rep_improvement)
+        [t,p] = ttest(rep_improvement,[],1,'onesample');
+        stats.name(1,1) = {'improvement from rep1 to avg of rep2-5'};
+        stats.t(1,1) = t;
+        stats.p(1,1) = p;
+        stats
 
-        % Estimating the benefit from sess1 to sess4:
-        subj_unique = unique(subj);
-        benefit = [];
-        cnt = 1;
-        for i = 2:length(unique(n_fing))
-            for sn = 1:length(subj_unique)
-                % selecting the data for each subj:
-                values_tmp01 = mean(values(:, n_fing==i & sess==1 & subj==subj_unique(sn)), 2, 'omitmissing');
-                values_tmp04 = mean(values(:, n_fing==i & sess==4 & subj==subj_unique(sn)), 2, 'omitmissing');
-                benefit.benefit(cnt,:) = (values_tmp01 - values_tmp04)';
-                benefit.benefit_rep1(cnt,1) = benefit.benefit(cnt,1);
-                benefit.benefit_rep2_5(cnt,1) = mean(benefit.benefit(cnt,2:end));
-                benefit.sn(cnt,1) = subj_unique(sn);
-                benefit.num_fingers(cnt,1) = i;
-                cnt = cnt+1;
-            end
-        end
+        % stats, imporovement from rep 2 to 5. rm_anova:
+        tmp_data = C.value_subj;
+        % removing rep 1:
+        tmp_data(:,1) = [];
+        % repetitions:
+        rep = kron(2:5,ones(size(tmp_data,1),1));
+        % subj:
+        sn = repmat(C.sn,[1,4]);
+        % vectorizing:
+        tmp_data = tmp_data(:);
+        rep = rep(:);
+        sn = sn(:);
+        % rm_anova:
+        T = MANOVArp(sn,rep,tmp_data);
+
 
         % PLOT - repetition trends:
         figure;
-        ax1 = axes('Units','centimeters', 'Position', [2 2 4.8 5],'Box','off');
+        ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
         offset_size = 5;
         x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
         for i = 1:length(unique(C.num_fingers))
             for j = 1:length(unique(C.sess))
-                plot((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :),'Color',colors_blue(i,:),'LineWidth',1); hold on;
-                errorbar((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :), C.sem(C.num_fingers==i & C.sess==j, :), 'CapSize', 0, 'Color', colors_blue(i,:));
-                scatter((1:5)+x_offset(j), C.value(C.num_fingers==i & C.sess==j, :), 10,'MarkerFaceColor',colors_blue(i,:),'MarkerEdgeColor',colors_blue(i,:))
+                plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==i & C.sess==j, :),1),'Color',colors_blue(i,:),'LineWidth',1); hold on;
+                errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==i & C.sess==j, :),1), mean(C.sem(C.num_fingers==i & C.sess==j, :),1), 'CapSize', 0, 'Color', colors_blue(i,:));
+                scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==i & C.sess==j, :),1), 10,'MarkerFaceColor',colors_blue(i,:),'MarkerEdgeColor',colors_blue(i,:))
             end
         end
         box off
@@ -681,7 +758,6 @@ switch (what)
         fontname("Arial")
 
         varargout{1} = C;
-        varargout{2} = benefit;
         
         
     case 'model_testing_avg_values'
