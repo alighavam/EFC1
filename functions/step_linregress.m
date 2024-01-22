@@ -27,7 +27,7 @@ for i = 1:length(X)
     res = y - X{i} * B_tmp;
 end
 
-STATS.R2 = sum(res.^2)/sum(y.^2);
+STATS.R2 = 1 - sum(res.^2)/sum(y.^2);
 
 
 
