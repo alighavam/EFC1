@@ -775,8 +775,48 @@ switch (what)
         varargout{1} = C;
         
     case 'cognitive_motor_testing'
+        chords = generateAllChords;
+        measure = 'MD';
+        vararginoptions(varargin,{'chords','measure'})
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         
+        vs = get_chord_symmetry(chords,'vert');
+        hs = get_chord_symmetry(chords,'horz');
         
+        sess = unique(data.sess);
+        subj = unique(data.sn);
+
+        % getting the values of measure:
+        values = eval(['data.' measure]);
+
+        % loop on subj:
+        cnt = 1;
+        C = [];
+        % loop on num fingers:
+        for i = 2:5
+            for sn = 1:length(subj)
+                for k = 1:length(sess)
+                    % values of chords:
+                    x1_vs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,vs.chord));
+                    x1_hs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,hs.chord));
+                    % values of symmeties of chords:
+                    x2_vs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,vs.chord_vs));
+                    x2_hs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,hs.chord_hs));
+    
+                    C.num_fingers(cnt,1) = i;
+                    C.sn(cnt,1) = subj(sn);
+                    C.sess(cnt,1) = sess(k);
+                    C.corr_vs(cnt,1) = corr(x1_vs,x2_vs,'row','complete');
+                    C.corr_hs(cnt,1) = corr(x1_hs,x2_hs,'row','complete');
+                    cnt = cnt+1;
+                end
+            end
+        end
+        [mean(C.corr_vs(C.num_fingers==2)), mean(C.corr_vs(C.num_fingers==3)), mean(C.corr_vs(C.num_fingers==4)), mean(C.corr_vs(C.num_fingers==5))]
+        [mean(C.corr_hs(C.num_fingers==2)), mean(C.corr_hs(C.num_fingers==3)), mean(C.corr_hs(C.num_fingers==4)), mean(C.corr_hs(C.num_fingers==5))]
+        
+        fprintf('corr_vert = %.4f\ncorr_horz = %.4f\n',mean(C.corr_vs),mean(C.corr_hs))
+        varargout{1} = C;
         
     case 'model_testing_avg_values'
         % handling input args:
