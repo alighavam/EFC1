@@ -188,8 +188,7 @@ switch (what)
     case 'subject_chords_accuracy'
         chords = generateAllChords;
         data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
-        sess = data.sess;
-        
+
         subjects = unique(data.sn);
         
         C = [];
@@ -197,8 +196,8 @@ switch (what)
             % loop on chords:
             acc_tmp = zeros(size(chords));
             for j = 1:length(chords)
-                % averaging accuracies across sess 1 and 2:
-                acc_tmp(j) = mean(data.accuracy(data.sn==subjects(i) & data.chordID==chords(j) & data.sess<=2));
+                % accuracy of chords:
+                acc_tmp(j) = mean(data.accuracy(data.sn==subjects(i) & data.chordID==chords(j)));
             end
 
             % The most undoable chords of subject in the first 
@@ -257,11 +256,11 @@ switch (what)
         plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',2)
         scatter(1:4,avg_diff,30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
 
-        % errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
+        errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
         plot(1:4,avg_all,'Color',[colors_blue(2,:), 0.6],'LineWidth',3)
         % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
         
-        lgd = legend({'','','most challenging','','all 242'});
+        lgd = legend({'','','most challenging','','','all 242'});
         legend boxoff
         fontsize(lgd,6,'points')
 
@@ -338,9 +337,22 @@ switch (what)
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        subj = unique(data.sn);
 
         % getting the values of measure:
         values = eval(['data.' measure]);
+
+        % calaculating avg improvement from sess 1 to 4:
+        C = [];
+        for i = 1:length(subj)
+            C.sn(i,1) = subj(i);
+
+            % sess 1 and 4 data:
+            val1 = mean(values(data.sn==subj(i) & data.sess==1),'omitmissing');
+            val4 = mean(values(data.sn==subj(i) & data.sess==4),'omitmissing');
+
+            C.perc_improvement(i,1) = (val1-val4)/val1;
+        end
         
         [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, data.num_fingers);
         
@@ -354,16 +366,16 @@ switch (what)
             lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',1.5,'errorbars','');
         end
         
-        % lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
-        % legend boxoff
-        % fontsize(lgd,6,'points')
+        lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
+        legend boxoff
+        fontsize(lgd,6,'points')
         % ylim([0.5 2.6])
         % ylim([0 2600])
         ylim([140 420])
         xlim([0.8 4.2])
         xlabel('session','FontSize',my_font.xlabel)
-        % ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
-        ylabel([measure],'FontSize',my_font.tick_label)
+        ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
+        % ylabel([measure],'FontSize',my_font.tick_label)
         h = gca;
         h.YTick = linspace(h.YTick(1),h.YTick(end),3);
         h.XAxis.FontSize = my_font.tick_label;
@@ -373,8 +385,14 @@ switch (what)
         % doing stats:
         idx_exlude_nans = ~isnan(values);
         stats = rm_anova2(values(idx_exlude_nans),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
-        T = MANOVA2rp(data.sn(idx_exlude_nans),[data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans)],values(idx_exlude_nans));
+        % T = MANOVA2rp(data.sn(idx_exlude_nans),[data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans)],values(idx_exlude_nans));
+        
+        % percent improvement:
+        fprintf('%s improvement from sess 1 to 4:\n    %.4f%% +- %.4f SEM\n',measure, mean(C.perc_improvement)*100, 100*std(C.perc_improvement)/sqrt(length(C.perc_improvement)))
+        
         varargout{1} = stats;
+        varargout{2} = C;
+        
         
 
     case 'selected_chords_reliability'
@@ -741,7 +759,6 @@ switch (what)
         % rm_anova:
         T = MANOVArp(sn,rep,tmp_data);
 
-
         % PLOT - repetition trends:
         figure;
         ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
@@ -764,7 +781,8 @@ switch (what)
         h.XTickLabel = {'1','2','3','4'};
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
-        % ylabel(measure,'FontSize',my_font.ylabel)
+        ylabel(measure,'FontSize',my_font.ylabel)
+        % ylabel([measure ' [ms]'],'FontSize',my_font.ylabel)
         ylim([0.3, 2.8]) % MD
         % ylim([80, 650]) % RT
         % ylim([0, 3200]) % MT
