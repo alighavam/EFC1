@@ -11,12 +11,17 @@ project_path = fullfile(usr_path, 'Desktop', 'Projects', 'EFC1');
 colors_red = [[255, 219, 219] ; [255, 146, 146] ; [255, 73, 73] ; [255, 0, 0] ; [182, 0, 0]]/255;
 colors_gray = ['#d3d3d3' ; '#b9b9b9' ; '#868686' ; '#6d6d6d' ; '#535353'];
 colors_blue = ['#dbecff' ; '#a8d1ff' ; '#429bff' ; '#0f80ff' ; '#0067db'];
+colors_green = ['#9bdbb1' ; '#3aa35f' ; '#3aa35f' ; '#2d7d49' ; '#1f5833'];
 colors_cyan = ['#adecee' ; '#83e2e5' ; '#2ecfd4' ; '#23a8ac' ; '#1b7e81'];
 colors_random = ['#773344' ; '#E3B5A4' ; '#83A0A0' ; '#0B0014' ; '#D44D5C'];
 
 colors_blue = hex2rgb(colors_blue);
+colors_green = hex2rgb(colors_green);
+colors_cyan = hex2rgb(colors_cyan);
 colors_gray = hex2rgb(colors_gray);
 colors_random = hex2rgb(colors_random);
+
+colors_measures = [colors_red(3,:) ; colors_cyan(3,:) ; colors_blue(5,:)];
 
 % figure properties:
 my_font.xlabel = 10;
@@ -759,7 +764,25 @@ switch (what)
         % rm_anova:
         T = MANOVArp(sn,rep,tmp_data);
 
-        % PLOT - repetition trends:
+        % Improvement of measure from sess1 to sess4:
+        B = [];
+        cnt = 1;
+        
+        % calculating the benefits within subjects:
+        for i = 1:length(subj_unique)
+            avg_improvement = 0;
+            for j = 1:length(unique(n_fing))
+                value_sess1 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==j & C.sess==1,:);
+                value_sess4 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==j & C.sess==4,:);
+                avg_improvement = avg_improvement + (value_sess1 - value_sess4) ./ value_sess1 * 100 /length(subj_unique);
+            end
+            B.sn(cnt,1) = subj_unique(i);
+            % percent improvement:
+            B.benefit(cnt,:) = avg_improvement;
+            cnt = cnt+1;
+        end
+
+        % PLOT - repetition trends across sessions:
         figure;
         ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
         offset_size = 5;
@@ -791,6 +814,77 @@ switch (what)
         fontname("Arial")
 
         varargout{1} = C;
+        varargout{2} = B;
+
+    case 'repetition_improvement'
+        measure_cell = {};
+        val_cell = {};
+        [val_cell{1},measure_cell{1}] = efc1_analyze('repetition_effect','measure','RT');
+        [val_cell{2},measure_cell{2}] = efc1_analyze('repetition_effect','measure','MT');
+        [val_cell{3},measure_cell{3}] = efc1_analyze('repetition_effect','measure','MD');
+        close all;
+        clc;
+
+        % PLOT - Improvement from sess1 to sess4:
+        figure;
+        ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
+        
+        drawline(0,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,6]); hold on;
+        for i = 1:3
+            B = measure_cell{i};
+
+            % getting subj averages and SEMs for each repetition:
+            sem_1 = get_sem(B.benefit(:,1), B.sn, ones(size(B.sn)), ones(size(B.sn)));
+            sem_2 = get_sem(B.benefit(:,2), B.sn, ones(size(B.sn)), ones(size(B.sn)));
+            sem_3 = get_sem(B.benefit(:,3), B.sn, ones(size(B.sn)), ones(size(B.sn)));
+            sem_4 = get_sem(B.benefit(:,4), B.sn, ones(size(B.sn)), ones(size(B.sn)));
+            sem_5 = get_sem(B.benefit(:,5), B.sn, ones(size(B.sn)), ones(size(B.sn)));
+            
+            plot(1:5,[sem_1.y sem_2.y sem_3.y sem_4.y sem_5.y],'LineWidth',1,'Color',colors_measures(i,:));
+            errorbar(1:5,[sem_1.y sem_2.y sem_3.y sem_4.y sem_5.y],[sem_1.sem sem_2.sem sem_3.sem sem_4.sem sem_5.sem],'CapSize',0,'Color',colors_measures(i,:)); 
+            scatter(1:5,[sem_1.y sem_2.y sem_3.y sem_4.y sem_5.y],15,'filled','MarkerFaceColor',colors_measures(i,:),'MarkerEdgeColor',colors_measures(i,:))
+        end
+        box off
+        h = gca;
+        h.YTick = 0:25:100;
+        h.XTick = 1:5;
+        lgd = legend({'','RT','','','MT','','','MD','',''});
+        legend boxoff
+        fontsize(lgd,6,'points')
+        xlabel('repetition','FontSize',my_font.xlabel)
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        ylabel('% Improvement day 1-4','FontSize',my_font.ylabel)
+        ylim([-20, 55])
+        xlim([0,6])
+        % title('Repetition Effect','FontSize',my_font.title)
+        fontname("Arial")
+
+        % two-way rm_anova for (first repetition, session, num finger):
+        for i = 1:3
+            C = val_cell{i};
+            fprintf("rm_anova for (first repetition, session, num finger):\n")
+            stats = rm_anova2(C.value_subj(:,1),C.sn,C.sess,C.num_fingers,{'session','num_finger'})
+        end
+
+        % stats - ttest for benefit of repetition from sess1 to sess4:
+        stats_benefit = [];
+        cnt = 1;
+        for i = 1:3
+            B = measure_cell{i};
+
+            % ttest for each repetition from 0:
+            for j = 1:5
+                [t,p] = ttest(B.benefit(:,j),[],1,'onesample');
+                stats_benefit.measure(cnt,1) = i;
+                stats_benefit.rep(cnt,1) = j;
+                stats_benefit.t(cnt,1) = t;
+                stats_benefit.p(cnt,1) = p;
+                cnt = cnt+1;
+            end
+        end
+        varargout{1} = stats_benefit;
+
         
     case 'cognitive_motor_testing'
         chords = generateAllChords;
