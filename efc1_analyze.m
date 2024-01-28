@@ -989,14 +989,14 @@ switch (what)
         chords = generateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'n_trans','additive','vis_complexity','additive+2fing_adj','additive+2fing'};
+        model_names = {'transition','additive','symmetries','additive+2fing_adj','additive+2fing'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         subj = unique(data.sn);
         n = get_num_active_fingers(chords);
-
+        
         % getting the values of measure:
         values_tmp = eval(['data.' measure]);
         
@@ -1069,7 +1069,7 @@ switch (what)
             end
 
             figure;
-            ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
+            ax1 = axes('Units', 'centimeters', 'Position', [2 2 3.5 3],'Box','off');
             for j = 1:length(model_names)
                 % getting cross validated r:
                 r = C.r(C.num_fingers==i & strcmp(C.model,model_names{j}));
@@ -1077,22 +1077,22 @@ switch (what)
                 r_avg(j) = mean(r);
                 r_sem(j) = std(r)/sqrt(length(r));
             end
-            drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,length(model_names)+1]); hold on;
-            plot(1:length(model_names),r_avg,'LineWidth',0.5,'Color',[0.5 0.5 0.5]);
-            errorbar(1:length(model_names),r_avg,r_sem,'LineStyle','none','Color','k','CapSize',0)
-            scatter(1:length(model_names),r_avg,15,'filled','k');
+            drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,length(model_names)+1],'linestyle',':'); hold on;
+            plot(1:length(model_names),r_avg,'LineWidth',2,'Color',[0.1 0.1 0.1,0.1]);
+            errorbar(1:length(model_names),r_avg,r_sem,'LineStyle','none','Color',[0.1 0.1 0.1],'CapSize',0)
+            scatter(1:length(model_names),r_avg,20,'filled','MarkerFaceColor',[0.1 0.1 0.1],'MarkerEdgeColor',[0.1 0.1 0.1]);
             box off
             h = gca;
             h.YTick = 0:0.25:1;
             h.XTick = 1:length(model_names);
-            xlabel('model','FontSize',my_font.xlabel)
+            % xlabel('model','FontSize',my_font.xlabel)
             h.XTickLabel = cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false);
             h.XAxis.FontSize = my_font.tick_label;
             h.YAxis.FontSize = my_font.tick_label;
             ylabel('r','FontSize',my_font.ylabel)
             ylim([0, 1.05])
             xlim([0.5,length(model_names)+0.5])
-            title(['n = ',num2str(i)],'FontSize',my_font.title)
+            title(['n = ',num2str(i)],'FontSize',my_font.tick_label)
             fontname("Arial")
         end
         
