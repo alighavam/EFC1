@@ -982,56 +982,14 @@ switch (what)
         varargout{1} = stats_benefit;
 
         
-    case 'cognitive_motor_testing'
-        chords = generateAllChords;
-        measure = 'MD';
-        vararginoptions(varargin,{'chords','measure'})
-        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
-        
-        vs = get_chord_symmetry(chords,'vert');
-        hs = get_chord_symmetry(chords,'horz');
-        
-        sess = unique(data.sess);
-        subj = unique(data.sn);
-
-        % getting the values of measure:
-        values = eval(['data.' measure]);
-
-        % loop on subj:
-        cnt = 1;
-        C = [];
-        % loop on num fingers:
-        for i = 2:5
-            for sn = 1:length(subj)
-                for k = 1:length(sess)
-                    % values of chords:
-                    x1_vs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,vs.chord));
-                    x1_hs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,hs.chord));
-                    % values of symmeties of chords:
-                    x2_vs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,vs.chord_vs));
-                    x2_hs = values(data.sn==subj(sn) & data.sess==sess(k) & data.num_fingers==i & ismember(data.chordID,hs.chord_hs));
     
-                    C.num_fingers(cnt,1) = i;
-                    C.sn(cnt,1) = subj(sn);
-                    C.sess(cnt,1) = sess(k);
-                    C.corr_vs(cnt,1) = corr(x1_vs,x2_vs,'row','complete');
-                    C.corr_hs(cnt,1) = corr(x1_hs,x2_hs,'row','complete');
-                    cnt = cnt+1;
-                end
-            end
-        end
-        [mean(C.corr_vs(C.num_fingers==2)), mean(C.corr_vs(C.num_fingers==3)), mean(C.corr_vs(C.num_fingers==4)), mean(C.corr_vs(C.num_fingers==5))]
-        [mean(C.corr_hs(C.num_fingers==2)), mean(C.corr_hs(C.num_fingers==3)), mean(C.corr_hs(C.num_fingers==4)), mean(C.corr_hs(C.num_fingers==5))]
-        
-        fprintf('corr_vert = %.4f\ncorr_horz = %.4f\n',mean(C.corr_vs),mean(C.corr_hs))
-        varargout{1} = C;
     
     case 'model_testing'
         % handling input arguments:
         chords = generateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'n_trans','additive','additive+2fing_adj','additive+2fing'};
+        model_names = {'n_trans','additive','vis_complexity','additive+2fing_adj','additive+2fing'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
@@ -1042,12 +1000,12 @@ switch (what)
         % getting the values of measure:
         values_tmp = eval(['data.' measure]);
         
-        % getting the average of sess 3 and 4 for every subj:
+        % getting the average of sessions for every subj:
         values = zeros(length(chords),length(subj));
         for i = 1:length(subj)
             % avg with considering nan values since subjects might have
             % missed all 5 repetitions in one session:
-            values(:,i) = mean([values_tmp(data.sess==3 & data.sn==subj(i)),values_tmp(data.sess==4 & data.sn==subj(i))],2,'omitmissing');
+            values(:,i) = mean([values_tmp(data.sess==sess(1) & data.sn==subj(i)),values_tmp(data.sess==sess(2) & data.sn==subj(i))],2,'omitmissing');
         end
         
         % loop on num_fingers:
@@ -1098,9 +1056,8 @@ switch (what)
         end
 
         % PLOT - regression results:
-
         % loop on num fingers:
-        for i = 1:5
+        for i = 2:5
             % getting noise ceiling:
             [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',[(sess(1)-1)*12+1 sess(2)*12],'chords',chords(n==i),'plot_option',0);
             if (strcmp(measure,'MD'))
@@ -1121,7 +1078,7 @@ switch (what)
                 r_sem(j) = std(r)/sqrt(length(r));
             end
             drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,length(model_names)+1]); hold on;
-            plot(1:length(model_names),r_avg,'LineWidth',1.5,'Color',[0.7 0.7 0.7]);
+            plot(1:length(model_names),r_avg,'LineWidth',0.5,'Color',[0.5 0.5 0.5]);
             errorbar(1:length(model_names),r_avg,r_sem,'LineStyle','none','Color','k','CapSize',0)
             scatter(1:length(model_names),r_avg,15,'filled','k');
             box off
@@ -2127,84 +2084,67 @@ switch (what)
         
     case 'visual_complexity'
         chords = generateAllChords;
+        measure = 'RT';
+        sess = [3,4];
+        vararginoptions(varargin,{'chords','measure','sess'})
+
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
-        
-        symmetries = get_chord_symmetry(chords);
-        sess = unique(data.sess);
         subj = unique(data.sn);
+        n = get_num_active_fingers(chords);
         
-        C = [];
-        cnt = 1;
-        for k = 1:length(subj)
-            for i = 1:length(sess)
-                for j = 1:length(symmetries.chord)
-                    C.sn(cnt,1) = subj(k);
-                    C.sess(cnt,1) = sess(i);
+        vs = get_chord_symmetry(chords,'vert');
+        hs = get_chord_symmetry(chords,'horz');
+        
+        % getting the values of measure:
+        values_tmp = eval(['data.' measure]);
 
-                    % calculate difference of values of chord symmetries:
-                    row = data.sess==sess(i) & data.sn==subj(k);
-                    RT_vec = [data.RT(row & data.chordID==symmetries.chord(j)),...
-                              data.RT(row & data.chordID==symmetries.chord_vs(j))];
-                              % data.RT(row & data.chordID==symmetries.chord_hs(j)),...
-                              % data.RT(row & data.chordID==symmetries.chord_vhs(j))];
-
-                    MT_vec = [data.MT(row & data.chordID==symmetries.chord(j)),...
-                              data.MT(row & data.chordID==symmetries.chord_vs(j))];
-                              % data.MT(row & data.chordID==symmetries.chord_hs(j)),...
-                              % data.MT(row & data.chordID==symmetries.chord_vhs(j))];
-
-                    MD_vec = [data.MD(row & data.chordID==symmetries.chord(j)),...
-                              data.MD(row & data.chordID==symmetries.chord_vs(j))];
-                              % data.MD(row & data.chordID==symmetries.chord_hs(j)),...
-                              % data.MD(row & data.chordID==symmetries.chord_vhs(j))];
-    
-                    subtract_RT = subtract_arr_elements(RT_vec);
-                    subtract_MT = subtract_arr_elements(MT_vec);
-                    subtract_MD = subtract_arr_elements(MD_vec);
-                    
-                    % storing the values:
-                    C.RT_diff(cnt,:) = subtract_RT;
-                    C.MT_diff(cnt,:) = subtract_MT;
-                    C.MD_diff(cnt,:) = subtract_MD;
-                    cnt = cnt+1;
-                end
-            end
+        % getting the average of sessions for every subj:
+        values = zeros(length(chords),length(subj));
+        for i = 1:length(subj)
+            % avg while considering nan values since subjects might have
+            % missed all 5 repetitions in one session:
+            values(:,i) = mean([values_tmp(data.sess==sess(1) & data.sn==subj(i)),values_tmp(data.sess==sess(2) & data.sn==subj(i))],2,'omitmissing');
         end
         
-        % PLOT:
-        rt = C.RT_diff(C.sess>=3,:);
-        rt = rt(:);
-        rt(rt==0) = [];
-        rt(isnan(rt)) = [];
+        % loop on subj:
+        C = [];
+        % loop on num fingers:
+        for i = 1:5
+            % doing a subj out cross validation:
+            for sn = 1:length(subj)
+                % "out" subjet data:
+                y1_out_vs = values(n==i & ismember(chords,vs.chord),sn);
+                y2_out_vs = values(n==i & ismember(chords,vs.chord_vs),sn);
 
-        mt = C.MT_diff(C.sess>=3,:);
-        mt = mt(:);
-        mt(mt==0) = [];
-        mt(isnan(mt)) = [];
+                y1_out_hs = values(n==i & ismember(chords,hs.chord),sn);
+                y2_out_hs = values(n==i & ismember(chords,hs.chord_hs),sn);
+                
+                % avg of "in" subjects data: 
+                y1_in_vs = mean(values(n==i & ismember(chords,vs.chord),setdiff(1:length(subj),sn)),2);
+                y2_in_vs = mean(values(n==i & ismember(chords,vs.chord_vs),setdiff(1:length(subj),sn)),2);
 
-        md = C.MD_diff(C.sess>=3,:);
-        md = md(:);
-        md(md==0) = [];
-        md(isnan(md)) = [];
-        
-        figure;
-        subplot(1,3,1)
-        histogram(rt,31);
-        subplot(1,3,2)
-        histogram(mt,31);
-        subplot(1,3,3)
-        histogram(md,31);
-        
-        [t,p]=ttest(rt,[],2,'onesample')
-        [t,p]=ttest(mt,[],2,'onesample')
-        [t,p]=ttest(md,[],2,'onesample')
-        
-        figure;
-        errorbar(1:3,[mean(rt),mean(mt),mean(md)],[std(rt)/sqrt(length(rt)),mean(mt)/sqrt(length(mt)),mean(md)/sqrt(length(md))]); hold on;
-        scatter(1:3,[mean(rt),mean(mt),mean(md)],20,'filled');
-        
+                y1_in_hs = mean(values(n==i & ismember(chords,hs.chord),setdiff(1:length(subj),sn)),2);
+                y2_in_hs = mean(values(n==i & ismember(chords,hs.chord_hs),setdiff(1:length(subj),sn)),2);
 
-
+                % estimating correlations:
+                corr_ch_vs = corr(y1_out_vs,y2_in_vs);
+                corr_vs_ch = corr(y2_out_vs,y1_in_vs);
+                corr_ch_hs = corr(y1_out_hs,y2_in_hs);
+                corr_hs_ch = corr(y2_out_hs,y1_in_hs);
+                
+                % storing values:
+                C_tmp.num_fingers = i;
+                C_tmp.sn_out = subj(sn);
+                C_tmp.corr_vs = (corr_ch_vs + corr_vs_ch)/2;
+                C_tmp.corr_hs = (corr_ch_hs + corr_hs_ch)/2;
+                
+                C = addstruct(C,C_tmp,'row',1);
+            end
+        end
+        [mean(C.corr_vs(C.num_fingers==2)), mean(C.corr_vs(C.num_fingers==3)), mean(C.corr_vs(C.num_fingers==4)), mean(C.corr_vs(C.num_fingers==5))]
+        [mean(C.corr_hs(C.num_fingers==2)), mean(C.corr_hs(C.num_fingers==3)), mean(C.corr_hs(C.num_fingers==4)), mean(C.corr_hs(C.num_fingers==5))]
+        
+        fprintf('corr_vert = %.4f\ncorr_horz = %.4f\n',mean(C.corr_vs),mean(C.corr_hs))
         varargout{1} = C;
 
 
