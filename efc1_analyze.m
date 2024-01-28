@@ -1029,9 +1029,10 @@ switch (what)
     case 'model_testing'
         % handling input arguments:
         chords = generateAllChords;
+        sess = [3,4];
         measure = 'MD';
-        model_names = {'additive','additive+2fing_adj','n_trans'};
-        vararginoptions(varargin,{'chords','measure','model_names'})
+        model_names = {'n_trans','additive','additive+2fing_adj'};
+        vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
@@ -1097,8 +1098,19 @@ switch (what)
         end
 
         % PLOT - regression results:
+
         % loop on num fingers:
         for i = 1:5
+            % getting noise ceiling:
+            [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',[(sess(1)-1)*12+1 sess(2)*12],'chords',chords(n==i),'plot_option',0);
+            if (strcmp(measure,'MD'))
+                noise_ceil = mean(corr_struct.MD);
+            elseif (strcmp(measure,'MT'))
+                noise_ceil = mean(corr_struct.MT);
+            else
+                noise_ceil = mean(corr_struct.RT);
+            end
+
             figure;
             ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
             for j = 1:length(model_names)
@@ -1108,7 +1120,8 @@ switch (what)
                 r_avg(j) = mean(r);
                 r_sem(j) = std(r)/sqrt(length(r));
             end
-            plot(1:length(model_names),r_avg,'LineWidth',1.5,'Color',[0.7 0.7 0.7]); hold on;
+            drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,length(model_names)+1]); hold on;
+            plot(1:length(model_names),r_avg,'LineWidth',1.5,'Color',[0.7 0.7 0.7]);
             errorbar(1:length(model_names),r_avg,r_sem,'LineStyle','none','Color','k','CapSize',0)
             scatter(1:length(model_names),r_avg,15,'filled','k');
             box off
