@@ -60,14 +60,14 @@ switch model_name
             end
         end
 
-    case 'n_trans'
+    case 'transition'
         n_trans = get_num_transition(chords) + 1;
         X = zeros(length(chords),5);
         for i = 1:size(X,1)
             X(i,n_trans(i)) = 1;
         end
 
-    case 'vis_complexity'
+    case 'symmetries'
         symmetries = get_chord_symmetry(unique(chords),'all');
         groups = [symmetries.chord,symmetries.chord_vs,symmetries.chord_hs,symmetries.chord_vhs];
         
