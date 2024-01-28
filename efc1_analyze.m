@@ -398,7 +398,102 @@ switch (what)
         varargout{1} = stats;
         varargout{2} = C;
         
+    case 'similarity_of_measures'
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        subj = unique(data.sn);
+        sess = unique(data.sess);
+
+        C = [];
+        C_total = [];
+        cnt = 1;
+        for i = 1:length(subj)
+            for j = 1:length(sess)
+                % correlation without separating num fingers:
+                row = data.sn==subj(i) & data.sess==sess(j);
+                C_tmp.sn = subj(j);
+                C_tmp.sess = sess(j);
+                C_tmp.rt_mt = corr(data.RT(row),data.MT(row),'rows','complete');
+                C_tmp.rt_md = corr(data.RT(row),data.MD(row),'rows','complete');
+                C_tmp.mt_md = corr(data.MT(row),data.MD(row),'rows','complete');
+                C_total = addstruct(C_total,C_tmp,'row',1);
+
+                % loop on number of fingers:
+                for n = 1:5
+                    row = data.sn==subj(i) & data.sess==sess(j) & data.num_fingers==n;
+                    % getting the data for each session:
+                    rt = data.RT(row);
+                    mt = data.MT(row);
+                    md = data.MD(row);
+
+                    % correlation of measures within subj:
+                    C.sn(cnt,1) = subj(i);
+                    C.sess(cnt,1) = sess(j);
+                    C.num_fingers(cnt,1) = n;
+                    C.rt_mt(cnt,1) = corr(rt,mt,'rows','complete');
+                    C.rt_md(cnt,1) = corr(rt,md,'rows','complete');
+                    C.mt_md(cnt,1) = corr(mt,md,'rows','complete');
+                    cnt = cnt+1;
+                end
+            end
+        end
+
+        % printing values of total corr:
+        C_rt_mt = get_sem(C_total.rt_mt, C_total.sn, ones(size(C_total.sn)), ones(size(C_total.sn)));
+        C_rt_md = get_sem(C_total.rt_md, C_total.sn, ones(size(C_total.sn)), ones(size(C_total.sn)));
+        C_mt_md = get_sem(C_total.mt_md, C_total.sn, ones(size(C_total.sn)), ones(size(C_total.sn)));
+        fprintf('total corr(rt,mt) = %.4f\n',C_rt_mt.y);
+        fprintf('total corr(rt,md) = %.4f\n',C_rt_md.y);
+        fprintf('total corr(mt,md) = %.4f\n',C_mt_md.y);
+    
+        % getting the summary of data:
+        C_rt_mt = get_sem(C.rt_mt, C.sn, ones(size(C.sn)), C.num_fingers);
+        C_rt_md = get_sem(C.rt_md, C.sn, ones(size(C.sn)), C.num_fingers);
+        C_mt_md = get_sem(C.mt_md, C.sn, ones(size(C.sn)), C.num_fingers);
+
+        C_rt_mt.y
+        mean(C_rt_mt.y)
+        C_rt_md.y
+        mean(C_rt_md.y)
+        C_mt_md.y
+        mean(C_mt_md.y)
+
+        % PLOT - corr vs num_fingers:
+        figure;
+        ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
         
+        drawline(0,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,6]); hold on;
+
+        plot(1:5, C_rt_mt.y, 'Color', (colors_measures(1,:)+colors_measures(2,:))/2, 'LineWidth', 2);
+        errorbar(1:5, C_rt_mt.y, C_rt_mt.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(1,:)+colors_measures(2,:))/2);
+        scatter(1:5, C_rt_mt.y, 15, 'MarkerFaceColor', (colors_measures(1,:)+colors_measures(2,:))/2, 'MarkerEdgeColor', (colors_measures(1,:)+colors_measures(2,:))/2); hold on;
+
+        plot(1:5, C_rt_md.y, 'Color', (colors_measures(1,:)+colors_measures(3,:))/2, 'LineWidth', 2);
+        errorbar(1:5, C_rt_md.y, C_rt_md.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(1,:)+colors_measures(3,:))/2);
+        scatter(1:5, C_rt_md.y, 15, 'MarkerFaceColor', (colors_measures(1,:)+colors_measures(3,:))/2, 'MarkerEdgeColor', (colors_measures(1,:)+colors_measures(3,:))/2);
+
+        plot(1:5, C_mt_md.y, 'Color', (colors_measures(2,:)+colors_measures(3,:))/2, 'LineWidth', 2);
+        errorbar(1:5, C_mt_md.y, C_mt_md.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(2,:)+colors_measures(3,:))/2);
+        scatter(1:5, C_mt_md.y, 15, 'MarkerFaceColor', (colors_measures(2,:)+colors_measures(3,:))/2, 'MarkerEdgeColor', (colors_measures(2,:)+colors_measures(3,:))/2);
+        
+        lgd = legend({'','r_{RT,MT}','','','r_{RT,MD}','','','r_{MT,MD}','',''});
+        legend boxoff
+        fontsize(lgd,6,'points')
+
+        ylim([-0.1,1.05])
+        xlim([0 6])
+        xlabel('num fingers','FontSize',my_font.xlabel)
+        ylabel('correlation','FontSize',my_font.tick_label)
+        h = gca;
+        h.YTick = 0:0.25:1;
+        h.XTick = 1:5;
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        fontname("Arial")
+
+        varargout{1} = C;
+
+
 
     case 'selected_chords_reliability'
         % handling input args:
@@ -644,12 +739,12 @@ switch (what)
         % plot:
         y = [];
         figure;
-        ax1 = axes('Units','centimeters', 'Position', [2 2 4.8 5],'Box','off');
+        ax1 = axes('Units','centimeters', 'Position', [2 2 4 4],'Box','off');
         for i = 1:length(unique(data.num_fingers))
             y(i,:) = [v_g{i}/v_gse{i} (v_gs{i}-v_g{i})/v_gse{i} (v_gse{i}-v_gs{i})/v_gse{i}];
-            b = bar(i,y(i,:),'stacked','FaceColor','flat');
-            b(1).CData = [238, 146, 106]/255;   % global var
-            b(2).CData = [36, 168, 255]/255;  % subj var
+            b = bar(i,y(i,:),'stacked','FaceColor','flat','BarWidth',0.8);
+            b(1).CData = colors_blue(5,:);   % global var
+            b(2).CData = colors_red(3,:);  % subj var
             b(3).CData = [0.8 0.8 0.8];  % noise var
             b(1).EdgeColor = [1 1 1];
             b(2).EdgeColor = [1 1 1];
@@ -660,7 +755,7 @@ switch (what)
             hold on
         end
         drawline(1,'dir','horz','color',[0.7 0.7 0.7])
-        drawline(0,'dir','horz','color',[0.7 0.7 0.7])
+        % drawline(0,'dir','horz','color',[0.7 0.7 0.7])
         set(gca, 'XTick', 1:5);
         h = gca;
         h.YTick = 0:0.2:1;
@@ -671,7 +766,8 @@ switch (what)
         % lgd = legend('global','subject','noise');
         % legend boxoff
         % fontsize(lgd,6,'points')
-        ylim([0,1.2])
+        ylim([0,1.1])
+        xlim([0.3,5.7])
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
         fontname("Arial")
@@ -929,7 +1025,111 @@ switch (what)
         
         fprintf('corr_vert = %.4f\ncorr_horz = %.4f\n',mean(C.corr_vs),mean(C.corr_hs))
         varargout{1} = C;
+    
+    case 'model_testing'
+        % handling input arguments:
+        chords = generateAllChords;
+        measure = 'MD';
+        model_names = {'additive','additive+2fing_adj','n_trans'};
+        vararginoptions(varargin,{'chords','measure','model_names'})
+
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        subj = unique(data.sn);
+        n = get_num_active_fingers(chords);
+
+        % getting the values of measure:
+        values_tmp = eval(['data.' measure]);
         
+        % getting the average of sess 3 and 4 for every subj:
+        values = zeros(length(chords),length(subj));
+        for i = 1:length(subj)
+            % avg with considering nan values since subjects might have
+            % missed all 5 repetitions in one session:
+            values(:,i) = mean([values_tmp(data.sess==3 & data.sn==subj(i)),values_tmp(data.sess==4 & data.sn==subj(i))],2,'omitmissing');
+        end
+        
+        % loop on num_fingers:
+        C = [];
+        for i = 1:5
+            % loop on subjects and regression with leave-one-out:
+            for sn = 1:length(subj)
+                % values of 'not-out' subjects for chords with n=i , Nx1 vector:
+                y_train = values(n==i,setdiff(1:length(subj),sn));
+                y_train = y_train(:);
+
+                % avg of 'out' subject:
+                y_test = values(n==i,sn);
+
+                % loop on models to be tested:
+                for i_mdl = 1:length(model_names)
+                    % getting design matrix for model:
+                    X = make_design_matrix(repmat(chords(n==i),length(subj)-1,1),model_names{i_mdl});
+
+                    % check design matrix's Rank:
+                    is_full_rank = rank(X) == size(X,2);
+                    
+                    % training the model:
+                    % [B,STATS] = linregress(y_train,X,'intercept',0);
+                    [B,STATS] = svd_linregress(y_train,X);
+
+                    % testing the model:
+                    X_test = make_design_matrix(chords(n==i),model_names{i_mdl});
+                    y_pred = X_test * B;
+                    r = corr(y_pred,y_test);
+                    SSR = sum((y_pred-y_test).^2);
+                    SST = sum((y_test-mean(y_test)).^2);
+                    r2 = 1 - SSR/SST;
+
+                    % storing the results:
+                    C_tmp.num_fingers = i;
+                    C_tmp.sn_out = sn;
+                    C_tmp.model = model_names(i_mdl);
+                    C_tmp.is_full_rank = is_full_rank;
+                    C_tmp.B = {B};
+                    C_tmp.stats = {STATS};
+                    C_tmp.r = r;
+                    C_tmp.r2 = r2;
+
+                    C = addstruct(C,C_tmp,'row',1);
+                end
+            end
+        end
+
+        % PLOT - regression results:
+        % loop on num fingers:
+        for i = 1:5
+            figure;
+            ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
+            for j = 1:length(model_names)
+                % getting cross validated r:
+                r = C.r(C.num_fingers==i & strcmp(C.model,model_names{j}));
+                
+                r_avg(j) = mean(r);
+                r_sem(j) = std(r)/sqrt(length(r));
+            end
+            plot(1:length(model_names),r_avg,'LineWidth',1.5,'Color',[0.7 0.7 0.7]); hold on;
+            errorbar(1:length(model_names),r_avg,r_sem,'LineStyle','none','Color','k','CapSize',0)
+            scatter(1:length(model_names),r_avg,15,'filled','k');
+            box off
+            h = gca;
+            h.YTick = 0:0.25:1;
+            h.XTick = 1:length(model_names);
+            xlabel('model','FontSize',my_font.xlabel)
+            h.XTickLabel = cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false);
+            h.XAxis.FontSize = my_font.tick_label;
+            h.YAxis.FontSize = my_font.tick_label;
+            ylabel('r','FontSize',my_font.ylabel)
+            ylim([0, 1.05])
+            xlim([0.5,length(model_names)+0.5])
+            title(['n = ',num2str(i)],'FontSize',my_font.title)
+            fontname("Arial")
+        end
+        
+        varargout{1} = C;
+        
+
+
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
