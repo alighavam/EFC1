@@ -67,6 +67,17 @@ switch model_name
             X(i,n_trans(i)) = 1;
         end
 
+    case 'vis_complexity'
+        symmetries = get_chord_symmetry(unique(chords),'all');
+        groups = [symmetries.chord,symmetries.chord_vs,symmetries.chord_hs,symmetries.chord_vhs];
+        
+        X = zeros(length(chords),size(groups,1));
+        for i = 1:size(X,1)
+            % finding the vis_complexity group that chords(i) belong to:
+            [idx,~] = find(groups==chords(i));
+            X(i,idx(1)) = 1;
+        end
+
     otherwise
         names = strsplit(model_name,'+');
         if (length(names)<=1)
