@@ -993,7 +993,7 @@ switch (what)
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
-        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        data = dload(fullfile(project_path,'analysis','efc1_chord_exclRep.tsv'));
         subj = unique(data.sn);
         n = get_num_active_fingers(chords);
         
@@ -2147,6 +2147,109 @@ switch (what)
         fprintf('corr_vert = %.4f\ncorr_horz = %.4f\n',mean(C.corr_vs),mean(C.corr_hs))
         varargout{1} = C;
 
+    case 'chord_selection'
+        sess = [3,4];
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        chords = data.chordID(data.sess==sess(1) & data.sn==1);
+        subj = unique(data.sn);
+        n = data.num_fingers(data.sess==sess(1) & data.sn==1);
+        values_tmp = data.MD;
+        
+        % getting the average of sessions for every subj:
+        values = zeros(length(chords),length(subj));
+        for i = 1:length(subj)
+            % avg with considering nan values since subjects might have
+            % missed all 5 repetitions in one session:
+            values(:,i) = mean([values_tmp(data.sess==sess(1) & data.sn==subj(i)),values_tmp(data.sess==sess(2) & data.sn==subj(i))],2,'omitmissing');
+        end
+        
+        
+        C = [];
+        for i = 2:5
+            for j = 1:length(subj)
+                [~,idx] = sort(values(n==i,j));
+                chords_tmp = chords(n==i);
+                chords_tmp = chords_tmp(idx);
+
+                C_tmp.num_fingers = i;
+                C_tmp.sn = subj(j);
+                % first 1/3:
+                C_tmp.easy = chords_tmp(1:floor(length(chords_tmp)/3));
+                % second 1/3:
+                C_tmp.med = chords_tmp(ceil(length(chords_tmp)/3):floor(length(chords_tmp)*2/3));
+                % third 1/3:
+                C_tmp.diff = chords_tmp(ceil(length(chords_tmp)*2/3):end);
+
+                C = addstruct(C,C_tmp,'row',1);
+            end
+        end
+
+
+        % sorting out the chords for selection:
+        easy_chords = unique(C.easy);
+        med_chords = unique(C.med);
+        diff_chords = unique(C.diff);
+
+        count_easy = zeros(length(easy_chords),1);
+        for i = 1:length(easy_chords)
+            count_easy(i,1) = sum(C.easy == easy_chords(i))/length(subj)*100;
+        end
+        [sorted,idx] = sort(count_easy,'descend');
+        count_easy = sorted;
+        easy_chords = easy_chords(idx);
+
+        count_med = zeros(length(med_chords),1);
+        for i = 1:length(med_chords)
+            count_med(i,1) = sum(C.med == med_chords(i))/length(subj)*100;
+        end
+        [sorted,idx] = sort(count_med,'descend');
+        count_med = sorted;
+        med_chords = med_chords(idx);
+
+        count_diff = zeros(length(diff_chords),1);
+        for i = 1:length(diff_chords)
+            count_diff(i,1) = sum(C.diff == diff_chords(i))/length(subj)*100;
+        end
+        [sorted,idx] = sort(count_diff,'descend');
+        count_diff = sorted;
+        diff_chords = diff_chords(idx);
+
+        % chord groups:
+        easy = [easy_chords,count_easy,get_num_active_fingers(easy_chords)];
+        med = [med_chords,count_med,get_num_active_fingers(med_chords)];
+        difficult = [diff_chords,count_diff,get_num_active_fingers(diff_chords)];
+
+        % chord selection for EMG natChord experiment:
+        single_finger = [chords(n==1), zeros(size(chords(n==1))), ones(size(chords(n==1))), -1*ones(size(chords(n==1)))];
+
+        % easy chords:
+        selected_easy_3f = easy(easy(:,3)==3,:);
+        selected_easy_3f = [selected_easy_3f(1:10,1), ones(10,1), 3*ones(10,1),selected_easy_3f(1:10,2)];
+
+        selected_easy_5f = easy(easy(:,3)==5,:);
+        selected_easy_5f = [selected_easy_5f(1:10,1), ones(10,1), 5*ones(10,1),selected_easy_5f(1:10,2)];
+
+        % medium chords:
+        selected_med_3f = med(med(:,3)==3,:);
+        selected_med_3f = [selected_med_3f(1:10,1), 2*ones(10,1), 3*ones(10,1),selected_med_3f(1:10,2)];
+
+        selected_med_5f = med(med(:,3)==5,:);
+        selected_med_5f = [selected_med_5f(1:10,1), 2*ones(10,1), 5*ones(10,1),selected_med_5f(1:10,2)];
+
+        % difficult chords:
+        selected_diff_3f = difficult(difficult(:,3)==3,:);
+        selected_diff_3f = [selected_diff_3f(1:10,1), 3*ones(10,1), 3*ones(10,1),selected_diff_3f(1:10,2)];
+
+        selected_diff_5f = difficult(difficult(:,3)==5,:);
+        selected_diff_5f = [selected_diff_5f(1:10,1) , 3*ones(10,1), 5*ones(10,1),selected_diff_5f(1:10,2)];
+
+        chords = [single_finger ; selected_easy_3f ; selected_easy_5f ; selected_med_3f ; selected_med_5f ; ...
+                  selected_diff_3f ; selected_diff_5f];
+
+        varargout{1} = chords;
+        varargout{2} = easy;
+        varargout{3} = med;
+        varargout{4} = difficult;
 
     otherwise
         error('The analysis you entered does not exist!')
