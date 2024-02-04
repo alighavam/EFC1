@@ -1057,14 +1057,14 @@ switch (what)
 
         % stats between models:
         stats = [];
-        for n = 1:5
+        for num_f = 1:5
             for i = 1:length(model_names)-1
-                r1 = C.r(C.num_fingers==n & strcmp(C.model,model_names{i}));
+                r1 = C.r(C.num_fingers==num_f & strcmp(C.model,model_names{i}));
                 for j = i+1:length(model_names)
-                    r2 = C.r(C.num_fingers==n & strcmp(C.model,model_names{j}));
+                    r2 = C.r(C.num_fingers==num_f & strcmp(C.model,model_names{j}));
                     % paired t-test, one-tail r2>r1:
                     [t,p] = ttest(r2,r1,1,'paired');
-                    tmp.num_fingers = n;
+                    tmp.num_fingers = num_f;
                     tmp.models = {model_names{i},model_names{j}};
                     tmp.t = t;
                     tmp.p = p;
@@ -1223,7 +1223,7 @@ switch (what)
         drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,length(model_names)+1],'linestyle',':'); hold on;
         plot(1:length(model_names),r_avg,'LineWidth',2,'Color',[0.1 0.1 0.1,0.1]);
         errorbar(1:length(model_names),r_avg,r_sem,'LineStyle','none','Color',[0.1 0.1 0.1],'CapSize',0)
-        scatter(1:length(model_names),r_avg,20,'filled','MarkerFaceColor',[0.1 0.1 0.1],'MarkerEdgeColor',[0.1 0.1 0.1]);
+        scatter(1:length(model_names),r_avg,15,'filled','MarkerFaceColor',[0.1 0.1 0.1],'MarkerEdgeColor',[0.1 0.1 0.1]);
         box off
         h = gca;
         h.YTick = 0:0.25:1;
