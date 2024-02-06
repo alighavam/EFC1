@@ -1214,7 +1214,7 @@ switch (what)
         for i = 1:length(model_names)
             r = C.r(strcmp(C.model,model_names{i}));
             fprintf('ttest: model %s different from noise ceiling:\n',model_names{i})
-            ttest(r-noise_ceil,[],1,'onesample')
+            ttest(r-noise_ceil,[],2,'onesample')
         end
 
         % PLOT - regression results:
