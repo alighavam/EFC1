@@ -1200,7 +1200,7 @@ switch (what)
             end
         end
 
-        % PLOT - regression results:
+
         % getting noise ceiling:
         [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',[(sess(1)-1)*12+1 sess(2)*12],'chords',chords,'plot_option',0);
         if (strcmp(measure,'MD'))
@@ -1210,7 +1210,14 @@ switch (what)
         else
             noise_ceil = mean(corr_struct.RT);
         end
-        
+
+        for i = 1:length(model_names)
+            r = C.r(strcmp(C.model,model_names{i}));
+            fprintf('ttest: model %s different from noise ceiling:\n',model_names{i})
+            ttest(r-noise_ceil,[],1,'onesample')
+        end
+
+        % PLOT - regression results:
         figure;
         ax1 = axes('Units', 'centimeters', 'Position', [2 2 3.5 3],'Box','off');
         for j = 1:length(model_names)
