@@ -1172,7 +1172,6 @@ switch (what)
                 r2 = 1 - SSR/SST;
 
                 % storing the results:
-                C_tmp.num_fingers = i;
                 C_tmp.sn_out = sn;
                 C_tmp.model = model_names(i_mdl);
                 C_tmp.is_full_rank = is_full_rank;
