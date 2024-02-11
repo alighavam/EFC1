@@ -777,9 +777,14 @@ switch (what)
     case 'repetition_effect'
         chords = generateAllChords;
         measure = 'MD';
-        vararginoptions(varargin,{'chords','measure'})
+        subj_selection = [];
+        vararginoptions(varargin,{'chords','measure','subj_selection'})
         
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+        data = getrow(data,ismember(data.chordID,chords));
+        if ~isempty(subj_selection)
+            data = getrow(data,ismember(data.sn,subj_selection));
+        end
 
         % getting the values of measure:
         values = eval(['data.' measure]);
@@ -794,32 +799,33 @@ switch (what)
 
         % getting averages within each session and n_fing:
         n_fing = n_fing(1,:);
+        n_fing_unique = unique(n_fing);
         sess = sess(1,:);
         subj = subj(1,:);
         subj_unique = unique(subj);
         C = [];
         % loop on n_fing:
         cnt = 1;
-        for i = 1:length(unique(n_fing))
+        for i = 1:length(n_fing_unique)
             % loop on sess:
             for j = 1:length(unique(sess))
                 for sn = 1:length(subj_unique)
-                    C.num_fingers(cnt,1) = i;
+                    C.num_fingers(cnt,1) = n_fing_unique(i);
                     C.sess(cnt,1) = j;
                     C.sn(cnt,1) = subj_unique(sn);
 
                     % selecting the data for each session, finger group and
                     % subject:
-                    values_tmp = values(:, subj==subj_unique(sn) & n_fing==i & sess==j);
+                    values_tmp = values(:, subj==subj_unique(sn) & n_fing==n_fing_unique(i) & sess==j);
                     C.value_subj(cnt,:) = mean(values_tmp,2,'omitmissing')';
 
                     % averaging the values across subjects:
-                    values_tmp = values(:, n_fing==i & sess==j);
+                    values_tmp = values(:, n_fing==n_fing_unique(i) & sess==j);
                     C.value(cnt,:) = mean(values_tmp,2,'omitmissing')';
                     
                     % estimating the standard errors:
                     for k = 1:repetitions
-                        [sem_tmp, ~, ~, ~] = get_sem( values_tmp(k,:)', subj(n_fing==i & sess==j)', ones(length(values_tmp(k,:)),1), ones(length(values_tmp(k,:)),1) );
+                        [sem_tmp, ~, ~, ~] = get_sem( values_tmp(k,:)', subj(n_fing==n_fing_unique(i) & sess==j)', ones(length(values_tmp(k,:)),1), ones(length(values_tmp(k,:)),1) );
                         C.sem(cnt,k) = sem_tmp.sem;
                     end
                     cnt = cnt+1;
@@ -867,9 +873,9 @@ switch (what)
         % calculating the benefits within subjects:
         for i = 1:length(subj_unique)
             avg_improvement = 0;
-            for j = 1:length(unique(n_fing))
-                value_sess1 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==j & C.sess==1,:);
-                value_sess4 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==j & C.sess==4,:);
+            for j = 1:length(n_fing_unique)
+                value_sess1 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==1,:);
+                value_sess4 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==4,:);
                 avg_improvement = avg_improvement + (value_sess1 - value_sess4) ./ value_sess1 * 100 /length(subj_unique);
             end
             B.sn(cnt,1) = subj_unique(i);
@@ -883,11 +889,12 @@ switch (what)
         ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
         offset_size = 5;
         x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
-        for i = 1:length(unique(C.num_fingers))
+        num_fingers_unique = unique(C.num_fingers);
+        for i = 1:length(num_fingers_unique)
             for j = 1:length(unique(C.sess))
-                plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==i & C.sess==j, :),1),'Color',colors_blue(i,:),'LineWidth',1); hold on;
-                errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==i & C.sess==j, :),1), mean(C.sem(C.num_fingers==i & C.sess==j, :),1), 'CapSize', 0, 'Color', colors_blue(i,:));
-                scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==i & C.sess==j, :),1), 10,'MarkerFaceColor',colors_blue(i,:),'MarkerEdgeColor',colors_blue(i,:))
+                plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',1); hold on;
+                errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0, 'Color', colors_blue(num_fingers_unique(i),:));
+                scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 10,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
             end
         end
         box off
@@ -903,7 +910,7 @@ switch (what)
         ylabel(measure,'FontSize',my_font.ylabel)
         % ylabel([measure ' [ms]'],'FontSize',my_font.ylabel)
         ylim([0.3, 2.8]) % MD
-        % ylim([80, 650]) % RT
+        % ylim([0, 650]) % RT
         % ylim([0, 3200]) % MT
         xlim([0,21])
         % title('Repetition Effect','FontSize',my_font.title)
