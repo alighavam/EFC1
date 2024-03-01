@@ -1129,7 +1129,7 @@ switch (what)
         chords = generateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'transition','n_fing','additive+2fing_adj','additive+2fing','additive+2fing_adj+n_fing'};
+        model_names = {'n_fing+transition','additive+2fing_adj','additive+2fing','additive+2fing_adj+n_fing'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
