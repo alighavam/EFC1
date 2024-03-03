@@ -346,7 +346,7 @@ switch (what)
 
         % getting the values of measure:
         values = eval(['data.' measure]);
-
+        
         % calaculating avg improvement from sess 1 to 4:
         C = [];
         for i = 1:length(subj)
@@ -364,19 +364,24 @@ switch (what)
         % PLOTS:
         figure;
         ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
-        % ax1.PositionConstraint = "innerposition";
-        % axes(ax1);
+        ax1.PositionConstraint = "innerposition";
+        axes(ax1);
         for i = 1:5
             errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0); hold on;
             lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',1.5,'errorbars','');
         end
         
+        % all avg:
+        % [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, ones(size(data.sess)));
+        % errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0); hold on;
+        % lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',1.5,'errorbars','');
+
         lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
         legend boxoff
         fontsize(lgd,6,'points')
-        % ylim([0.5 2.6])
+        ylim([0.8 2.5])
         % ylim([0 2600])
-        ylim([140 420])
+        % ylim([200 420])
         xlim([0.8 4.2])
         xlabel('session','FontSize',my_font.xlabel)
         ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
@@ -1129,11 +1134,13 @@ switch (what)
         chords = generateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'n_fing+transition','additive+2fing_adj','additive+2fing','additive+2fing_adj+n_fing'};
+        model_names = {'n_fing+transition','additive+2fing_adj','additive+2fing','additive+2fing_adj+n_fing','n_fing+additive+2fing'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        data = getrow(data,ismember(data.chordID,chords));
+        chords = unique(data.chordID);
         subj = unique(data.sn);
         
         % getting the values of measure:
