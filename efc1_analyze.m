@@ -1131,16 +1131,16 @@ switch (what)
 
     case 'model_testing_all'
         % handling input arguments:
-        chords = generateAllChords;
+        chords =enerateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'n_fing+transition','additive+2fing_adj','additive+2fing','additive+2fing_adj+n_fing','n_fing+additive+2fing'};
+        model_names = {'n_fing','n_fing+transition','additive+2fing_adj','additive+2fing','additive+2fing_adj+n_fing','n_fing+additive+2fing'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         data = getrow(data,ismember(data.chordID,chords));
-        chords = unique(data.chordID);
+        chords = data.chordID(data.sn==1 & data.sess==1);
         subj = unique(data.sn);
         
         % getting the values of measure:
