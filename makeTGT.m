@@ -9,20 +9,20 @@ close all;
 
 % Loading packages 
 % iMac
-path(path,genpath('/Users/aghavampour/Documents/MATLAB'));
+% path(path,genpath('/Users/aghavampour/Documents/MATLAB'));
 % Macbook Pro
 % path(path,genpath('/Users/alighavam/Documents/MATLAB'));
 
 % Loading functions
 % iMac
-addpath('/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1/functions');
-cd("/Users/aghavampour/Desktop/Projects/ExtFlexChord/EFC1");
+addpath('/Users/alighavampour/Desktop/Projects/EFC1/functions');
+cd("/Users/alighavampour/Desktop/Projects/EFC1/");
 % Macbook Pro
 % addpath('/Users/alighavam/Desktop/ExtFlexChord/functions');
 % cd("/Users/alighavam/Desktop/ExtFlexChord/");
 
 % experiment parameters
-subNum = 10;                        % subject number - dont forget to change this for each subject!!!!!!
+subNum = 20;                        % subject number - dont forget to change this for each subject!!!!!!
 nSessions = 24;
 option = "fullCounterBalanced";    % option for makeChord function
 
@@ -52,7 +52,7 @@ for i = 1:nSessions
     targetStruct.execMaxTime = repmat([execMaxTime],trialNum,1);
     targetStruct.feedbackTime = repmat([feedbackTime],trialNum,1);
     targetStruct.iti = repmat([iti],trialNum,1);
-    datsave(sprintf("efc1_subj0%s_set1_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    dsave(sprintf("efc1_subj%s_set1_run%s.tgt",num2str(subNum,'%.2d'),num2str(i)),targetStruct);
 end
 % set 2:
 targetStruct = struct(columnNames{1},[],columnNames{2},[],columnNames{3},[],columnNames{4},[],columnNames{5},[],columnNames{6},[]);
@@ -65,7 +65,7 @@ for i = 1:nSessions
     targetStruct.execMaxTime = repmat([execMaxTime],trialNum,1);
     targetStruct.feedbackTime = repmat([feedbackTime],trialNum,1);
     targetStruct.iti = repmat([iti],trialNum,1);
-    datsave(sprintf("efc1_subj0%s_set2_run%s.tgt",num2str(subNum),num2str(i)),targetStruct);
+    dsave(sprintf("efc1_subj%s_set2_run%s.tgt",num2str(subNum,'%.2d'),num2str(i)),targetStruct);
 end
 disp("target file created")
 cd('..')
