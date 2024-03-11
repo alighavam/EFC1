@@ -34,7 +34,7 @@ switch (what)
     case 'subject_routine'
         % handling input arguments:
         subject_name = 'subj01';
-        smoothing_win_length = 25;
+        smoothing_win_length = 30;
         vararginoptions(varargin,{'subject_name','smoothing_win_length'});
         
         % if a cell containing multiple subjects was given:
@@ -337,7 +337,7 @@ switch (what)
     
 
     case 'behavior_trends'
-        measure = 'MD';
+        measure = 'RT';
         vararginoptions(varargin,{'measure'})
 
         % loading data:
@@ -379,9 +379,9 @@ switch (what)
         lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
         legend boxoff
         fontsize(lgd,6,'points')
-        ylim([0.8 2.5])
+        % ylim([0.5 2.5])
         % ylim([0 2600])
-        % ylim([200 420])
+        ylim([200 420])
         xlim([0.8 4.2])
         xlabel('session','FontSize',my_font.xlabel)
         ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
@@ -1131,10 +1131,10 @@ switch (what)
 
     case 'model_testing_all'
         % handling input arguments:
-        chords =enerateAllChords;
+        chords = generateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'n_fing','n_fing+transition','additive+2fing_adj','additive+2fing','additive+2fing_adj+n_fing','n_fing+additive+2fing'};
+        model_names = {'n_fing','n_fing+additive+2fing_adj','n_fing+additive+2fing','n_fing+transition'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
 
         % loading data:
