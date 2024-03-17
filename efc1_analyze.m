@@ -337,7 +337,7 @@ switch (what)
     
 
     case 'behavior_trends'
-        measure = 'RT';
+        measure = 'MD';
         vararginoptions(varargin,{'measure'})
 
         % loading data:
@@ -379,9 +379,9 @@ switch (what)
         lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
         legend boxoff
         fontsize(lgd,6,'points')
-        % ylim([0.5 2.5])
+        % ylim([0.5 2.7])
         % ylim([0 2600])
-        ylim([200 420])
+        ylim([0 500])
         xlim([0.8 4.2])
         xlabel('session','FontSize',my_font.xlabel)
         ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
@@ -640,7 +640,7 @@ switch (what)
         values = eval(['data.' measure]);
 
         cond_vec = data.num_fingers;
-        cond_vec(cond_vec>1) = 2;
+        % cond_vec(cond_vec>1) = 2;
         [sem_subj, X_subj, Y_subj, COND] = get_sem(values, data.sn, data.sess, cond_vec);
 
         x = [];
@@ -667,13 +667,16 @@ switch (what)
         lineplot(x(n==conditions(1)),y(n==conditions(1)),'markertype','o','markersize',5,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',2,'errorbars','');
         hold on
 
-        errorbar(sem_subj.partitions(sem_subj.cond==2),sem_subj.y(sem_subj.cond==2),sem_subj.sem(sem_subj.cond==2),'LineStyle','none','Color',colors_blue(5,:))
-        lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
+        errorbar(sem_subj.partitions(sem_subj.cond==3),sem_subj.y(sem_subj.cond==3),sem_subj.sem(sem_subj.cond==3),'LineStyle','none','Color',colors_blue(3,:))
+        lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',5,'markerfill',colors_blue(3,:),'markercolor',colors_blue(3,:),'linecolor',colors_blue(3,:),'linewidth',2,'errorbars','');
+
+        errorbar(sem_subj.partitions(sem_subj.cond==5),sem_subj.y(sem_subj.cond==5),sem_subj.sem(sem_subj.cond==5),'LineStyle','none','Color',colors_blue(5,:))
+        lineplot(x(n==conditions(3)),y(n==conditions(3)),'markertype','o','markersize',5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
         
         % scatter(X_subj(COND==1),Y_subj(COND==1),10,'MarkerEdgeColor',colors_blue(1,:),'MarkerFaceColor',colors_blue(1,:))
         % scatter(X_subj(COND==2),Y_subj(COND==2),10,'MarkerEdgeColor',colors_blue(5,:),'MarkerFaceColor',colors_blue(5,:))
 
-        legend('','single finger','','chord');
+        legend('','single finger','','chord 3f','','chord 5f');
         legend boxoff
         xlabel('sess','FontSize',my_font.xlabel)
         ylabel([replace(measure,'_',' ')],'FontSize',my_font.title)
@@ -904,9 +907,9 @@ switch (what)
         end
         box off
         h = gca;
-        % h.YTick = 100:150:600; % RT
+        h.YTick = 100:150:650; % RT
         % h.YTick = 0:1000:3000; % MT
-        h.YTick = 0.5:1:2.5; % MD
+        % h.YTick = 0.5:1:2.5; % MD
         h.XTick = 5*(1:length(unique(C.sess))) - 2;
         xlabel('session','FontSize',my_font.xlabel)
         h.XTickLabel = {'1','2','3','4'};
@@ -914,9 +917,9 @@ switch (what)
         h.YAxis.FontSize = my_font.tick_label;
         ylabel(measure,'FontSize',my_font.ylabel)
         % ylabel([measure ' [ms]'],'FontSize',my_font.ylabel)
-        ylim([0.3, 2.8]) % MD
-        % ylim([0, 650]) % RT
-        % ylim([0, 3200]) % MT
+        % ylim([0.3 3])
+        % ylim([0 2600])
+        ylim([0 650])
         xlim([0,21])
         % title('Repetition Effect','FontSize',my_font.title)
         fontname("Arial")
