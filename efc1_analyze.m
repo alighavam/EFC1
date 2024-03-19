@@ -75,6 +75,11 @@ switch (what)
             mt_tmp = zeros(size(rt_tmp));
             v_dev_tmp = zeros(length(tmp_data.BN),5);
             first_finger_tmp = zeros(size(rt_tmp));
+            force_f1 = zeros(length(tmp_data.BN),1);
+            force_f2 = zeros(length(tmp_data.BN),1);
+            force_f3 = zeros(length(tmp_data.BN),1);
+            force_f4 = zeros(length(tmp_data.BN),1);
+            force_f5 = zeros(length(tmp_data.BN),1);
             % loop through trials:
             for j = 1:length(tmp_data.BN)
                 % if trial was correct:
@@ -94,9 +99,24 @@ switch (what)
                                                           tmp_data.baselineTopThresh(j), tmp_data.RT(j), percent_after_RT, ...
                                                           tmp_data.fGain1(j), tmp_data.fGain2(j), tmp_data.fGain3(j), ...
                                                           tmp_data.fGain4(j), tmp_data.fGain5(j));
+                    
+                    % average force:
+                    idx_completion = find(tmp_mov{j}(:,1)==3);
+                    idx_completion = idx_completion(end);
+                    force_f1(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,14));
+                    force_f2(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,15));
+                    force_f3(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,16));
+                    force_f4(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,17));
+                    force_f5(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,18));
                 
                 % if trial was incorrect:
                 else
+                    force_f1(j) = -1;
+                    force_f2(j) = -1;
+                    force_f3(j) = -1;
+                    force_f4(j) = -1;
+                    force_f5(j) = -1;
+
                     % mean dev:
                     mean_dev_tmp(j) = -1;
                     rt_tmp(j) = -1;
@@ -121,6 +141,12 @@ switch (what)
             tmp_data.v_dev4 = v_dev_tmp(:,4);
             tmp_data.v_dev5 = v_dev_tmp(:,5);
 
+            tmp_data.force_f1 = force_f1;
+            tmp_data.force_f2 = force_f2;
+            tmp_data.force_f3 = force_f3;
+            tmp_data.force_f4 = force_f4;
+            tmp_data.force_f5 = force_f5;
+
             sess = (tmp_data.BN<=12) + 2*(tmp_data.BN>=13 & tmp_data.BN<=24) + 3*(tmp_data.BN>=25 & tmp_data.BN<=36) + 4*(tmp_data.BN>=37 & tmp_data.BN<=48);
             tmp_data.sess = sess;
             
@@ -139,7 +165,7 @@ switch (what)
         % IMPORTANT: If new subjects are added, you should run
         % subject_routine and make_all_dataframe before running this
         % function.
-
+        
         % handling input args:
         exclude_1st_rep = 0;
         out_file_name = 'efc1_chord.tsv';
@@ -182,6 +208,12 @@ switch (what)
                     tmp.MD_std(cnt,1) = std(data.MD(row));
                     tmp.MT_std(cnt,1) = std(data.MT(row));
                     tmp.RT_std(cnt,1) = std(data.RT(row));
+
+                    tmp.force_f1(cnt,1) = mean(data.force_f1(row));
+                    tmp.force_f2(cnt,1) = mean(data.force_f2(row));
+                    tmp.force_f3(cnt,1) = mean(data.force_f3(row));
+                    tmp.force_f4(cnt,1) = mean(data.force_f4(row));
+                    tmp.force_f5(cnt,1) = mean(data.force_f5(row));
                     
                     cnt = cnt+1;
                 end
