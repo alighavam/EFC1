@@ -411,11 +411,15 @@ switch (what)
         lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
         legend boxoff
         fontsize(lgd,6,'points')
-        % ylim([0.5 2.7])
-        % ylim([0 2600])
-        ylim([0 500])
+        if measure=='MD'
+            ylim([0.5 2.7])
+        elseif measure=='RT'
+            ylim([150 450])
+        elseif measure=='MT'
+            ylim([0 2600])
+        end
         xlim([0.8 4.2])
-        xlabel('session','FontSize',my_font.xlabel)
+        xlabel('days','FontSize',my_font.xlabel)
         ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
         % ylabel([measure],'FontSize',my_font.tick_label)
         h = gca;
@@ -801,7 +805,7 @@ switch (what)
         h.YTick = 0:0.2:1;
         box off;
         % title([measure ' Reliability'],'FontSize',my_font.title)
-        xlabel('num fingers','FontSize',my_font.xlabel)
+        xlabel('finger count','FontSize',my_font.xlabel)
         ylabel('percent variance','FontSize',my_font.ylabel)
         % lgd = legend('global','subject','noise');
         % legend boxoff
