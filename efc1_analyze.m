@@ -505,25 +505,25 @@ switch (what)
         
         drawline(0,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,6]); hold on;
 
-        plot(1:5, C_rt_mt.y, 'Color', (colors_measures(1,:)+colors_measures(2,:))/2, 'LineWidth', 2);
-        errorbar(1:5, C_rt_mt.y, C_rt_mt.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(1,:)+colors_measures(2,:))/2);
-        scatter(1:5, C_rt_mt.y, 15, 'MarkerFaceColor', (colors_measures(1,:)+colors_measures(2,:))/2, 'MarkerEdgeColor', (colors_measures(1,:)+colors_measures(2,:))/2); hold on;
+        % plot(1:5, C_rt_mt.y, 'Color', (colors_measures(1,:)+colors_measures(2,:))/2, 'LineWidth', 2);
+        % errorbar(1:5, C_rt_mt.y, C_rt_mt.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(1,:)+colors_measures(2,:))/2);
+        % scatter(1:5, C_rt_mt.y, 15, 'MarkerFaceColor', (colors_measures(1,:)+colors_measures(2,:))/2, 'MarkerEdgeColor', (colors_measures(1,:)+colors_measures(2,:))/2); hold on;
 
         plot(1:5, C_rt_md.y, 'Color', (colors_measures(1,:)+colors_measures(3,:))/2, 'LineWidth', 2);
         errorbar(1:5, C_rt_md.y, C_rt_md.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(1,:)+colors_measures(3,:))/2);
         scatter(1:5, C_rt_md.y, 15, 'MarkerFaceColor', (colors_measures(1,:)+colors_measures(3,:))/2, 'MarkerEdgeColor', (colors_measures(1,:)+colors_measures(3,:))/2);
 
-        plot(1:5, C_mt_md.y, 'Color', (colors_measures(2,:)+colors_measures(3,:))/2, 'LineWidth', 2);
-        errorbar(1:5, C_mt_md.y, C_mt_md.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(2,:)+colors_measures(3,:))/2);
-        scatter(1:5, C_mt_md.y, 15, 'MarkerFaceColor', (colors_measures(2,:)+colors_measures(3,:))/2, 'MarkerEdgeColor', (colors_measures(2,:)+colors_measures(3,:))/2);
+        % plot(1:5, C_mt_md.y, 'Color', (colors_measures(2,:)+colors_measures(3,:))/2, 'LineWidth', 2);
+        % errorbar(1:5, C_mt_md.y, C_mt_md.sem, 'LineStyle', 'none', 'CapSize', 0, 'Color', (colors_measures(2,:)+colors_measures(3,:))/2);
+        % scatter(1:5, C_mt_md.y, 15, 'MarkerFaceColor', (colors_measures(2,:)+colors_measures(3,:))/2, 'MarkerEdgeColor', (colors_measures(2,:)+colors_measures(3,:))/2);
         
-        lgd = legend({'','r_{RT,MT}','','','r_{RT,MD}','','','r_{MT,MD}','',''});
-        legend boxoff
-        fontsize(lgd,6,'points')
+        % lgd = legend({'','r_{RT,MT}','','','r_{RT,MD}','','','r_{MT,MD}','',''});
+        % legend boxoff
+        % fontsize(lgd,6,'points')
 
         ylim([-0.1,1.05])
         xlim([0 6])
-        xlabel('num fingers','FontSize',my_font.xlabel)
+        xlabel('finger count','FontSize',my_font.xlabel)
         ylabel('correlation','FontSize',my_font.tick_label)
         h = gca;
         h.YTick = 0:0.25:1;
@@ -1173,9 +1173,9 @@ switch (what)
         chords = generateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'n_fing','n_fing+additive+2fing_adj','n_fing+additive+2fing','n_fing+transition'};
+        model_names = {'n_fing','n_fing+additive','n_fing+force_avg','n_fing+2fing','n_fing+force_2fing','n_fing+additive+2fing','n_fing+force_avg+force_2fing'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
-
+        
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         data = getrow(data,ismember(data.chordID,chords));
@@ -2449,6 +2449,268 @@ switch (what)
         varargout{2} = easy;
         varargout{3} = med;
         varargout{4} = difficult;
+
+    case 'forward_selection'
+        % handling input arguments:
+        alpha = 0.05;
+        measure = 'MD';
+        sess = [3,4];
+        models = {'n_fing','n_fing+additive','n_fing+2fing_adj','n_fing+2fing','n_fing+force_avg','n_fing+force_2fing'};
+        vararginoptions(varargin,{'alpha','measure','models','sess'})
+        base_models = models;
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        chords = data.chordID(data.sn==1 & data.sess==4);
+        subj = unique(data.sn);
+        
+        % getting the values of measure:
+        values_tmp = eval(['data.' measure]);
+
+        % getting the average of sessions for every subj:
+        values = zeros(length(chords),length(subj));
+        for i = 1:length(subj)
+            % avg with considering nan values since subjects might have
+            % missed all 5 repetitions in one session:
+            values(:,i) = mean([values_tmp(data.sess==sess(1) & data.sn==subj(i)),values_tmp(data.sess==sess(2) & data.sn==subj(i))],2,'omitmissing');
+        end
+        
+        % selection steps:
+        steps = length(models);
+        winning_model = '';
+        best_r = zeros(length(subj),1);
+        C = [];
+        for i = 1:steps
+            for j = 1:length(models)
+                r = zeros(length(subj),1);
+                % loop on subjects and regression with leave-one-out:
+                for sn = 1:length(subj)
+                    % values of 'in' subjects, Nx1 vector:
+                    y_train = values(:,setdiff(1:length(subj),sn));
+                    y_train = mean(y_train,2);
+        
+                    % avg of 'out' subject:
+                    y_test = values(:,sn);
+
+                    % getting design matrix for model:
+                    X = make_design_matrix(chords,models{j});
+    
+                    % training the model:
+                    % [B,STATS] = linregress(y_train,X,'intercept',0);
+                    [B,~] = svd_linregress(y_train,X);
+    
+                    % testing the model:
+                    X_test = make_design_matrix(chords,models{j});
+                    y_pred = X_test * B;
+                    r(sn) = corr(y_pred,y_test);
+                end
+                tmp.step = i;
+                tmp.model = models(j);
+                tmp.r = {r};
+                tmp.r_avg = mean(r);
+                [~,tmp.pval] = ttest(r,best_r,1,'paired');
+                tmp.significant = tmp.pval < alpha;
+
+                % initialize this variable for later steps:
+                tmp.win = 0;
+
+                % save values in struct:
+                C = addstruct(C,tmp,'row','force');
+            end
+
+            % competition between models:
+            r_avg = C.r_avg(C.step==i);
+            p_val = C.pval(C.step==i);
+
+            % find the significant improvements:
+            p_val = p_val < alpha;
+            
+            % if there was at least one significantly better model:
+            if sum(p_val)~=0
+                % remove the non-significant models from the comptetition:
+                r_avg(p_val==0) = 0;
+            end
+            
+            % find the best (significant) model:
+            [~,idx] = sort(r_avg);
+            
+            % conclude the winner and give it a gold medal:
+            winning_model = models{idx(end)};
+            C.win(C.step==i & strcmp(C.model,winning_model)) = 1;
+            % set the competition values for the next step:
+            best_r = C.r{C.step==i & strcmp(C.model,winning_model)};
+
+            % make models for the next step:
+            models = base_models;
+            split_names = strsplit(winning_model,'+');
+            for j = 1:length(split_names)
+                models(strcmp(models,split_names{j})) = [];
+            end
+            prefix = [winning_model , '+'];
+            models = cellfun(@(x) [prefix x], models, 'UniformOutput', false);
+        end
+        
+        % fing the significant winner:
+        significant_steps = zeros(length(unique(C.step)),1);
+        for i = 1:length(unique(C.step))
+            significant = C.significant(C.step==i);
+            if sum(significant)
+                significant_steps(i) = 1;
+            end
+        end
+        idx = find(significant_steps);
+        idx = idx(end);
+        significant_winner = C.model{C.step==idx & C.win==1};
+
+        fprintf('\nThe significant winner of the forward selection is:\n%s\n',significant_winner)
+        fprintf('\nThe r_avg winner of forward selection is:\n%s\n',winning_model);
+        varargout{1} = C;
+
+    case 'backward_selection'
+        % handling input arguments:
+        alpha = 0.05;
+        measure = 'MD';
+        sess = [3,4];
+        models = {'n_fing','additive','2fing_adj','2fing','force_avg','force_2fing'};
+        vararginoptions(varargin,{'alpha','measure','models','sess'})
+        base_models = models;
+        
+        % loading data:
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        chords = data.chordID(data.sn==1 & data.sess==4);
+        subj = unique(data.sn);
+        
+        % getting the values of measure:
+        values_tmp = eval(['data.' measure]);
+        
+        % getting the average of sessions for every subj:
+        values = zeros(length(chords),length(subj));
+        for i = 1:length(subj)
+            % avg with considering nan values since subjects might have
+            % missed all 5 repetitions in one session:
+            values(:,i) = mean([values_tmp(data.sess==sess(1) & data.sn==subj(i)),values_tmp(data.sess==sess(2) & data.sn==subj(i))],2,'omitmissing');
+        end
+        
+        % full model:
+        for i = 1:length(base_models)
+            full_model = strjoin(base_models, '+');
+        end
+        
+        best_r = zeros(length(subj),1);
+        % loop on subjects and regression with leave-one-out:
+        for sn = 1:length(subj)
+            % values of 'in' subjects, Nx1 vector:
+            y_train = values(:,setdiff(1:length(subj),sn));
+            y_train = mean(y_train,2);
+
+            % avg of 'out' subject:
+            y_test = values(:,sn);
+
+            % getting design matrix for model:
+            X = make_design_matrix(chords,full_model);
+
+            % training the model:
+            % [B,STATS] = linregress(y_train,X,'intercept',0);
+            [B,~] = svd_linregress(y_train,X);
+
+            % testing the model:
+            X_test = make_design_matrix(chords,full_model);
+            y_pred = X_test * B;
+            best_r(sn) = corr(y_pred,y_test);
+        end
+        
+        % selection steps:
+        steps = length(models)-1;
+
+        % define models for the first step:
+        winning_model = full_model;
+        
+        C = [];
+        for i = 1:steps
+            % define models to be removed for the current step:
+            reduce_models = strsplit(winning_model,'+');
+            
+            for j = 1:length(reduce_models)
+                model = reduce_models;
+                model(strcmp(model,reduce_models{j})) = [];
+                model = strjoin(model,'+');
+
+                r = zeros(length(subj),1);
+                % loop on subjects and regression with leave-one-out:
+                for sn = 1:length(subj)
+                    % values of 'in' subjects, Nx1 vector:
+                    y_train = values(:,setdiff(1:length(subj),sn));
+                    y_train = mean(y_train,2);
+        
+                    % avg of 'out' subject:
+                    y_test = values(:,sn);
+
+                    % getting design matrix for model:
+                    X = make_design_matrix(chords,model);
+    
+                    % training the model:
+                    % [B,STATS] = linregress(y_train,X,'intercept',0);
+                    [B,~] = svd_linregress(y_train,X);
+    
+                    % testing the model:
+                    X_test = make_design_matrix(chords,model);
+                    y_pred = X_test * B;
+                    r(sn) = corr(y_pred,y_test);
+                end
+                tmp.step = i;
+                tmp.model = {model};
+                tmp.r = {r};
+                tmp.r_avg = mean(r);
+                [~,tmp.pval] = ttest(best_r,r,1,'paired');
+                tmp.significantly_worse = tmp.pval < alpha; % this is 1 if the reduced model is significantly worse than the starting model
+                tmp.win = 0;
+
+                if tmp.significantly_worse == 0
+                    tmp.fail = 1;   % the reduced model fails if it does not significantly reduce performance
+                end
+                
+                % save values in struct:
+                C = addstruct(C,tmp,'row','force');
+            end
+
+            % conclude the step and choose a winning model for the next step:
+            r_avg = C.r_avg(C.step==i);
+            fail = C.fail(C.step==i);
+            
+            % if there was at least one significantly worse model:
+            if sum(fail) ~= length(fail)
+                % remove the good models from the competition
+                r_avg(fail==0) = 0;
+            end
+            
+            % sort the reduction of performance after removing each model:
+            [~,idx] = sort(mean(best_r)-r_avg);
+
+            % conclude the not-loser(winner?) and give it a gold medal:
+            tmp_models = C.model(C.step==i);
+            winning_model = tmp_models{idx(1)};
+            C.win(C.step==i & strcmp(C.model,winning_model)) = 1;
+            
+            % set the competition values for the next step:
+            best_r = C.r{C.step==i & strcmp(C.model,winning_model)};
+        end
+        
+        % find the significant winner:
+        % significant_winner = '';
+        % significant_steps = zeros(length(unique(C.step)),1);
+        % for i = 1:length(unique(C.step))
+        %     significant = C.significant(C.step==i);
+        %     if sum(significant)
+        %         significant_steps(i) = 1;
+        %     end
+        % end
+        % idx = find(significant_steps);
+        % idx = idx(end);
+        % significant_winner = C.model{C.step==idx & C.win==1};
+        % 
+        % fprintf('\nThe significant winner of the forward selection is:\n%s\n',significant_winner)
+        % fprintf('\nThe r_avg winner of forward selection is:\n%s\n',winning_model);
+        varargout{1} = C;
 
     otherwise
         error('The analysis you entered does not exist!')
