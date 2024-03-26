@@ -75,11 +75,23 @@ switch (what)
             mt_tmp = zeros(size(rt_tmp));
             v_dev_tmp = zeros(length(tmp_data.BN),5);
             first_finger_tmp = zeros(size(rt_tmp));
+            
+            diff_force_f1 = zeros(length(tmp_data.BN),1);
+            diff_force_f2 = zeros(length(tmp_data.BN),1);
+            diff_force_f3 = zeros(length(tmp_data.BN),1);
+            diff_force_f4 = zeros(length(tmp_data.BN),1);
+            diff_force_f5 = zeros(length(tmp_data.BN),1);
+
             force_f1 = zeros(length(tmp_data.BN),1);
             force_f2 = zeros(length(tmp_data.BN),1);
             force_f3 = zeros(length(tmp_data.BN),1);
             force_f4 = zeros(length(tmp_data.BN),1);
             force_f5 = zeros(length(tmp_data.BN),1);
+            force_e1 = zeros(length(tmp_data.BN),1);
+            force_e2 = zeros(length(tmp_data.BN),1);
+            force_e3 = zeros(length(tmp_data.BN),1);
+            force_e4 = zeros(length(tmp_data.BN),1);
+            force_e5 = zeros(length(tmp_data.BN),1);
             % loop through trials:
             for j = 1:length(tmp_data.BN)
                 % if trial was correct:
@@ -103,19 +115,41 @@ switch (what)
                     % average force:
                     idx_completion = find(tmp_mov{j}(:,1)==3);
                     idx_completion = idx_completion(end);
-                    force_f1(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,14));
-                    force_f2(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,15));
-                    force_f3(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,16));
-                    force_f4(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,17));
-                    force_f5(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,18));
+                    diff_force_f1(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,14));
+                    diff_force_f2(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,15));
+                    diff_force_f3(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,16));
+                    diff_force_f4(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,17));
+                    diff_force_f5(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,18));
+
+                    force_f1(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,9));
+                    force_f2(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,10));
+                    force_f3(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,11));
+                    force_f4(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,12));
+                    force_f5(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,13));
+                    force_e1(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,4));
+                    force_e2(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,5));
+                    force_e3(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,6));
+                    force_e4(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,7));
+                    force_e5(j) = mean(tmp_mov{j}(idx_completion-299:idx_completion,8));
                 
                 % if trial was incorrect:
                 else
+                    diff_force_f1(j) = -1;
+                    diff_force_f2(j) = -1;
+                    diff_force_f3(j) = -1;
+                    diff_force_f4(j) = -1;
+                    diff_force_f5(j) = -1;
+
                     force_f1(j) = -1;
                     force_f2(j) = -1;
                     force_f3(j) = -1;
                     force_f4(j) = -1;
                     force_f5(j) = -1;
+                    force_e1(j) = -1;
+                    force_e2(j) = -1;
+                    force_e3(j) = -1;
+                    force_e4(j) = -1;
+                    force_e5(j) = -1;
 
                     % mean dev:
                     mean_dev_tmp(j) = -1;
@@ -141,14 +175,25 @@ switch (what)
             tmp_data.v_dev4 = v_dev_tmp(:,4);
             tmp_data.v_dev5 = v_dev_tmp(:,5);
 
+            sess = (tmp_data.BN<=12) + 2*(tmp_data.BN>=13 & tmp_data.BN<=24) + 3*(tmp_data.BN>=25 & tmp_data.BN<=36) + 4*(tmp_data.BN>=37 & tmp_data.BN<=48);
+            tmp_data.sess = sess;
+
+            tmp_data.diff_force_f1 = diff_force_f1;
+            tmp_data.diff_force_f2 = diff_force_f2;
+            tmp_data.diff_force_f3 = diff_force_f3;
+            tmp_data.diff_force_f4 = diff_force_f4;
+            tmp_data.diff_force_f5 = diff_force_f5;
+
             tmp_data.force_f1 = force_f1;
             tmp_data.force_f2 = force_f2;
             tmp_data.force_f3 = force_f3;
             tmp_data.force_f4 = force_f4;
             tmp_data.force_f5 = force_f5;
-
-            sess = (tmp_data.BN<=12) + 2*(tmp_data.BN>=13 & tmp_data.BN<=24) + 3*(tmp_data.BN>=25 & tmp_data.BN<=36) + 4*(tmp_data.BN>=37 & tmp_data.BN<=48);
-            tmp_data.sess = sess;
+            tmp_data.force_e1 = force_e1;
+            tmp_data.force_e2 = force_e2;
+            tmp_data.force_e3 = force_e3;
+            tmp_data.force_e4 = force_e4;
+            tmp_data.force_e5 = force_e5;
             
             % adding subject data to ANA:
             ANA=addstruct(ANA,tmp_data,'row','force');
@@ -209,11 +254,22 @@ switch (what)
                     tmp.MT_std(cnt,1) = std(data.MT(row));
                     tmp.RT_std(cnt,1) = std(data.RT(row));
 
+                    tmp.diff_force_f1(cnt,1) = mean(data.diff_force_f1(row));
+                    tmp.diff_force_f2(cnt,1) = mean(data.diff_force_f2(row));
+                    tmp.diff_force_f3(cnt,1) = mean(data.diff_force_f3(row));
+                    tmp.diff_force_f4(cnt,1) = mean(data.diff_force_f4(row));
+                    tmp.diff_force_f5(cnt,1) = mean(data.diff_force_f5(row));
+
                     tmp.force_f1(cnt,1) = mean(data.force_f1(row));
                     tmp.force_f2(cnt,1) = mean(data.force_f2(row));
                     tmp.force_f3(cnt,1) = mean(data.force_f3(row));
                     tmp.force_f4(cnt,1) = mean(data.force_f4(row));
                     tmp.force_f5(cnt,1) = mean(data.force_f5(row));
+                    tmp.force_e1(cnt,1) = mean(data.force_e1(row));
+                    tmp.force_e2(cnt,1) = mean(data.force_e2(row));
+                    tmp.force_e3(cnt,1) = mean(data.force_e3(row));
+                    tmp.force_e4(cnt,1) = mean(data.force_e4(row));
+                    tmp.force_e5(cnt,1) = mean(data.force_e5(row));
                     
                     cnt = cnt+1;
                 end
