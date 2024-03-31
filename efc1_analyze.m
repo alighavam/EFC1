@@ -29,6 +29,17 @@ my_font.ylabel = 10;
 my_font.title = 11;
 my_font.tick_label = 8;
 my_font.legend = 8;
+my_font.conf_tick_label = 32;
+my_font.conf_label = 36;
+my_font.conf_legend = 32;
+my_font.conf_title = 36;
+
+% conference fig settings:
+conf.err_width = 3;
+conf.line_width = 8;
+conf.marker_size = 350;
+conf.horz_line_width = 6;
+conf.axis_width = 3;
 
 switch (what)
     case 'subject_routine'
@@ -279,9 +290,11 @@ switch (what)
         dsave(fullfile(project_path,'analysis',out_file_name),ANA);
 
     case 'subject_chords_accuracy'
+        conference_fig = 0;
+        vararginoptions(varargin,{'conference_fig'})
+
         chords = generateAllChords;
         data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
-
         subjects = unique(data.sn);
         
         C = [];
@@ -341,32 +354,64 @@ switch (what)
         avg_all = [mean(C.acc_avg_s01) ; mean(C.acc_avg_s02) ; mean(C.acc_avg_s03) ; mean(C.acc_avg_s04)];
         sem_all = [std(C.acc_avg_s01) ; std(C.acc_avg_s02) ; std(C.acc_avg_s03) ; std(C.acc_avg_s04)]/sqrt(length(C.sn));
         
-        fig = figure('Units','centimeters', 'Position',[15 15 5 5]);
-        fontsize(fig, my_font.tick_label, 'points')
-        drawline(1,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
-        
-        errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_blue(5,:)); 
-        plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',2)
-        scatter(1:4,avg_diff,30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
-
-        errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
-        plot(1:4,avg_all,'Color',[colors_blue(2,:), 0.6],'LineWidth',3)
-        % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
-        
-        lgd = legend({'','','most challenging','','','all 242'});
-        legend boxoff
-        fontsize(lgd,6,'points')
-
-        ylim([0,1.2])
-        xlim([0.8,4.2])
-        h = gca;
-        h.YAxis.TickValues = 0:0.5:1;
-        h.XAxis.TickValues = 1:4;
-        h.XAxis.FontSize = my_font.tick_label;
-        h.YAxis.FontSize = my_font.tick_label;
-        xlabel('sess','FontSize',my_font.xlabel)
-        ylabel('accuracy','FontSize',my_font.tick_label)
-        box off
+        if ~conference_fig
+            fig = figure('Units','centimeters', 'Position',[15 15 5 5]);
+            fontsize(fig, my_font.tick_label, 'points')
+            drawline(1,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
+            
+            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_blue(5,:)); 
+            plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',2)
+            scatter(1:4,avg_diff,30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
+    
+            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
+            plot(1:4,avg_all,'Color',[colors_blue(2,:), 0.6],'LineWidth',3)
+            % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
+            
+            lgd = legend({'','','most challenging','','','all 242'});
+            legend boxoff
+            fontsize(lgd,6,'points')
+    
+            ylim([0,1.2])
+            xlim([0.8,4.2])
+            h = gca;
+            h.YAxis.TickValues = 0:0.5:1;
+            h.XAxis.TickValues = 1:4;
+            h.XAxis.FontSize = my_font.tick_label;
+            h.YAxis.FontSize = my_font.tick_label;
+            xlabel('days','FontSize',my_font.xlabel)
+            ylabel('accuracy','FontSize',my_font.tick_label)
+            box off
+            fontname("Arial")
+        else
+            fig = figure('Units','centimeters', 'Position',[15 15 25 15]);
+            fontsize(fig, my_font.conf_tick_label, 'points')
+            drawline(1,'dir','horz','color',[0.85 0.85 0.85],'lim',[0 5],'linewidth',conf.horz_line_width,'linestyle',':'); hold on;
+            
+            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_blue(5,:),'LineWidth',conf.err_width); 
+            plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',conf.line_width)
+            scatter(1:4,avg_diff,conf.marker_size,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
+            
+            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:),'LineWidth',conf.err_width); 
+            plot(1:4,avg_all,'Color',[colors_blue(2,:), 0.6],'LineWidth',conf.line_width)
+            % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
+            
+            lgd = legend({'','','Most Challenging Chords','','','All 242 Chords'});
+            legend boxoff
+            fontsize(lgd,my_font.conf_legend,'points')
+            
+            ylim([0,1.2])
+            xlim([0.8,4.2])
+            h = gca;
+            h.YAxis.TickValues = 0:0.5:1;
+            h.XAxis.TickValues = 1:4;
+            h.XAxis.FontSize = my_font.conf_tick_label;
+            h.YAxis.FontSize = my_font.conf_tick_label;
+            h.LineWidth = conf.axis_width;
+            xlabel('days','FontSize',my_font.conf_label)
+            ylabel('accuracy','FontSize',my_font.conf_label)
+            box off
+            fontname("Arial")
+        end
         
         varargout{1} = C;
         
@@ -426,7 +471,8 @@ switch (what)
 
     case 'behavior_trends'
         measure = 'MD';
-        vararginoptions(varargin,{'measure'})
+        conference_fig = 0;
+        vararginoptions(varargin,{'measure','conference_fig'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
@@ -450,39 +496,77 @@ switch (what)
         [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, data.num_fingers);
         
         % PLOTS:
-        figure;
-        ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
-        ax1.PositionConstraint = "innerposition";
-        axes(ax1);
-        for i = 1:5
-            errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0); hold on;
-            lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',1.5,'errorbars','');
+        if ~conference_fig
+            figure;
+            ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
+            ax1.PositionConstraint = "innerposition";
+            axes(ax1);
+            for i = 1:5
+                errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0,'LineWidth',1); hold on;
+                lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',1.5,'errorbars','');
+            end
+            
+            % all avg:
+            % [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, ones(size(data.sess)));
+            % errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0); hold on;
+            % lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',1.5,'errorbars','');
+    
+            lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
+            legend boxoff
+            fontsize(lgd,6,'points')
+            if measure=='MD'
+                ylim([0.5 2.7])
+            elseif measure=='RT'
+                ylim([150 450])
+            elseif measure=='MT'
+                ylim([0 2600])
+            end
+            xlim([0.8 4.2])
+            xlabel('days','FontSize',my_font.xlabel)
+            ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
+            % ylabel([measure],'FontSize',my_font.tick_label)
+            h = gca;
+            h.YTick = linspace(h.YTick(1),h.YTick(end),3);
+            h.XAxis.FontSize = my_font.tick_label;
+            h.YAxis.FontSize = my_font.tick_label;
+            fontname("Arial")
+        else
+            % figure;
+            % ax1 = axes('Units', 'centimeters', 'Position', [0 0 25 25],'Box','off');
+            % ax1.PositionConstraint = "innerposition";
+            % axes(ax1);
+            fig = figure('Units','centimeters', 'Position',[15 15 25 20]);
+            for i = 1:5
+                errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
+                lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',6,'errorbars','');
+            end
+            
+            % all avg:
+            % [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, ones(size(data.sess)));
+            % errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0); hold on;
+            % lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',1.5,'errorbars','');
+    
+            lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
+            legend boxoff
+            fontsize(lgd,my_font.conf_legend,'points')
+            if measure=='MD'
+                ylim([0.5 2.7])
+            elseif measure=='RT'
+                ylim([150 450])
+            elseif measure=='MT'
+                ylim([0 2600])
+            end
+            xlim([0.8 4.2])
+            xlabel('days','FontSize',my_font.conf_label)
+            ylabel([measure ,' [ms]'],'FontSize',my_font.conf_label)
+            % ylabel([measure],'FontSize',my_font.tick_label)
+            h = gca;
+            h.YTick = linspace(h.YTick(1),h.YTick(end),3);
+            h.XAxis.FontSize = my_font.conf_tick_label;
+            h.YAxis.FontSize = my_font.conf_tick_label;
+            h.LineWidth = conf.axis_width;
+            fontname("Arial")
         end
-        
-        % all avg:
-        % [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, ones(size(data.sess)));
-        % errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0); hold on;
-        % lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',1.5,'errorbars','');
-
-        lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
-        legend boxoff
-        fontsize(lgd,6,'points')
-        if measure=='MD'
-            ylim([0.5 2.7])
-        elseif measure=='RT'
-            ylim([150 450])
-        elseif measure=='MT'
-            ylim([0 2600])
-        end
-        xlim([0.8 4.2])
-        xlabel('days','FontSize',my_font.xlabel)
-        ylabel([measure ,' [ms]'],'FontSize',my_font.tick_label)
-        % ylabel([measure],'FontSize',my_font.tick_label)
-        h = gca;
-        h.YTick = linspace(h.YTick(1),h.YTick(end),3);
-        h.XAxis.FontSize = my_font.tick_label;
-        h.YAxis.FontSize = my_font.tick_label;
-        fontname("Arial")
         
         % doing stats:
         idx_exlude_nans = ~isnan(values);
@@ -712,7 +796,8 @@ switch (what)
         % chords = [99922,99292,92992,92929,92922,92292,29992,29929,29922,29299,29292,29229,22929,22299]';
         measure = 'MD';
         subjects = [];
-        vararginoptions(varargin,{'measure','chords','subjects'})
+        conference_fig = 0;
+        vararginoptions(varargin,{'measure','chords','subjects','conference_fig'})
 
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
@@ -751,33 +836,74 @@ switch (what)
             end
         end
 
-        % avg trend acorss sessions:
-        fig = figure('Position', [500 500 190 200]);
-        fontsize(fig, my_font.tick_label, 'points')
-        
-        errorbar(sem_subj.partitions(sem_subj.cond==1),sem_subj.y(sem_subj.cond==1),sem_subj.sem(sem_subj.cond==1),'LineStyle','none','Color',colors_blue(2,:)); hold on;
-        lineplot(x(n==conditions(1)),y(n==conditions(1)),'markertype','o','markersize',5,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',2,'errorbars','');
-        hold on
+        if ~conference_fig
+            % avg trend acorss sessions:
+            fig = figure('Position', [500 500 190 200]);
+            fontsize(fig, my_font.tick_label, 'points')
+            
+            errorbar(sem_subj.partitions(sem_subj.cond==1),sem_subj.y(sem_subj.cond==1),sem_subj.sem(sem_subj.cond==1),'LineStyle','none','Color',colors_blue(2,:)); hold on;
+            lineplot(x(n==conditions(1)),y(n==conditions(1)),'markertype','o','markersize',5,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',2,'errorbars','');
+            hold on
+    
+            errorbar(sem_subj.partitions(sem_subj.cond==3),sem_subj.y(sem_subj.cond==3),sem_subj.sem(sem_subj.cond==3),'LineStyle','none','Color',colors_blue(3,:))
+            lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',5,'markerfill',colors_blue(3,:),'markercolor',colors_blue(3,:),'linecolor',colors_blue(3,:),'linewidth',2,'errorbars','');
+    
+            errorbar(sem_subj.partitions(sem_subj.cond==5),sem_subj.y(sem_subj.cond==5),sem_subj.sem(sem_subj.cond==5),'LineStyle','none','Color',colors_blue(5,:))
+            lineplot(x(n==conditions(3)),y(n==conditions(3)),'markertype','o','markersize',5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
+            
+            % scatter(X_subj(COND==1),Y_subj(COND==1),10,'MarkerEdgeColor',colors_blue(1,:),'MarkerFaceColor',colors_blue(1,:))
+            % scatter(X_subj(COND==2),Y_subj(COND==2),10,'MarkerEdgeColor',colors_blue(5,:),'MarkerFaceColor',colors_blue(5,:))
+    
+            legend('','single finger','','chord 3f','','chord 5f');
+            legend boxoff
+            xlabel('sess','FontSize',my_font.xlabel)
+            ylabel([replace(measure,'_',' ')],'FontSize',my_font.title)
+            % title([replace(measure,'_',' ')],'FontSize',my_font.title)
+            % ylim([0.2 2.7])
+            % ylim([0 3500])
+            ylim([0 500])
+            h = gca;
+            h.YTick = linspace(h.YTick(1),h.YTick(end),5);
+        else
+            % avg trend acorss sessions:
+            fig = figure('Units','centimeters', 'Position',[15 15 25 20]);
+            fontsize(fig, my_font.conf_tick_label, 'points')
+            
+            errorbar(sem_subj.partitions(sem_subj.cond==1),sem_subj.y(sem_subj.cond==1),sem_subj.sem(sem_subj.cond==1),'LineStyle','none','Color',colors_blue(2,:),'LineWidth',conf.err_width); hold on;
+            lineplot(x(n==conditions(1)),y(n==conditions(1)),'markertype','o','markersize',12,'markerfill',colors_blue(2,:),'markercolor',colors_blue(2,:),'linecolor',colors_blue(2,:),'linewidth',6,'errorbars','');
+            hold on
+    
+            errorbar(sem_subj.partitions(sem_subj.cond==3),sem_subj.y(sem_subj.cond==3),sem_subj.sem(sem_subj.cond==3),'LineStyle','none','Color',colors_blue(3,:),'LineWidth',conf.err_width)
+            lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',12,'markerfill',colors_blue(3,:),'markercolor',colors_blue(3,:),'linecolor',colors_blue(3,:),'linewidth',6,'errorbars','');
+    
+            errorbar(sem_subj.partitions(sem_subj.cond==5),sem_subj.y(sem_subj.cond==5),sem_subj.sem(sem_subj.cond==5),'LineStyle','none','Color',colors_blue(5,:),'LineWidth',conf.err_width)
+            lineplot(x(n==conditions(3)),y(n==conditions(3)),'markertype','o','markersize',12,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',6,'errorbars','');
+            
+            % scatter(X_subj(COND==1),Y_subj(COND==1),10,'MarkerEdgeColor',colors_blue(1,:),'MarkerFaceColor',colors_blue(1,:))
+            % scatter(X_subj(COND==2),Y_subj(COND==2),10,'MarkerEdgeColor',colors_blue(5,:),'MarkerFaceColor',colors_blue(5,:))
+            xlim([0.8 4.2])
 
-        errorbar(sem_subj.partitions(sem_subj.cond==3),sem_subj.y(sem_subj.cond==3),sem_subj.sem(sem_subj.cond==3),'LineStyle','none','Color',colors_blue(3,:))
-        lineplot(x(n==conditions(2)),y(n==conditions(2)),'markertype','o','markersize',5,'markerfill',colors_blue(3,:),'markercolor',colors_blue(3,:),'linecolor',colors_blue(3,:),'linewidth',2,'errorbars','');
+            lgd = legend('','1-finger','','3-finger','','5-finger');
+            legend boxoff
+            fontsize(lgd,my_font.conf_legend,'points')
+            xlabel('days','FontSize',my_font.conf_label)
+            ylabel([measure ,' [ms]'],'FontSize',my_font.conf_label)
 
-        errorbar(sem_subj.partitions(sem_subj.cond==5),sem_subj.y(sem_subj.cond==5),sem_subj.sem(sem_subj.cond==5),'LineStyle','none','Color',colors_blue(5,:))
-        lineplot(x(n==conditions(3)),y(n==conditions(3)),'markertype','o','markersize',5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',2,'errorbars','');
-        
-        % scatter(X_subj(COND==1),Y_subj(COND==1),10,'MarkerEdgeColor',colors_blue(1,:),'MarkerFaceColor',colors_blue(1,:))
-        % scatter(X_subj(COND==2),Y_subj(COND==2),10,'MarkerEdgeColor',colors_blue(5,:),'MarkerFaceColor',colors_blue(5,:))
+            if measure=='MD'
+                ylim([0.2 2.7])
+            elseif measure=='RT'
+                 ylim([150 450])
+            elseif measure=='MT'
+                ylim([0 3500])
+            end
+            h = gca;
+            h.YTick = linspace(h.YTick(1),h.YTick(end),3);
+            h.XAxis.FontSize = my_font.conf_tick_label;
+            h.YAxis.FontSize = my_font.conf_tick_label;
+            h.LineWidth = conf.axis_width;
+            fontname("Arial")
+        end
 
-        legend('','single finger','','chord 3f','','chord 5f');
-        legend boxoff
-        xlabel('sess','FontSize',my_font.xlabel)
-        ylabel([replace(measure,'_',' ')],'FontSize',my_font.title)
-        % title([replace(measure,'_',' ')],'FontSize',my_font.title)
-        % ylim([0.2 2.7])
-        % ylim([0 3500])
-        ylim([0 500])
-        h = gca;
-        h.YTick = linspace(h.YTick(1),h.YTick(end),5);
 
     case 'var_reliability_overall'
         chords = generateAllChords;
