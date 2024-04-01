@@ -292,7 +292,7 @@ switch (what)
     case 'subject_chords_accuracy'
         conference_fig = 0;
         vararginoptions(varargin,{'conference_fig'})
-
+        
         chords = generateAllChords;
         data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
         subjects = unique(data.sn);
@@ -359,12 +359,12 @@ switch (what)
             fontsize(fig, my_font.tick_label, 'points')
             drawline(1,'dir','horz','color',[0.7 0.7 0.7],'lim',[0 5]); hold on;
             
-            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_blue(5,:)); 
-            plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',2)
-            scatter(1:4,avg_diff,30,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
+            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_gray(5,:)); 
+            plot(1:4,avg_diff,'Color',colors_gray(5,:),'LineWidth',2)
+            scatter(1:4,avg_diff,30,'MarkerFaceColor',colors_gray(5,:),'MarkerEdgeColor',colors_gray(5,:));
     
-            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:)); 
-            plot(1:4,avg_all,'Color',[colors_blue(2,:), 0.6],'LineWidth',3)
+            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_gray(2,:)); 
+            plot(1:4,avg_all,'Color',[colors_gray(2,:), 0.6],'LineWidth',3)
             % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
             
             lgd = legend({'','','most challenging','','','all 242'});
@@ -385,14 +385,14 @@ switch (what)
         else
             fig = figure('Units','centimeters', 'Position',[15 15 25 15]);
             fontsize(fig, my_font.conf_tick_label, 'points')
-            drawline(1,'dir','horz','color',[0.85 0.85 0.85],'lim',[0 5],'linewidth',conf.horz_line_width,'linestyle',':'); hold on;
+            drawline(1,'dir','horz','color',[0.8 0.8 0.8],'lim',[0 5],'linewidth',conf.horz_line_width,'linestyle',':'); hold on;
             
-            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_blue(5,:),'LineWidth',conf.err_width); 
-            plot(1:4,avg_diff,'Color',colors_blue(5,:),'LineWidth',conf.line_width)
-            scatter(1:4,avg_diff,conf.marker_size,'MarkerFaceColor',colors_blue(5,:),'MarkerEdgeColor',colors_blue(5,:));
+            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_gray(5,:),'LineWidth',conf.err_width); 
+            plot(1:4,avg_diff,'Color',colors_gray(5,:),'LineWidth',conf.line_width)
+            scatter(1:4,avg_diff,conf.marker_size,'MarkerFaceColor',colors_gray(5,:),'MarkerEdgeColor',colors_gray(5,:));
             
-            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_blue(2,:),'LineWidth',conf.err_width); 
-            plot(1:4,avg_all,'Color',[colors_blue(2,:), 0.6],'LineWidth',conf.line_width)
+            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_gray(2,:),'LineWidth',conf.err_width); 
+            plot(1:4,avg_all,'Color',[colors_gray(2,:), 0.6],'LineWidth',conf.line_width)
             % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
             
             lgd = legend({'','','Most Challenging Chords','','','All 242 Chords'});
@@ -535,7 +535,7 @@ switch (what)
             % ax1 = axes('Units', 'centimeters', 'Position', [0 0 25 25],'Box','off');
             % ax1.PositionConstraint = "innerposition";
             % axes(ax1);
-            fig = figure('Units','centimeters', 'Position',[15 15 25 20]);
+            fig = figure('Units','centimeters', 'Position',[15 15 25 25]);
             for i = 1:5
                 errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
                 lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',6,'errorbars','');
@@ -543,8 +543,8 @@ switch (what)
             
             % all avg:
             % [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, ones(size(data.sess)));
-            % errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0); hold on;
-            % lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',3.5,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',1.5,'errorbars','');
+            % errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
+            % lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',6,'errorbars','');
     
             lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
             legend boxoff
@@ -1003,8 +1003,9 @@ switch (what)
     case 'repetition_effect'
         chords = generateAllChords;
         measure = 'MD';
+        conference_fig = 0;
         subj_selection = [];
-        vararginoptions(varargin,{'chords','measure','subj_selection'})
+        vararginoptions(varargin,{'chords','measure','subj_selection','conference_fig'})
         
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
         data = getrow(data,ismember(data.chordID,chords));
@@ -1109,38 +1110,84 @@ switch (what)
             B.benefit(cnt,:) = avg_improvement;
             cnt = cnt+1;
         end
-
-        % PLOT - repetition trends across sessions:
-        figure;
-        ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
-        offset_size = 5;
-        x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
-        num_fingers_unique = unique(C.num_fingers);
-        for i = 1:length(num_fingers_unique)
-            for j = 1:length(unique(C.sess))
-                plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',1); hold on;
-                errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0, 'Color', colors_blue(num_fingers_unique(i),:));
-                scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 10,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
+    
+        if ~conference_fig
+            % PLOT - repetition trends across sessions:
+            figure;
+            fig = figure('Units','centimeters', 'Position',[15 15 20 20]);
+            offset_size = 5;
+            x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
+            num_fingers_unique = unique(C.num_fingers);
+            for i = 1:length(num_fingers_unique)
+                for j = 1:length(unique(C.sess))
+                    plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',1); hold on;
+                    errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0, 'Color', colors_blue(num_fingers_unique(i),:));
+                    scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 10,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
+                end
             end
+            box off
+            h = gca;
+            h.YTick = 100:150:650; % RT
+            % h.YTick = 0:1000:3000; % MT
+            % h.YTick = 0.5:1:2.5; % MD
+            h.XTick = 5*(1:length(unique(C.sess))) - 2;
+            xlabel('session','FontSize',my_font.xlabel)
+            h.XTickLabel = {'1','2','3','4'};
+            h.XAxis.FontSize = my_font.tick_label;
+            h.YAxis.FontSize = my_font.tick_label;
+            ylabel(measure,'FontSize',my_font.ylabel)
+            % ylabel([measure ' [ms]'],'FontSize',my_font.ylabel)
+            if measure=='MD'
+                ylim([0.5 3])
+            elseif measure=='RT'
+                ylim([150 600])
+            elseif measure=='MT'
+                ylim([0 2600])
+            end
+            % ylim([0.3 3])
+            % ylim([0 2600])
+            % ylim([0 650])
+            xlim([0,21])
+            fontname("Arial")
+        else
+            % PLOT - repetition trends across sessions:
+            fig = figure('Units','centimeters', 'Position',[15 15 25 30]);
+            offset_size = 5;
+            x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
+            num_fingers_unique = unique(C.num_fingers);
+            for i = 1:length(num_fingers_unique)
+                for j = 1:length(unique(C.sess))
+                    plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',conf.line_width); hold on;
+                    errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0,'LineWidth',conf.err_width, 'Color', colors_blue(num_fingers_unique(i),:));
+                    scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), conf.marker_size,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
+                end
+            end
+            box off
+            h = gca;
+
+            h.XTick = 5*(1:length(unique(C.sess))) - 2;
+            xlabel('Days','FontSize',my_font.conf_label)
+            h.XTickLabel = {'1','2','3','4'};
+            h.XAxis.FontSize = my_font.conf_tick_label;
+            h.YAxis.FontSize = my_font.conf_tick_label;
+            h.LineWidth = conf.axis_width;
+            ylabel(measure,'FontSize',my_font.conf_label)
+            if measure=='MD'
+                h.YTick = [0.5,1.7,3]; % MD
+                ylim([0.5 3])
+            elseif measure=='RT'
+                h.YTick = [120,360,600]; % RT
+                ylim([120 600])
+            elseif measure=='MT'
+                h.YTick = 0:1000:3000; % MT
+                ylim([0 2600])
+            end
+            % ylim([0.3 3])
+            % ylim([0 2600])
+            % ylim([0 650])
+            xlim([0,21])
+            fontname("Arial")
         end
-        box off
-        h = gca;
-        h.YTick = 100:150:650; % RT
-        % h.YTick = 0:1000:3000; % MT
-        % h.YTick = 0.5:1:2.5; % MD
-        h.XTick = 5*(1:length(unique(C.sess))) - 2;
-        xlabel('session','FontSize',my_font.xlabel)
-        h.XTickLabel = {'1','2','3','4'};
-        h.XAxis.FontSize = my_font.tick_label;
-        h.YAxis.FontSize = my_font.tick_label;
-        ylabel(measure,'FontSize',my_font.ylabel)
-        % ylabel([measure ' [ms]'],'FontSize',my_font.ylabel)
-        % ylim([0.3 3])
-        % ylim([0 2600])
-        ylim([0 650])
-        xlim([0,21])
-        % title('Repetition Effect','FontSize',my_font.title)
-        fontname("Arial")
 
         varargout{1} = C;
         varargout{2} = B;
@@ -2893,6 +2940,12 @@ switch (what)
         % fprintf('\nThe significant winner of the forward selection is:\n%s\n',significant_winner)
         % fprintf('\nThe r_avg winner of forward selection is:\n%s\n',winning_model);
         varargout{1} = C;
+
+    case 'finger_count_explanation'
+        C_MD = efc1_analyze('model_testing_all','measure','MD');
+        C_RT = efc1_analyze('model_testing_all','measure','RT');
+
+        
 
     otherwise
         error('The analysis you entered does not exist!')
