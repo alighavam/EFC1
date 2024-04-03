@@ -535,33 +535,34 @@ switch (what)
             % ax1 = axes('Units', 'centimeters', 'Position', [0 0 25 25],'Box','off');
             % ax1.PositionConstraint = "innerposition";
             % axes(ax1);
-            fig = figure('Units','centimeters', 'Position',[15 15 25 25]);
-            for i = 1:5
-                errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-                lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',6,'errorbars','');
-            end
+            fig = figure('Units','centimeters', 'Position',[15 15 12 19]);
+            % for i = 1:5
+            %     errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
+            %     lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',6,'errorbars','');
+            % end
             
             % all avg:
-            % [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, ones(size(data.sess)));
-            % errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            % lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',6,'errorbars','');
+            [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, ones(size(data.sess)));
+            errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
+            lineplot(data.sess(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',6,'errorbars','');
     
             lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
             legend boxoff
             fontsize(lgd,my_font.conf_legend,'points')
+            h = gca;
             if measure=='MD'
                 ylim([0.5 2.7])
+                h.YTick = [0.5 1.6 2.7];
             elseif measure=='RT'
-                ylim([150 450])
+                ylim([150, 450])
+                h.YTick = [150 300 450];
             elseif measure=='MT'
                 ylim([0 2600])
             end
-            xlim([0.8 4.2])
+            xlim([0.5 4.5])
             xlabel('days','FontSize',my_font.conf_label)
-            ylabel([measure ,' [ms]'],'FontSize',my_font.conf_label)
+            ylabel([measure],'FontSize',my_font.conf_label)
             % ylabel([measure],'FontSize',my_font.tick_label)
-            h = gca;
-            h.YTick = linspace(h.YTick(1),h.YTick(end),3);
             h.XAxis.FontSize = my_font.conf_tick_label;
             h.YAxis.FontSize = my_font.conf_tick_label;
             h.LineWidth = conf.axis_width;
@@ -1045,7 +1046,7 @@ switch (what)
                     % subject:
                     values_tmp = values(:, subj==subj_unique(sn) & n_fing==n_fing_unique(i) & sess==j);
                     C.value_subj(cnt,:) = mean(values_tmp,2,'omitmissing')';
-
+                    
                     % averaging the values across subjects:
                     values_tmp = values(:, n_fing==n_fing_unique(i) & sess==j);
                     C.value(cnt,:) = mean(values_tmp,2,'omitmissing')';
@@ -1161,6 +1162,44 @@ switch (what)
                     errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0,'LineWidth',conf.err_width, 'Color', colors_blue(num_fingers_unique(i),:));
                     scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), conf.marker_size,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
                 end
+            end
+            box off
+            h = gca;
+
+            h.XTick = 5*(1:length(unique(C.sess))) - 2;
+            xlabel('Days','FontSize',my_font.conf_label)
+            h.XTickLabel = {'1','2','3','4'};
+            h.XAxis.FontSize = my_font.conf_tick_label;
+            h.YAxis.FontSize = my_font.conf_tick_label;
+            h.LineWidth = conf.axis_width;
+            ylabel(measure,'FontSize',my_font.conf_label)
+            if measure=='MD'
+                h.YTick = [0.5,1.7,3]; % MD
+                ylim([0.5 3])
+            elseif measure=='RT'
+                h.YTick = [120,360,600]; % RT
+                ylim([120 600])
+            elseif measure=='MT'
+                h.YTick = 0:1000:3000; % MT
+                ylim([0 2600])
+            end
+            % ylim([0.3 3])
+            % ylim([0 2600])
+            % ylim([0 650])
+            xlim([0,21])
+            fontname("Arial")
+
+            % PLOT - repetition trends across sessions:
+            fig = figure('Units','centimeters', 'Position',[15 15 25 30]);
+            offset_size = 5;
+            x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
+            num_fingers_unique = unique(C.num_fingers);
+            
+            [C_sem, X, Y, COND] = get_sem(C.value_subj, C.sn, ones(size(C.sn)), C.num_fingers);
+            for i = 1:length(num_fingers_unique)
+                plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',conf.line_width); hold on;
+                errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0,'LineWidth',conf.err_width, 'Color', colors_blue(num_fingers_unique(i),:));
+                scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), conf.marker_size,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
             end
             box off
             h = gca;
@@ -2945,7 +2984,7 @@ switch (what)
         C_MD = efc1_analyze('model_testing_all','measure','MD');
         C_RT = efc1_analyze('model_testing_all','measure','RT');
 
-        
+
 
     otherwise
         error('The analysis you entered does not exist!')
