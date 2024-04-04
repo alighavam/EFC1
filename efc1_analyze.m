@@ -40,6 +40,8 @@ conf.line_width = 8;
 conf.marker_size = 350;
 conf.horz_line_width = 6;
 conf.axis_width = 3;
+conf.bar_line_width = 2.5;
+conf.bar_width = 2;
 
 switch (what)
     case 'subject_routine'
@@ -1092,7 +1094,9 @@ switch (what)
         rep = rep(:);
         sn = sn(:);
         % rm_anova:
+        fprintf('\n======== RM Anova for rep 2 to 5: ========\n')
         T = MANOVArp(sn,rep,tmp_data);
+        % MANOVArp(sn,rep,tmp_data)
 
         % Improvement of measure from sess1 to sess4:
         B = [];
@@ -1191,32 +1195,37 @@ switch (what)
 
             % PLOT - repetition trends across sessions:
             fig = figure('Units','centimeters', 'Position',[15 15 25 30]);
-            offset_size = 5;
-            x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
             num_fingers_unique = unique(C.num_fingers);
             
-            [C_sem, X, Y, COND] = get_sem(C.value_subj, C.sn, ones(size(C.sn)), C.num_fingers);
-            for i = 1:length(num_fingers_unique)
-                plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',conf.line_width); hold on;
-                errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0,'LineWidth',conf.err_width, 'Color', colors_blue(num_fingers_unique(i),:));
-                scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), conf.marker_size,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
+            [C_sem1, X1, Y1, COND] = get_sem(C.value_subj(:,1), C.sn, ones(size(C.sn)), C.num_fingers);
+            [C_sem2, X2, Y2, COND] = get_sem(C.value_subj(:,2), C.sn, ones(size(C.sn)), C.num_fingers);
+            [C_sem3, X3, Y3, COND] = get_sem(C.value_subj(:,3), C.sn, ones(size(C.sn)), C.num_fingers);
+            [C_sem4, X4, Y4, COND] = get_sem(C.value_subj(:,4), C.sn, ones(size(C.sn)), C.num_fingers);
+            [C_sem5, X5, Y5, COND] = get_sem(C.value_subj(:,5), C.sn, ones(size(C.sn)), C.num_fingers);
+            y = [C_sem1.y,C_sem2.y,C_sem3.y,C_sem4.y,C_sem5.y];
+            y_sem = [C_sem1.sem,C_sem2.sem,C_sem3.sem,C_sem4.sem,C_sem5.sem];
+            % loop on number of fingers:
+            for i = 1:5
+                plot((1:5), y(i,:),'Color',colors_blue(i,:),'LineWidth',conf.line_width); hold on;
+                errorbar((1:5), y(i,:), y_sem(i,:), 'CapSize', 0,'LineWidth',conf.err_width, 'Color', colors_blue(i,:));
+                scatter((1:5), y(i,:), conf.marker_size,'MarkerFaceColor',colors_blue(i,:),'MarkerEdgeColor',colors_blue(i,:))
             end
             box off
             h = gca;
 
-            h.XTick = 5*(1:length(unique(C.sess))) - 2;
-            xlabel('Days','FontSize',my_font.conf_label)
-            h.XTickLabel = {'1','2','3','4'};
+            h.XTick = 1:5;
+            xlabel('Repetitions','FontSize',my_font.conf_label)
+            h.XTickLabel = {'1','2','3','4','5'};
             h.XAxis.FontSize = my_font.conf_tick_label;
             h.YAxis.FontSize = my_font.conf_tick_label;
             h.LineWidth = conf.axis_width;
             ylabel(measure,'FontSize',my_font.conf_label)
             if measure=='MD'
-                h.YTick = [0.5,1.7,3]; % MD
-                ylim([0.5 3])
+                h.YTick = [0.5,1.7,2.8]; % MD
+                ylim([0.5 2.8])
             elseif measure=='RT'
-                h.YTick = [120,360,600]; % RT
-                ylim([120 600])
+                h.YTick = [150,325,500]; % RT
+                ylim([150 500])
             elseif measure=='MT'
                 h.YTick = 0:1000:3000; % MT
                 ylim([0 2600])
@@ -1224,8 +1233,14 @@ switch (what)
             % ylim([0.3 3])
             % ylim([0 2600])
             % ylim([0 650])
-            xlim([0,21])
+            xlim([0.5,6])
             fontname("Arial")
+
+            % rm anova:
+            % tmp_data = 
+            % C.value_subj(:,1)
+            % stats = rm_anova2(y(:),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
+
         end
 
         varargout{1} = C;
@@ -2981,11 +2996,24 @@ switch (what)
         varargout{1} = C;
 
     case 'finger_count_explanation'
-        C_MD = efc1_analyze('model_testing_all','measure','MD');
-        C_RT = efc1_analyze('model_testing_all','measure','RT');
-
-
-
+        C_MD = efc1_analyze('model_testing_all','measure','MD','model_names',{'n_fing'});
+        C_RT = efc1_analyze('model_testing_all','measure','RT','model_names',{'n_fing'});
+        
+        x = [ones(length(C_MD.r),1)];
+        y = [C_MD.r];
+        fig = figure('Units','centimeters', 'Position',[15 15 12 15]);
+        [x_coord,~,~] = barplot(x,y,'capwidth',0.1,'linewidth',conf.bar_line_width,'gapwidth',[0.5,0,0,0],'barwidth',1); 
+        ylim([0,1])
+        drawline(1,'dir','horz','lim',[x_coord(1)-lim_width,x_coord(1)+lim_width],'linewidth',conf.horz_line_width,'color',[0.8 0.8 0.8],'linestyle',':')
+        % xlim([0,6])
+        h = gca;
+        h.XTickLabels = {'Finger Count Model'};
+        h.XAxis.FontSize = my_font.conf_label;
+        h.YAxis.FontSize = my_font.conf_tick_label;
+        h.LineWidth = conf.axis_width;
+        ylabel('$\mathbf{R}$','interpreter','LaTex','FontSize',my_font.conf_label)
+        fontname("Arial")
+    
     otherwise
         error('The analysis you entered does not exist!')
 end
