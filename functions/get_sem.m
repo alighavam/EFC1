@@ -45,6 +45,7 @@ C = [];
 X = [];
 Y = [];
 COND = [];
+SN = [];
 
 cnt = 1;
 % loop on each partition. In EFC project, loop on sessions:
@@ -67,6 +68,7 @@ for i = 1:length(partitions)
         Y = [Y ; val];
         X = [X ; partitions(i)*ones(length(val),1)];
         COND = [COND ; conds(j)*ones(length(val),1)];
+        SN = [SN ; subjects];
 
         cnt = cnt+1;
     end
