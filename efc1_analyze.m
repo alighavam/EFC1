@@ -302,10 +302,7 @@ switch (what)
         end
         dsave(fullfile(project_path,'analysis',out_file_name),ANA);
 
-    case 'success_rate'
-        conference_fig = 0;
-        vararginoptions(varargin,{'conference_fig'})
-        
+    case 'success_rate'        
         chords = generateAllChords;
         data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
         subjects = unique(data.sn);
@@ -346,7 +343,7 @@ switch (what)
         sem_all = [std(C.acc_avg_s01) ; std(C.acc_avg_s02) ; std(C.acc_avg_s03) ; std(C.acc_avg_s04)]/sqrt(length(C.sn));
 
         fig_dataframe = [];
-        fig_dataframe.sess = 1:4;
+        fig_dataframe.sess = (1:4)';
         fig_dataframe.difficult = avg_diff;
         fig_dataframe.difficult_sem = sem_diff;
         fig_dataframe.all_chords = avg_all;
@@ -409,17 +406,10 @@ switch (what)
 
     
 
-    case 'behaviour_trends'
-        measure = 'MD';
-        conference_fig = 0;
-        vararginoptions(varargin,{'measure','conference_fig'})
-
+    case 'training_performance'
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         subj = unique(data.sn);
-
-        % getting the values of measure:
-        values = eval(['data.' measure]);
         
         % calaculating avg improvement from sess 1 to 4:
         C = [];
@@ -427,161 +417,35 @@ switch (what)
             C.sn(i,1) = subj(i);
 
             % sess 1 and 4 data:
-            val1 = mean(values(data.sn==subj(i) & data.sess==1),'omitmissing');
-            val4 = mean(values(data.sn==subj(i) & data.sess==4),'omitmissing');
+            val1 = mean(data.MD(data.sn==subj(i) & data.sess==1),'omitmissing');
+            val4 = mean(data.MD(data.sn==subj(i) & data.sess==4),'omitmissing');
 
             C.perc_improvement(i,1) = (val1-val4)/val1;
         end
         
-        [sem_subj, X_subj, Y_subj, ~] = get_sem(values, data.sn, data.sess, data.num_fingers);
+        fig_dataframe = [];
         
-        % PLOTS:
-        if ~conference_fig
-            fig = figure('Units','centimeters', 'Position',[15 15 4.2 6]);
-            % for i = 1:5
-            %     errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            %     lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',6,'errorbars','');
-            % end
-            
-            % all avg:
-            [sem_subj, ~, ~, ~] = get_sem(values, data.sn, data.sess, data.num_fingers);
-            errorbar(sem_subj.partitions(sem_subj.cond==1),sem_subj.y(sem_subj.cond==1),sem_subj.sem(sem_subj.cond==1),'LineStyle','none','Color',colors_blue(1,:),'CapSize',0,'LineWidth',paper.err_width); hold on;
-            lineplot(data.sess(data.num_fingers==1 & ~isnan(values)),values(data.num_fingers==1 & ~isnan(values)),'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_blue(1,:),'markercolor',colors_blue(1,:),'linecolor',colors_blue(1,:),'linewidth',paper.lineplot_line_width,'errorbars','');
-            
-            values_tmp = values(data.num_fingers>1);
-            [sem_subj, ~, ~, ~] = get_sem(values_tmp, data.sn(data.num_fingers>1), data.sess(data.num_fingers>1), ones(size(data.sess(data.num_fingers>1))));
-            errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            lineplot(data.sess(data.num_fingers>1 & ~isnan(values)),values(data.num_fingers>1 & ~isnan(values)),'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',paper.lineplot_line_width,'errorbars','');
-            
-            % lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
-            % legend boxoff
-            % fontsize(lgd,my_font.conf_legend,'points')
-            h = gca;
-            if measure=='MD'
-                ylim([0.5 2])
-                h.YTick = [0.5 1.3 2];
-            elseif measure=='RT'
-                ylim([170, 400])
-                h.YTick = [170 280 400];
-            elseif measure=='MT'
-                ylim([0 2600])
-            end
-            xlim([0.5 4.5])
-            xlabel('days','FontSize',my_font.conf_label)
-            ylabel([measure],'FontSize',my_font.conf_label)
-            % ylabel([measure],'FontSize',my_font.tick_label)
-            h.XAxis.FontSize = my_font.conf_tick_label;
-            h.YAxis.FontSize = my_font.conf_tick_label;
-            h.LineWidth = conf.axis_width;
-            fontname("Arial")
-            
-            fig = figure('Units','centimeters', 'Position',[15 15 15 17.5]);
-            [C_sem, X_subj, Y_subj, ~] = get_sem(values, data.sn, ones(size(data.sn)), data.num_fingers);
-            errorbar(C_sem.cond,C_sem.y,C_sem.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            lineplot(data.num_fingers(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',6,'errorbars','');
-            
-            % lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
-            % legend boxoff
-            % fontsize(lgd,my_font.conf_legend,'points')
-            h = gca;
-            if measure=='MD'
-                ylim([0 2.4])
-                h.YTick = [0 1.2 2.4];
-            elseif measure=='RT'
-                ylim([200, 500])
-                h.YTick = [200 350 500];
-            elseif measure=='MT'
-                ylim([0 2600])
-            end
-            xlim([0.5 5.5])
-            xlabel('Finger Count','FontSize',my_font.conf_label)
-            ylabel([measure],'FontSize',my_font.conf_label)
-            % ylabel([measure],'FontSize',my_font.tick_label)
-            h.XAxis.FontSize = my_font.conf_tick_label;
-            h.YAxis.FontSize = my_font.conf_tick_label;
-            h.LineWidth = conf.axis_width;
-            fontname("Arial")
-        else
-            % figure;
-            % ax1 = axes('Units', 'centimeters', 'Position', [0 0 25 25],'Box','off');
-            % ax1.PositionConstraint = "innerposition";
-            % axes(ax1);
-            fig = figure('Units','centimeters', 'Position',[15 15 12 17.5]);
-            % for i = 1:5
-            %     errorbar(sem_subj.partitions(sem_subj.cond==i),sem_subj.y(sem_subj.cond==i),sem_subj.sem(sem_subj.cond==i),'LineStyle','none','Color',colors_blue(i,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            %     lineplot(data.sess(data.num_fingers==i & ~isnan(values)),values(data.num_fingers==i & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(i,:),'markercolor',colors_blue(i,:),'linecolor',colors_blue(i,:),'linewidth',6,'errorbars','');
-            % end
-            
-            % all avg:
-            [sem_subj, ~, ~, ~] = get_sem(values, data.sn, data.sess, data.num_fingers);
-            errorbar(sem_subj.partitions(sem_subj.cond==1),sem_subj.y(sem_subj.cond==1),sem_subj.sem(sem_subj.cond==1),'LineStyle','none','Color',colors_blue(1,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            lineplot(data.sess(data.num_fingers==1 & ~isnan(values)),values(data.num_fingers==1 & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(1,:),'markercolor',colors_blue(1,:),'linecolor',colors_blue(1,:),'linewidth',6,'errorbars','');
-            
-            values_tmp = values(data.num_fingers>1);
-            [sem_subj, ~, ~, ~] = get_sem(values_tmp, data.sn(data.num_fingers>1), data.sess(data.num_fingers>1), ones(size(data.sess(data.num_fingers>1))));
-            errorbar(sem_subj.partitions,sem_subj.y,sem_subj.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            lineplot(data.sess(data.num_fingers>1 & ~isnan(values)),values(data.num_fingers>1 & ~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',6,'errorbars','');
-            
-            % lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
-            % legend boxoff
-            % fontsize(lgd,my_font.conf_legend,'points')
-            h = gca;
-            if measure=='MD'
-                ylim([0.5 2])
-                h.YTick = [0.5 1.3 2];
-            elseif measure=='RT'
-                ylim([170, 400])
-                h.YTick = [170 280 400];
-            elseif measure=='MT'
-                ylim([0 2600])
-            end
-            xlim([0.5 4.5])
-            xlabel('days','FontSize',my_font.conf_label)
-            ylabel([measure],'FontSize',my_font.conf_label)
-            % ylabel([measure],'FontSize',my_font.tick_label)
-            h.XAxis.FontSize = my_font.conf_tick_label;
-            h.YAxis.FontSize = my_font.conf_tick_label;
-            h.LineWidth = conf.axis_width;
-            fontname("Arial")
-            
-            fig = figure('Units','centimeters', 'Position',[15 15 15 17.5]);
-            [C_sem, X_subj, Y_subj, ~] = get_sem(values, data.sn, ones(size(data.sn)), data.num_fingers);
-            errorbar(C_sem.cond,C_sem.y,C_sem.sem,'LineStyle','none','Color',colors_blue(5,:),'CapSize',0,'LineWidth',conf.err_width); hold on;
-            lineplot(data.num_fingers(~isnan(values)),values(~isnan(values)),'markertype','o','markersize',12,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',6,'errorbars','');
-            
-            % lgd = legend({'','n=1','','n=2','','n=3','','n=4','','n=5'});
-            % legend boxoff
-            % fontsize(lgd,my_font.conf_legend,'points')
-            h = gca;
-            if measure=='MD'
-                ylim([0 2.4])
-                h.YTick = [0 1.2 2.4];
-            elseif measure=='RT'
-                ylim([200, 500])
-                h.YTick = [200 350 500];
-            elseif measure=='MT'
-                ylim([0 2600])
-            end
-            xlim([0.5 5.5])
-            xlabel('Finger Count','FontSize',my_font.conf_label)
-            ylabel([measure],'FontSize',my_font.conf_label)
-            % ylabel([measure],'FontSize',my_font.tick_label)
-            h.XAxis.FontSize = my_font.conf_tick_label;
-            h.YAxis.FontSize = my_font.conf_tick_label;
-            h.LineWidth = conf.axis_width;
-            fontname("Arial")
-        end
+        % sem for all finger counts separately:
+        [sem_subj, X, Y, cond] = get_sem(data.MD, data.sn, data.sess, data.num_fingers);
+        fig_dataframe.sess = X;
+        fig_dataframe.finger_count = cond;
+        fig_dataframe.MD = Y;
+
+        [sem_subj, X, Y, cond] = get_sem(data.RT, data.sn, data.sess, data.num_fingers);
+        fig_dataframe.RT = Y;
+
+        dsave(fullfile(project_path,'analysis','training_performance.tsv'),fig_dataframe);
         
         % doing stats:
-        idx_exlude_nans = ~isnan(values);
-        stats = rm_anova2(values(idx_exlude_nans),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
-        % T = MANOVA2rp(data.sn(idx_exlude_nans),[data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans)],values(idx_exlude_nans));
-        
+        % idx_exlude_nans = ~isnan(values);
+        % stats = rm_anova2(values(idx_exlude_nans),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
+        % % T = MANOVA2rp(data.sn(idx_exlude_nans),[data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans)],values(idx_exlude_nans));
+        % 
         % percent improvement:
-        fprintf('%s improvement from sess 1 to 4:\n    %.4f%% +- %.4f SEM\n',measure, mean(C.perc_improvement)*100, 100*std(C.perc_improvement)/sqrt(length(C.perc_improvement)))
+        % fprintf('%s improvement from sess 1 to 4:\n    %.4f%% +- %.4f SEM\n',measure, mean(C.perc_improvement)*100, 100*std(C.perc_improvement)/sqrt(length(C.perc_improvement)))
         
-        varargout{1} = stats;
-        varargout{2} = C;
+        % varargout{1} = stats;
+        % varargout{2} = C;
         
     case 'similarity_of_measures'
         % loading data:
