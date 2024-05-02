@@ -66,7 +66,7 @@ for i = 1:length(partitions)
         % subject data average within subjects:
         Y = [Y ; val];
         X = [X ; partitions(i)*ones(length(val),1)];
-        COND = [COND ; conds(j)];
+        COND = [COND ; conds(j)*ones(length(val),1)];
 
         cnt = cnt+1;
     end
