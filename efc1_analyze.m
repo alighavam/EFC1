@@ -871,25 +871,26 @@ switch (what)
         
     case 'repetition_effect'
         chords = generateAllChords;
-        measure = 'MD';
-        conference_fig = 0;
         subj_selection = [];
-        vararginoptions(varargin,{'chords','measure','subj_selection','conference_fig'})
+        vararginoptions(varargin,{'chords','subj_selection'})
         
         data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
         data = getrow(data,ismember(data.chordID,chords));
         if ~isempty(subj_selection)
             data = getrow(data,ismember(data.sn,subj_selection));
         end
-
+        
         % getting the values of measure:
-        values = eval(['data.' measure]);
-        values(values==-1) = NaN;
+        MD = data.MD;
+        MD(MD==-1) = NaN;
+        RT = data.RT;
+        RT(RT==-1) = NaN;
         
         % putting trials in rows:
         n_fing = reshape(data.num_fingers,5,[]); 
         sess = reshape(data.sess,5,[]); 
-        values = reshape(values,5,[]);
+        MD = reshape(MD,5,[]);
+        RT = reshape(RT,5,[]);
         subj = reshape(data.sn,5,[]);
         repetitions = 5;
 
@@ -909,31 +910,25 @@ switch (what)
                     C.num_fingers(cnt,1) = n_fing_unique(i);
                     C.sess(cnt,1) = j;
                     C.sn(cnt,1) = subj_unique(sn);
-
-                    % selecting the data for each session, finger group and
+                    
+                    % selecting the data for each session, finger count and
                     % subject:
-                    values_tmp = values(:, subj==subj_unique(sn) & n_fing==n_fing_unique(i) & sess==j);
-                    tmp = mean(values_tmp,2,'omitmissing')';
-                    C.value_subj_rep1(cnt,1) = tmp(1);
-                    C.value_subj_rep2(cnt,1) = tmp(2);
-                    C.value_subj_rep3(cnt,1) = tmp(3);
-                    C.value_subj_rep4(cnt,1) = tmp(4);
-                    C.value_subj_rep5(cnt,1) = tmp(5);
+                    MD_tmp = MD(:, subj==subj_unique(sn) & n_fing==n_fing_unique(i) & sess==j);
+                    tmp = mean(MD_tmp,2,'omitmissing')';
+                    C.MD_subj_rep1(cnt,1) = tmp(1);
+                    C.MD_subj_rep2(cnt,1) = tmp(2);
+                    C.MD_subj_rep3(cnt,1) = tmp(3);
+                    C.MD_subj_rep4(cnt,1) = tmp(4);
+                    C.MD_subj_rep5(cnt,1) = tmp(5);
+
+                    RT_tmp = RT(:, subj==subj_unique(sn) & n_fing==n_fing_unique(i) & sess==j);
+                    tmp = mean(RT_tmp,2,'omitmissing')';
+                    C.RT_subj_rep1(cnt,1) = tmp(1);
+                    C.RT_subj_rep2(cnt,1) = tmp(2);
+                    C.Rt_subj_rep3(cnt,1) = tmp(3);
+                    C.RT_subj_rep4(cnt,1) = tmp(4);
+                    C.RT_subj_rep5(cnt,1) = tmp(5);
                     
-                    % averaging the values across subjects:
-                    values_tmp = values(:, n_fing==n_fing_unique(i) & sess==j);
-                    tmp = mean(values_tmp,2,'omitmissing')';
-                    C.value_rep1(cnt,1) = tmp(1);
-                    C.value_rep2(cnt,1) = tmp(2);
-                    C.value_rep3(cnt,1) = tmp(3);
-                    C.value_rep4(cnt,1) = tmp(4);
-                    C.value_rep5(cnt,1) = tmp(5);
-                    
-                    % estimating the standard errors:
-                    for k = 1:repetitions
-                        [sem_tmp, ~, ~, ~] = get_sem( values_tmp(k,:)', subj(n_fing==n_fing_unique(i) & sess==j)', ones(length(values_tmp(k,:)),1), ones(length(values_tmp(k,:)),1) );
-                        eval(['C.sem_rep' num2str(k) '(cnt,1)  = sem_tmp.sem;'])
-                    end
                     cnt = cnt+1;
                 end
             end
@@ -942,7 +937,7 @@ switch (what)
         % stats, improvement from rep1 to avg of rep2-5:
         stats = [];
         rep_improvement = [];
-        value_subj = [C.value_subj_rep1,C.value_subj_rep2,C.value_subj_rep3,C.value_subj_rep4,C.value_subj_rep5];
+        value_subj = [C.MD_subj_rep1,C.MD_subj_rep2,C.MD_subj_rep3,C.MD_subj_rep4,C.MD_subj_rep5];
         for sn = 1:length(subj_unique)
             % values across repetitions for subj sn:
             tmp = value_subj(C.sn==subj_unique(sn),:);
@@ -957,7 +952,7 @@ switch (what)
         stats.t(1,1) = t;
         stats.p(1,1) = p;
         stats
-
+        
         % stats, imporovement from rep 2 to 5. rm_anova:
         tmp_data = value_subj;
         % removing rep 1:
@@ -993,7 +988,7 @@ switch (what)
             cnt = cnt+1;
         end
         
-        dsave(fullfile(project_path,'analysis',['training_repetition_' measure '.tsv']),C);
+        dsave(fullfile(project_path,'analysis','training_repetition.tsv'),C);
         varargout{1} = C;
         varargout{2} = B;
 
