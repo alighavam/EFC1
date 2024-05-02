@@ -1,4 +1,4 @@
-function [C, X, Y, COND] = get_sem(y, subj_vec, part_vec, cond_vec)
+function [C, X, Y, COND, SN] = get_sem(y, subj_vec, part_vec, cond_vec)
 % alighavam79@gmail.com - Diedrichsen and Pruszynski lab 2024.
 % Description:
 %       Estimates the sem across subjects for each condition in the
