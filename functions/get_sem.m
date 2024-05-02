@@ -36,6 +36,8 @@ function [C, X, Y, COND, SN] = get_sem(y, subj_vec, part_vec, cond_vec)
 %
 %       COND: The condition vector corresponding to Y. COND(i) is the
 %             condition Y(i) is coming from.
+%
+%       SN: subject vector corresponding to Y.
 
 subjects = unique(subj_vec);
 partitions = unique(part_vec);
