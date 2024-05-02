@@ -132,7 +132,6 @@ switch (what)
         ylabel('MD','FontSize',my_font.label)
         h.LineWidth = paper.axis_width;
         fontname("arial")
-
         % ======== RT ========
         fig_RT = figure('Units','centimeters', 'Position',[15 15 4.5 6]);
         [~, X, Y, COND] = get_sem(C.RT, C.sn, ones(size(C.sn)), C.finger_count);
