@@ -302,7 +302,7 @@ switch (what)
         end
         dsave(fullfile(project_path,'analysis',out_file_name),ANA);
 
-    case 'subject_chords_accuracy'
+    case 'success_rate'
         conference_fig = 0;
         vararginoptions(varargin,{'conference_fig'})
         
@@ -339,95 +339,20 @@ switch (what)
             C.acc_avg_s04(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==4));
         end
 
-        % % plot:
-        % subjects = unique(C.sn);
-        % for i = 1:length(subjects)
-        %     fig = figure();
-        %     fontsize(fig, my_font.tick_label, 'points')
-        %     scatter(ones(length(C.acc_diff_s01(C.sn==subjects(i)))), C.acc_diff_s01(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     hold on
-        %     scatter(2*ones(length(C.acc_diff_s02(C.sn==subjects(i)))), C.acc_diff_s02(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     scatter(3*ones(length(C.acc_diff_s03(C.sn==subjects(i)))), C.acc_diff_s03(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     scatter(4*ones(length(C.acc_diff_s04(C.sn==subjects(i)))), C.acc_diff_s04(C.sn==subjects(i)), 40, 'k', 'filled')
-        %     drawline(5,'dir','horz','color',[0.7,0.7,0.7])
-        %     plot(1:4, ...
-        %         [C.acc_diff_s01(C.sn==subjects(i))' ; C.acc_diff_s02(C.sn==subjects(i))' ; C.acc_diff_s03(C.sn==subjects(i))' ; C.acc_diff_s04(C.sn==subjects(i))'] ...
-        %         ,'Color',[0 0 0],'LineWidth',1.5)
-        %     ylim([0 1.2])
-        %     xticks([1 2 3 4])
-        %     yticks([0 0.5 1])
-        %     title(['subj ' num2str(subjects(i))],'FontSize',my_font.title)
-        %     ylabel('num correct executions','FontSize',my_font.ylabel)
-        %     xlabel('sess','FontSize',my_font.xlabel)
-        % end
-
         % plot:
         avg_diff = [mean(C.acc_diff_s01) ; mean(C.acc_diff_s02) ; mean(C.acc_diff_s03) ; mean(C.acc_diff_s04)];
         sem_diff = [std(C.acc_diff_s01) ; std(C.acc_diff_s02) ; std(C.acc_diff_s03) ; std(C.acc_diff_s04)]/sqrt(length(C.sn));
         avg_all = [mean(C.acc_avg_s01) ; mean(C.acc_avg_s02) ; mean(C.acc_avg_s03) ; mean(C.acc_avg_s04)];
         sem_all = [std(C.acc_avg_s01) ; std(C.acc_avg_s02) ; std(C.acc_avg_s03) ; std(C.acc_avg_s04)]/sqrt(length(C.sn));
+
+        fig_dataframe = [];
+        fig_dataframe.sess = 1:4;
+        fig_dataframe.difficult = avg_diff;
+        fig_dataframe.difficult_sem = sem_diff;
+        fig_dataframe.all_chords = avg_all;
+        fig_dataframe.all_chords_sem = sem_all;
         
-        if ~conference_fig
-            fig = figure('Units','centimeters', 'Position',[15 15 5 6]);
-            fontsize(fig, my_font.tick_label, 'points')
-            drawline(1,'dir','horz','color',[0.8 0.8 0.8],'lim',[0 5],'linewidth',paper.horz_line_width,'linestyle',':'); hold on;
-            
-            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_gray(5,:),'LineWidth',paper.err_width); 
-            plot(1:4,avg_diff,'Color',colors_gray(5,:),'LineWidth',paper.line_width)
-            scatter(1:4,avg_diff,paper.marker_size,'MarkerFaceColor',colors_gray(5,:),'MarkerEdgeColor',colors_gray(5,:));
-            
-            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_gray(2,:),'LineWidth',paper.err_width); 
-            plot(1:4,avg_all,'Color',[colors_gray(2,:), 0.6],'LineWidth',paper.line_width)
-            % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
-            
-            lgd = legend({'','',['Most Challenging' newline 'Chord per Subject'],'','','All 242 Chords'});
-            legend boxoff
-            fontsize(lgd,my_font.legend,'points')
-            
-            ylim([0,1])
-            xlim([0.8,4.2])
-            h = gca;
-            h.YAxis.TickValues = 0:0.5:1;
-            h.XAxis.TickValues = 1:4;
-            h.XAxis.FontSize = my_font.tick_label;
-            h.YAxis.FontSize = my_font.tick_label;
-            h.LineWidth = paper.axis_width;
-            xlabel('days','FontSize',my_font.label)
-            ylabel('success rate','FontSize',my_font.label)
-            box off
-            fontname("Arial")
-        else
-            fig = figure('Units','centimeters', 'Position',[15 15 16 19]);
-            fontsize(fig, my_font.conf_tick_label, 'points')
-            drawline(1,'dir','horz','color',[0.8 0.8 0.8],'lim',[0 5],'linewidth',conf.horz_line_width,'linestyle',':'); hold on;
-            
-            errorbar(1:4,avg_diff,sem_diff,'LineStyle','none','CapSize',0,'Color',colors_gray(5,:),'LineWidth',conf.err_width); 
-            plot(1:4,avg_diff,'Color',colors_gray(5,:),'LineWidth',conf.line_width)
-            scatter(1:4,avg_diff,conf.marker_size,'MarkerFaceColor',colors_gray(5,:),'MarkerEdgeColor',colors_gray(5,:));
-            
-            errorbar(1:4,avg_all,sem_all,'LineStyle','none','CapSize',0,'Color',colors_gray(2,:),'LineWidth',conf.err_width); 
-            plot(1:4,avg_all,'Color',[colors_gray(2,:), 0.6],'LineWidth',conf.line_width)
-            % scatter(1:4,avg_all,30,'MarkerFaceColor',colors_blue(2,:),'MarkerEdgeColor',colors_blue(2,:),'MarkerEdgeAlpha',0,'MarkerFaceAlpha',0.4);
-            
-            lgd = legend({'','','Most Challenging Chord per Subject','','','All 242 Chords'});
-            legend boxoff
-            fontsize(lgd,my_font.conf_legend,'points')
-            
-            ylim([0,1.2])
-            xlim([0.8,4.2])
-            h = gca;
-            h.YAxis.TickValues = 0:0.5:1;
-            h.XAxis.TickValues = 1:4;
-            h.XAxis.FontSize = my_font.conf_tick_label;
-            h.YAxis.FontSize = my_font.conf_tick_label;
-            h.LineWidth = conf.axis_width;
-            xlabel('days','FontSize',my_font.conf_label)
-            ylabel('success rate','FontSize',my_font.conf_label)
-            box off
-            fontname("Arial")
-        end
-        
-        dsave(fullfile(project_path,'analysis','success_rate.tsv'),C);
+        dsave(fullfile(project_path,'analysis','success_rate.tsv'),fig_dataframe);
         varargout{1} = C;
         
 
@@ -1123,16 +1048,26 @@ switch (what)
                     % selecting the data for each session, finger group and
                     % subject:
                     values_tmp = values(:, subj==subj_unique(sn) & n_fing==n_fing_unique(i) & sess==j);
-                    C.value_subj(cnt,:) = mean(values_tmp,2,'omitmissing')';
+                    tmp = mean(values_tmp,2,'omitmissing')';
+                    C.value_subj_rep1(cnt,1) = tmp(1);
+                    C.value_subj_rep2(cnt,1) = tmp(2);
+                    C.value_subj_rep3(cnt,1) = tmp(3);
+                    C.value_subj_rep4(cnt,1) = tmp(4);
+                    C.value_subj_rep5(cnt,1) = tmp(5);
                     
                     % averaging the values across subjects:
                     values_tmp = values(:, n_fing==n_fing_unique(i) & sess==j);
-                    C.value(cnt,:) = mean(values_tmp,2,'omitmissing')';
+                    tmp = mean(values_tmp,2,'omitmissing')';
+                    C.value_rep1(cnt,1) = tmp(1);
+                    C.value_rep2(cnt,1) = tmp(2);
+                    C.value_rep3(cnt,1) = tmp(3);
+                    C.value_rep4(cnt,1) = tmp(4);
+                    C.value_rep5(cnt,1) = tmp(5);
                     
                     % estimating the standard errors:
                     for k = 1:repetitions
                         [sem_tmp, ~, ~, ~] = get_sem( values_tmp(k,:)', subj(n_fing==n_fing_unique(i) & sess==j)', ones(length(values_tmp(k,:)),1), ones(length(values_tmp(k,:)),1) );
-                        C.sem(cnt,k) = sem_tmp.sem;
+                        eval(['C.sem_rep' num2str(k) '(cnt,1)  = sem_tmp.sem;'])
                     end
                     cnt = cnt+1;
                 end
@@ -1142,9 +1077,10 @@ switch (what)
         % stats, improvement from rep1 to avg of rep2-5:
         stats = [];
         rep_improvement = [];
+        value_subj = [C.value_subj_rep1,C.value_subj_rep2,C.value_subj_rep3,C.value_subj_rep4,C.value_subj_rep5];
         for sn = 1:length(subj_unique)
             % values across repetitions for subj sn:
-            tmp = C.value_subj(C.sn==subj_unique(sn),:);
+            tmp = value_subj(C.sn==subj_unique(sn),:);
             % difference of values from 1st rep to average of rep 2 to 5:
             diff_rep = tmp(:,1) - mean(tmp(:,2:5),2);
             rep_improvement = [rep_improvement ; mean(diff_rep,1)];
@@ -1158,7 +1094,7 @@ switch (what)
         stats
 
         % stats, imporovement from rep 2 to 5. rm_anova:
-        tmp_data = C.value_subj;
+        tmp_data = value_subj;
         % removing rep 1:
         tmp_data(:,1) = [];
         % repetitions:
@@ -1182,8 +1118,8 @@ switch (what)
         for i = 1:length(subj_unique)
             avg_improvement = 0;
             for j = 1:length(n_fing_unique)
-                value_sess1 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==1,:);
-                value_sess4 = C.value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==4,:);
+                value_sess1 = value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==1,:);
+                value_sess4 = value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==4,:);
                 avg_improvement = avg_improvement + (value_sess1 - value_sess4) ./ value_sess1 * 100 /length(subj_unique);
             end
             B.sn(cnt,1) = subj_unique(i);
@@ -1191,134 +1127,7 @@ switch (what)
             B.benefit(cnt,:) = avg_improvement;
             cnt = cnt+1;
         end
-    
-        if ~conference_fig
-            % PLOT - repetition trends across sessions:
-            figure;
-            fig = figure('Units','centimeters', 'Position',[15 15 20 20]);
-            offset_size = 5;
-            x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
-            num_fingers_unique = unique(C.num_fingers);
-            for i = 1:length(num_fingers_unique)
-                for j = 1:length(unique(C.sess))
-                    plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',1); hold on;
-                    errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0, 'Color', colors_blue(num_fingers_unique(i),:));
-                    scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 10,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
-                end
-            end
-            box off
-            h = gca;
-            h.YTick = 100:150:650; % RT
-            % h.YTick = 0:1000:3000; % MT
-            % h.YTick = 0.5:1:2.5; % MD
-            h.XTick = 5*(1:length(unique(C.sess))) - 2;
-            xlabel('session','FontSize',my_font.label)
-            h.XTickLabel = {'1','2','3','4'};
-            h.XAxis.FontSize = my_font.tick_label;
-            h.YAxis.FontSize = my_font.tick_label;
-            ylabel(measure,'FontSize',my_font.label)
-            % ylabel([measure ' [ms]'],'FontSize',my_font.ylabel)
-            if measure=='MD'
-                ylim([0.5 3])
-            elseif measure=='RT'
-                ylim([150 600])
-            elseif measure=='MT'
-                ylim([0 2600])
-            end
-            % ylim([0.3 3])
-            % ylim([0 2600])
-            % ylim([0 650])
-            xlim([0,21])
-            fontname("Arial")
-        else
-            % PLOT - repetition trends across sessions:
-            fig = figure('Units','centimeters', 'Position',[15 15 25 30]);
-            offset_size = 5;
-            x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
-            num_fingers_unique = unique(C.num_fingers);
-            for i = 1:length(num_fingers_unique)
-                for j = 1:length(unique(C.sess))
-                    plot((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',conf.line_width); hold on;
-                    errorbar((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(C.sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0,'LineWidth',conf.err_width, 'Color', colors_blue(num_fingers_unique(i),:));
-                    scatter((1:5)+x_offset(j), mean(C.value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), conf.marker_size,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
-                end
-            end
-            box off
-            h = gca;
-
-            h.XTick = 5*(1:length(unique(C.sess))) - 2;
-            xlabel('Days','FontSize',my_font.conf_label)
-            h.XTickLabel = {'1','2','3','4'};
-            h.XAxis.FontSize = my_font.conf_tick_label;
-            h.YAxis.FontSize = my_font.conf_tick_label;
-            h.LineWidth = conf.axis_width;
-            ylabel(measure,'FontSize',my_font.conf_label)
-            if measure=='MD'
-                h.YTick = [0.5,1.7,3]; % MD
-                ylim([0.5 3])
-            elseif measure=='RT'
-                h.YTick = [120,360,600]; % RT
-                ylim([120 600])
-            elseif measure=='MT'
-                h.YTick = 0:1000:3000; % MT
-                ylim([0 2600])
-            end
-            % ylim([0.3 3])
-            % ylim([0 2600])
-            % ylim([0 650])
-            xlim([0,21])
-            fontname("Arial")
-
-            % PLOT - repetition trends across sessions:
-            fig = figure('Units','centimeters', 'Position',[15 15 15.5 19]);
-            num_fingers_unique = unique(C.num_fingers);
-            [C_sem1, X1, Y1, COND] = get_sem(C.value_subj(:,1), C.sn, C.sess, ones(size(C.sn)));
-            [C_sem2, X2, Y2, COND] = get_sem(C.value_subj(:,2), C.sn, C.sess, ones(size(C.sn)));
-            [C_sem3, X3, Y3, COND] = get_sem(C.value_subj(:,3), C.sn, C.sess, ones(size(C.sn)));
-            [C_sem4, X4, Y4, COND] = get_sem(C.value_subj(:,4), C.sn, C.sess, ones(size(C.sn)));
-            [C_sem5, X5, Y5, COND] = get_sem(C.value_subj(:,5), C.sn, C.sess, ones(size(C.sn)));
-            y = [C_sem1.y,C_sem2.y,C_sem3.y,C_sem4.y,C_sem5.y];
-            y_sem = [C_sem1.sem,C_sem2.sem,C_sem3.sem,C_sem4.sem,C_sem5.sem];
-            % loop on number of fingers:
-            offset_size = 5;
-            x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
-            for j = 1:length(unique(C.sess))
-                plot((1:5)+x_offset(j), y(j,:),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',4); hold on;
-                errorbar((1:5)+x_offset(j), y(j,:), y_sem(j,:), 'CapSize', 0,'LineWidth',2, 'Color', colors_blue(num_fingers_unique(i),:));
-                scatter((1:5)+x_offset(j), y(j,:), 100,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
-            end
-            box off
-            h = gca;
-
-            h.XTick = 5*(1:length(unique(C.sess))) - 2;
-            xlabel('days','FontSize',my_font.xlabel)
-            h.XTickLabel = {'1','2','3','4'};
-            h.XAxis.FontSize = my_font.conf_tick_label;
-            h.YAxis.FontSize = my_font.conf_tick_label;
-            h.LineWidth = conf.axis_width;
-            ylabel(measure,'FontSize',my_font.conf_label)
-            if measure=='MD'
-                h.YTick = [0.5,1.7,2.8]; % MD
-                ylim([0.5 2.8])
-            elseif measure=='RT'
-                h.YTick = [150,350,550]; % RT
-                ylim([150 550])
-            elseif measure=='MT'
-                h.YTick = 0:1000:3000; % MT
-                ylim([0 2600])
-            end
-            % ylim([0.3 3])
-            % ylim([0 2600])
-            % ylim([0 650])
-            xlim([0,21])
-            fontname("Arial")
-
-            % rm anova:
-            % tmp_data = 
-            % C.value_subj(:,1)
-            % stats = rm_anova2(y(:),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
-
-        end
+        
         dsave(fullfile(project_path,'analysis',['training_repetition_' measure '.tsv']),C);
         varargout{1} = C;
         varargout{2} = B;
