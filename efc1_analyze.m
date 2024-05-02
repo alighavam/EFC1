@@ -426,12 +426,13 @@ switch (what)
         fig_dataframe = [];
         
         % sem for all finger counts separately:
-        [sem_subj, X, Y, cond] = get_sem(data.MD, data.sn, data.sess, data.num_fingers);
+        [sem_subj, X, Y, cond, SN] = get_sem(data.MD, data.sn, data.sess, data.num_fingers);
+        fig_dataframe.sn = SN;
         fig_dataframe.sess = X;
         fig_dataframe.finger_count = cond;
         fig_dataframe.MD = Y;
 
-        [sem_subj, X, Y, cond] = get_sem(data.RT, data.sn, data.sess, data.num_fingers);
+        [sem_subj, X, Y, cond, SN] = get_sem(data.RT, data.sn, data.sess, data.num_fingers);
         fig_dataframe.RT = Y;
 
         dsave(fullfile(project_path,'analysis','training_performance.tsv'),fig_dataframe);
