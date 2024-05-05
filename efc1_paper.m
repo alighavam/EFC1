@@ -32,7 +32,7 @@ my_font.tick_label = 8;
 my_font.legend = 8;
 
 % paper fig sizes:
-paper.err_width = 1.5;
+paper.err_width = 0.7;
 paper.line_width = 2;
 paper.lineplot_line_width = 2;
 paper.marker_size = 35;
@@ -150,92 +150,76 @@ switch (what)
     case 'training_repetition_effect'
         C = dload(fullfile(project_path,'analysis','training_repetition.tsv'));
 
-        MD_subj = [C.MD_subj_rep1,C.MD_subj_rep2,C.MD_subj_rep3,C.MD_subj_rep4,C.MD_subj_rep5];
-        
-        % PLOT - repetition trends across sessions:
-        % fig = figure('Units','centimeters', 'Position',[15 15 25 30]);
-        % offset_size = 5;
-        % x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
-        % num_fingers_unique = unique(C.num_fingers);
-        % 
-        % for i = 1:length(num_fingers_unique)
-        %     for j = 1:length(unique(C.sess))
-        %         plot((1:5)+x_offset(j), mean(value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',paper.line_width); hold on;
-        %         errorbar((1:5)+x_offset(j), mean(value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), mean(sem(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), 'CapSize', 0,'LineWidth',paper.err_width, 'Color', colors_blue(num_fingers_unique(i),:));
-        %         scatter((1:5)+x_offset(j), mean(value(C.num_fingers==num_fingers_unique(i) & C.sess==j, :),1), paper.marker_size,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
-        %     end
-        % end
-        % box off
-        % h = gca;
-        % 
-        % h.XTick = 5*(1:length(unique(C.sess))) - 2;
-        % xlabel('Days','FontSize',my_font.label)
-        % h.XTickLabel = {'1','2','3','4'};
-        % h.XAxis.FontSize = my_font.tick_label;
-        % h.YAxis.FontSize = my_font.tick_label;
-        % h.LineWidth = paper.axis_width;
-        % ylabel(measure,'FontSize',my_font.label)
-        % if measure=='MD'
-        %     h.YTick = [0.5,1.7,3]; % MD
-        %     ylim([0.5 3])
-        % elseif measure=='RT'
-        %     h.YTick = [120,360,600]; % RT
-        %     ylim([120 600])
-        % elseif measure=='MT'
-        %     h.YTick = 0:1000:3000; % MT
-        %     ylim([0 2600])
-        % end
-        % % ylim([0.3 3])
-        % % ylim([0 2600])
-        % % ylim([0 650])
-        % xlim([0,21])
-        % fontname("Arial")
-
-        % PLOT - repetition trends across sessions:
-        fig = figure('Units','centimeters', 'Position',[15 15 15.5 19]);
-        num_fingers_unique = unique(C.num_fingers);
-        [C_sem1, X1, Y1, COND] = get_sem(MD_subj(:,1), C.sn, C.sess, ones(size(C.sn)));
-        [C_sem2, X2, Y2, COND] = get_sem(MD_subj(:,2), C.sn, C.sess, ones(size(C.sn)));
-        [C_sem3, X3, Y3, COND] = get_sem(MD_subj(:,3), C.sn, C.sess, ones(size(C.sn)));
-        [C_sem4, X4, Y4, COND] = get_sem(MD_subj(:,4), C.sn, C.sess, ones(size(C.sn)));
-        [C_sem5, X5, Y5, COND] = get_sem(MD_subj(:,5), C.sn, C.sess, ones(size(C.sn)));
-        X = {X1,X2,X3,X4,X5};
-        Y = {Y1,Y2,Y3,Y4,Y5};
-        % loop on number of fingers:
+        % ====== MD ======:
+        fig_MD = figure('Units','centimeters', 'Position',[15 15 6 6]);
+        % average data over finger count:
+        [~, X1, Y1, COND] = get_sem(C.MD_subj_rep1, C.sn, C.sess, ones(size(C.sn)));
+        [~, X2, Y2, COND] = get_sem(C.MD_subj_rep2, C.sn, C.sess, ones(size(C.sn)));
+        [~, X3, Y3, COND] = get_sem(C.MD_subj_rep3, C.sn, C.sess, ones(size(C.sn)));
+        [~, X4, Y4, COND] = get_sem(C.MD_subj_rep4, C.sn, C.sess, ones(size(C.sn)));
+        [~, X5, Y5, COND] = get_sem(C.MD_subj_rep5, C.sn, C.sess, ones(size(C.sn)));
         offset_size = 5;
         x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
         hold on;
         for j = 1:length(unique(C.sess))
-            % plot((1:5)+x_offset(j), y(j,:),'Color',colors_blue(num_fingers_unique(i),:),'LineWidth',paper.line_width); hold on;
-            % errorbar((1:5)+x_offset(j), y(j,:), y_sem(j,:), 'CapSize', 0,'LineWidth',paper.err_width, 'Color', colors_blue(num_fingers_unique(i),:));
-            % scatter((1:5)+x_offset(j), y(j,:), paper.marker_size,'MarkerFaceColor',colors_blue(num_fingers_unique(i),:),'MarkerEdgeColor',colors_blue(num_fingers_unique(i),:))
-            lineplot(X{j}+x_offset(j), Y{j})
+            x_tmp = [ones(sum(X1==j),1);2*ones(sum(X2==j),1);3*ones(sum(X3==j),1);4*ones(sum(X4==j),1);5*ones(sum(X5==j),1)];
+            y_tmp = [Y1(X1==j);Y2(X2==j);Y3(X3==j);Y4(X4==j);Y5(X5==j)];
+            lineplot(x_tmp+x_offset(j),y_tmp,'markertype','o','markersize',paper.lineplot_marker_size-1,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',paper.lineplot_line_width-0.7,'errorcolor',colors_blue(5,:),'errorwidth',paper.err_width,'errorcap',0);
         end
         box off
         h = gca;
 
         h.XTick = 5*(1:length(unique(C.sess))) - 2;
-        xlabel('days','FontSize',my_font.label)
         h.XTickLabel = {'1','2','3','4'};
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
         h.LineWidth = paper.axis_width;
-        ylabel('MD','FontSize',my_font.label)
-        % if measure=='MD'
-            h.YTick = [0.5,1.7,2.8]; % MD
-            ylim([0.5 2.8])
-        % elseif measure=='RT'
-        %     h.YTick = [150,350,550]; % RT
-        %     ylim([150 550])
-        % elseif measure=='MT'
-        %     h.YTick = 0:1000:3000; % MT
-        %     ylim([0 2600])
-        % end
-        % ylim([0.3 3])
-        % ylim([0 2600])
-        % ylim([0 650])
+        h.YTick = [0.5,1.7,2.8];
+        ylim([0.5 2.8])
         xlim([0,21])
+        xlabel('days','FontSize',my_font.label)
+        ylabel('MD','FontSize',my_font.label)
         fontname("Arial")
+
+        % stats:
+        fprintf('\n======== MD Change in rep1 from day 1 to 4 ========\n')
+        T_MD_rep1Imprv = MANOVArp(C.sn,C.sess,C.MD_subj_rep1);
+        
+        
+        % ====== RT ======: 
+        fig_RT = figure('Units','centimeters', 'Position',[15 15 6 6]);
+        % average data over finger count:
+        [~, X1, Y1, COND] = get_sem(C.RT_subj_rep1, C.sn, C.sess, ones(size(C.sn)));
+        [~, X2, Y2, COND] = get_sem(C.RT_subj_rep2, C.sn, C.sess, ones(size(C.sn)));
+        [~, X3, Y3, COND] = get_sem(C.RT_subj_rep3, C.sn, C.sess, ones(size(C.sn)));
+        [~, X4, Y4, COND] = get_sem(C.RT_subj_rep4, C.sn, C.sess, ones(size(C.sn)));
+        [~, X5, Y5, COND] = get_sem(C.RT_subj_rep5, C.sn, C.sess, ones(size(C.sn)));
+        offset_size = 5;
+        x_offset = 0:offset_size:5*(length(unique(C.sess))-1);
+        hold on;
+        for j = 1:length(unique(C.sess))
+            x_tmp = [ones(sum(X1==j),1);2*ones(sum(X2==j),1);3*ones(sum(X3==j),1);4*ones(sum(X4==j),1);5*ones(sum(X5==j),1)];
+            y_tmp = [Y1(X1==j);Y2(X2==j);Y3(X3==j);Y4(X4==j);Y5(X5==j)];
+            lineplot(x_tmp+x_offset(j),y_tmp,'markertype','o','markersize',paper.lineplot_marker_size-1,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',paper.lineplot_line_width-0.7,'errorcolor',colors_blue(5,:),'errorwidth',paper.err_width,'errorcap',0);
+        end
+        box off
+        h = gca;
+
+        h.XTick = 5*(1:length(unique(C.sess))) - 2;
+        h.XTickLabel = {'1','2','3','4'};
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        h.LineWidth = paper.axis_width;
+        h.YTick = [150,350,550];
+        ylim([150 550])
+        xlim([0,21])
+        ylabel('RT','FontSize',my_font.label)
+        xlabel('days','FontSize',my_font.label)
+        fontname("Arial")
+
+        % stats:
+        fprintf('\n======== RT Change in rep1 from day 1 to 4 ========\n')
+        T = MANOVArp(C.sn,C.sess,C.RT_subj_rep1);
 
     otherwise
         error('The analysis %s you entered does not exist!',what)
