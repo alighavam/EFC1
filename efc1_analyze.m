@@ -925,7 +925,7 @@ switch (what)
                     tmp = mean(RT_tmp,2,'omitmissing')';
                     C.RT_subj_rep1(cnt,1) = tmp(1);
                     C.RT_subj_rep2(cnt,1) = tmp(2);
-                    C.Rt_subj_rep3(cnt,1) = tmp(3);
+                    C.RT_subj_rep3(cnt,1) = tmp(3);
                     C.RT_subj_rep4(cnt,1) = tmp(4);
                     C.RT_subj_rep5(cnt,1) = tmp(5);
                     
