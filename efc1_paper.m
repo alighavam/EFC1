@@ -84,7 +84,7 @@ switch (what)
         % single-finger chords as baseline:
         lineplot(C.sess(C.finger_count==1),C.MD(C.finger_count==1),'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_gray(2,:),'markercolor',colors_gray(2,:),'linecolor',colors_gray(2,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(2,:),'errorcap',0); hold on;
         % multi-finger chords:
-        [~, X, Y, COND] = get_sem(C.MD(C.finger_count>1), C.sn(C.finger_count>1), C.sess(C.finger_count>1), ones(sum(C.finger_count>1),1));
+        [~, X, Y, COND, SN] = get_sem(C.MD(C.finger_count>1), C.sn(C.finger_count>1), C.sess(C.finger_count>1), ones(sum(C.finger_count>1),1));
         lineplot(X,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_blue(5,:),'errorcap',0);
         h = gca;
         ylim([0.5 2])
@@ -97,12 +97,28 @@ switch (what)
         h.LineWidth = paper.axis_width;
         fontname("arial")
 
+        % average multi-finger chord MD imprv from day 1 to 4:
+        day1 = Y(X==1);
+        day4 = Y(X==4);
+        % per subject improvements:
+        imprv = (day1-day4) ./ day1;
+        fprintf('\nMD Imprv day 1 to 4: AVG = %.4f%% , SEM = %.4f%%\n',mean(imprv)*100,std(imprv)/sqrt(length(day1))*100)
+
+        % stats
+        fprintf("\n======= Chord MD Improvement =======\n")
+        T_MD_Imprv = anovaMixed(Y,SN,'within',X,{'days'});
+        fprintf("\n")
+
+        fprintf("\n======= Single-Finger MD Improvement =======\n")
+        T_MD_1f_Imprv = anovaMixed(C.MD(C.finger_count==1),C.sn(C.finger_count==1),'within',C.sess(C.finger_count==1),{'days'});
+        fprintf("\n")
+
         % ======== RT ========
         fig_RT = figure('Units','centimeters', 'Position',[15 15 4.2 6]);
         % single-finger chords as baseline:
         lineplot(C.sess(C.finger_count==1),C.RT(C.finger_count==1),'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_gray(2,:),'markercolor',colors_gray(2,:),'linecolor',colors_gray(2,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(2,:),'errorcap',0); hold on;
         % multi-finger chords:
-        [~, X, Y, COND] = get_sem(C.RT(C.finger_count>1), C.sn(C.finger_count>1), C.sess(C.finger_count>1), ones(sum(C.finger_count>1),1));
+        [~, X, Y, COND, SN] = get_sem(C.RT(C.finger_count>1), C.sn(C.finger_count>1), C.sess(C.finger_count>1), ones(sum(C.finger_count>1),1));
         lineplot(X,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_blue(5,:),'errorcap',0);
         h = gca;
         ylim([170, 400])
@@ -114,6 +130,26 @@ switch (what)
         ylabel('RT','FontSize',my_font.label)
         h.LineWidth = paper.axis_width;
         fontname("arial")
+
+        % average multi-finger chord RT imprv from day 1 to 4:
+        day1 = Y(X==1);
+        day4 = Y(X==4);
+        % per subject improvements:
+        imprv = (day1-day4) ./ day1;
+        fprintf('\nRT Imprv day 1 to 4: AVG = %.4f%% , SEM = %.4f%%\n',mean(imprv)*100,std(imprv)/sqrt(length(day1))*100)
+
+        % stats
+        fprintf("\n======= Chord RT Improvement =======\n")
+        T_RT_Imprv = anovaMixed(Y,SN,'within',X,{'days'});
+        fprintf("\n")
+
+        fprintf("\n======= Single-Finger RT Improvement =======\n")
+        T_RT_1f_Imprv = anovaMixed(C.RT(C.finger_count==1),C.sn(C.finger_count==1),'within',C.sess(C.finger_count==1),{'days'});
+        fprintf("\n")
+
+        fprintf("\n======= RT: multi-finger vs single-finger on day 4 =======\n")
+        [t,p] = ttest(day4,C.RT(C.finger_count==1 & C.sess==4),1,'paired');
+        fprintf("t = %.4f , p = %.4f\n",t,p)
 
     case 'training_finger_count_effect'
         C = dload(fullfile(project_path,'analysis','training_performance.tsv'));
@@ -183,8 +219,17 @@ switch (what)
 
         % stats:
         fprintf('\n======== MD Change in rep1 from day 1 to 4 ========\n')
-        T_MD_rep1Imprv = MANOVArp(C.sn,C.sess,C.MD_subj_rep1);
-        
+        % T_MD_rep1Imprv = MANOVArp(C.sn,C.sess,C.MD_subj_rep1);
+        T_MD_rep1Imprv = anovaMixed(C.MD_subj_rep1,C.sn,'within',[C.sess],{'days'});
+        fprintf('\n')
+
+        fprintf('\n======== MD Imprv in rep 2-5 ========\n')
+        y = [C.MD_subj_rep2;C.MD_subj_rep3;C.MD_subj_rep4;C.MD_subj_rep5];
+        sn = [C.sn;C.sn;C.sn;C.sn];
+        rep = [2*ones(size(C.MD_subj_rep2));3*ones(size(C.MD_subj_rep3));4*ones(size(C.MD_subj_rep4));5*ones(size(C.MD_subj_rep5))];
+        % T_MD_rep2to5 = MANOVArp(sn,rep,y);
+        T_MD_rep2to5 = anovaMixed(y,sn,'within',[rep],{'repetitions'});
+        fprintf('\n')
         
         % ====== RT ======: 
         fig_RT = figure('Units','centimeters', 'Position',[15 15 6 6]);
@@ -218,8 +263,18 @@ switch (what)
         fontname("Arial")
 
         % stats:
-        fprintf('\n======== RT Change in rep1 from day 1 to 4 ========\n')
-        T = MANOVArp(C.sn,C.sess,C.RT_subj_rep1);
+        fprintf('\n======== RT Change in rep1 from day 1 to 4 ========\n\n')
+        % T_RT_rep1Imprv = MANOVArp(C.sn,C.sess,C.RT_subj_rep1);
+        T_RT_rep1Imprv = anovaMixed(C.RT_subj_rep1,C.sn,'within',[C.sess],{'days'});
+        fprintf('\n')
+
+        fprintf('\n======== RT Imprv in rep 2-5 ========\n')
+        y = [C.RT_subj_rep2;C.RT_subj_rep3;C.RT_subj_rep4;C.RT_subj_rep5];
+        sn = [C.sn;C.sn;C.sn;C.sn];
+        rep = [2*ones(size(C.RT_subj_rep2));3*ones(size(C.RT_subj_rep3));4*ones(size(C.RT_subj_rep4));5*ones(size(C.RT_subj_rep5))];
+        % T_MD_rep2to5 = MANOVArp(sn,rep,y);
+        T_MD_rep2to5 = anovaMixed(y,sn,'within',[rep],{'repetitions'});
+        fprintf('\n')
 
     otherwise
         error('The analysis %s you entered does not exist!',what)
