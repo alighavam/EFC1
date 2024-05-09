@@ -879,18 +879,22 @@ switch (what)
         if ~isempty(subj_selection)
             data = getrow(data,ismember(data.sn,subj_selection));
         end
+
+        chordID = data.chordID;
         
         % getting the values of measure:
         MD = data.MD;
         MD(MD==-1) = NaN;
         RT = data.RT;
         RT(RT==-1) = NaN;
+        chordID(MD==-1) = NaN;
         
         % putting trials in rows:
         n_fing = reshape(data.num_fingers,5,[]); 
         sess = reshape(data.sess,5,[]); 
         MD = reshape(MD,5,[]);
         RT = reshape(RT,5,[]);
+        chordID = reshape(chordID,5,[]);
         subj = reshape(data.sn,5,[]);
         repetitions = 5;
 
