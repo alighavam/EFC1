@@ -63,8 +63,8 @@ for i = 1:length(partitions)
         % storing the values and estimating sem across subjects:
         C.cond(cnt,1) = conds(j);
         C.partitions(cnt,1) = partitions(i);
-        C.y(cnt,1) = mean(val);
-        C.sem(cnt,1) = std(val)/sqrt(length(val));
+        C.y(cnt,1) = mean(val,'omitmissing');
+        C.sem(cnt,1) = std(val,'omitmissing')/sqrt(sum(~isnan(val)));
         
         % subject data average within subjects:
         Y = [Y ; val];
