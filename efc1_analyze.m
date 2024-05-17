@@ -409,44 +409,19 @@ switch (what)
     case 'training_performance'
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
-        subj = unique(data.sn);
         
-        % calaculating avg improvement from sess 1 to 4:
-        C = [];
-        for i = 1:length(subj)
-            C.sn(i,1) = subj(i);
-
-            % sess 1 and 4 data:
-            val1 = mean(data.MD(data.sn==subj(i) & data.sess==1),'omitmissing');
-            val4 = mean(data.MD(data.sn==subj(i) & data.sess==4),'omitmissing');
-
-            C.perc_improvement(i,1) = (val1-val4)/val1;
-        end
-        
-        fig_dataframe = [];
-        
+        ANA = [];
         % sem for all finger counts separately:
         [sem_subj, X, Y, cond, SN] = get_sem(data.MD, data.sn, data.sess, data.num_fingers);
-        fig_dataframe.sn = SN;
-        fig_dataframe.sess = X;
-        fig_dataframe.finger_count = cond;
-        fig_dataframe.MD = Y;
+        ANA.sn = SN;
+        ANA.sess = X;
+        ANA.finger_count = cond;
+        ANA.MD = Y;
 
         [sem_subj, X, Y, cond, SN] = get_sem(data.RT, data.sn, data.sess, data.num_fingers);
-        fig_dataframe.RT = Y;
+        ANA.RT = Y;
 
-        dsave(fullfile(project_path,'analysis','training_performance.tsv'),fig_dataframe);
-        
-        % doing stats:
-        % idx_exlude_nans = ~isnan(values);
-        % stats = rm_anova2(values(idx_exlude_nans),data.sn(idx_exlude_nans),data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans),{'sess','num_fingers'});
-        % % T = MANOVA2rp(data.sn(idx_exlude_nans),[data.sess(idx_exlude_nans),data.num_fingers(idx_exlude_nans)],values(idx_exlude_nans));
-        % 
-        % percent improvement:
-        % fprintf('%s improvement from sess 1 to 4:\n    %.4f%% +- %.4f SEM\n',measure, mean(C.perc_improvement)*100, 100*std(C.perc_improvement)/sqrt(length(C.perc_improvement)))
-        
-        % varargout{1} = stats;
-        % varargout{2} = C;
+        dsave(fullfile(project_path,'analysis','training_performance.tsv'),ANA);
         
     case 'similarity_of_measures'
         % loading data:
@@ -911,7 +886,7 @@ switch (what)
             % loop on sess:
             for j = 1:length(unique(sess))
                 for sn = 1:length(subj_unique)
-                    C.num_fingers(cnt,1) = n_fing_unique(i);
+                    C.finger_count(cnt,1) = n_fing_unique(i);
                     C.sess(cnt,1) = j;
                     C.sn(cnt,1) = subj_unique(sn);
                     
@@ -982,8 +957,8 @@ switch (what)
         for i = 1:length(subj_unique)
             avg_improvement = 0;
             for j = 1:length(n_fing_unique)
-                value_sess1 = value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==1,:);
-                value_sess4 = value_subj(C.sn==subj_unique(i) & C.num_fingers==n_fing_unique(j) & C.sess==4,:);
+                value_sess1 = value_subj(C.sn==subj_unique(i) & C.finger_count==n_fing_unique(j) & C.sess==1,:);
+                value_sess4 = value_subj(C.sn==subj_unique(i) & C.finger_count==n_fing_unique(j) & C.sess==4,:);
                 avg_improvement = avg_improvement + (value_sess1 - value_sess4) ./ value_sess1 * 100 /length(subj_unique);
             end
             B.sn(cnt,1) = subj_unique(i);
@@ -997,76 +972,140 @@ switch (what)
         varargout{2} = B;
 
     case 'repetition_improvement'
-        measure_cell = {};
-        val_cell = {};
-        [val_cell{1},measure_cell{1}] = efc1_analyze('repetition_effect','measure','RT');
-        [val_cell{2},measure_cell{2}] = efc1_analyze('repetition_effect','measure','MT');
-        [val_cell{3},measure_cell{3}] = efc1_analyze('repetition_effect','measure','MD');
-        close all;
-        clc;
-
-        % PLOT - Improvement from sess1 to sess4:
-        figure;
-        ax1 = axes('Units', 'centimeters', 'Position', [2 2 4.8 5],'Box','off');
+        chords = generateAllChords;
+        subj_selection = [];
+        vararginoptions(varargin,{'chords','subj_selection'})
         
-        drawline(0,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,6]); hold on;
-        for i = 1:3
-            B = measure_cell{i};
-
-            % getting subj averages and SEMs for each repetition:
-            sem_1 = get_sem(B.benefit(:,1), B.sn, ones(size(B.sn)), ones(size(B.sn)));
-            sem_2 = get_sem(B.benefit(:,2), B.sn, ones(size(B.sn)), ones(size(B.sn)));
-            sem_3 = get_sem(B.benefit(:,3), B.sn, ones(size(B.sn)), ones(size(B.sn)));
-            sem_4 = get_sem(B.benefit(:,4), B.sn, ones(size(B.sn)), ones(size(B.sn)));
-            sem_5 = get_sem(B.benefit(:,5), B.sn, ones(size(B.sn)), ones(size(B.sn)));
-            
-            plot(1:5,[sem_1.y sem_2.y sem_3.y sem_4.y sem_5.y],'LineWidth',1,'Color',colors_measures(i,:));
-            errorbar(1:5,[sem_1.y sem_2.y sem_3.y sem_4.y sem_5.y],[sem_1.sem sem_2.sem sem_3.sem sem_4.sem sem_5.sem],'CapSize',0,'Color',colors_measures(i,:)); 
-            scatter(1:5,[sem_1.y sem_2.y sem_3.y sem_4.y sem_5.y],15,'filled','MarkerFaceColor',colors_measures(i,:),'MarkerEdgeColor',colors_measures(i,:))
+        data = dload(fullfile(project_path, 'analysis', 'efc1_all.tsv'));
+        data_chord = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
+        data = getrow(data,ismember(data.chordID,chords));
+        data_chord = getrow(data_chord,ismember(data_chord.chordID,chords));
+        if ~isempty(subj_selection)
+            data = getrow(data,ismember(data.sn,subj_selection));
+            data_chord = getrow(data_chord,ismember(data_chord.sn,subj_selection));
         end
-        box off
-        h = gca;
-        h.YTick = 0:25:100;
-        h.XTick = 1:5;
-        lgd = legend({'','RT','','','MT','','','MD','',''});
-        legend boxoff
-        fontsize(lgd,6,'points')
-        xlabel('repetition','FontSize',my_font.xlabel)
-        h.XAxis.FontSize = my_font.tick_label;
-        h.YAxis.FontSize = my_font.tick_label;
-        ylabel('% Improvement day 1-4','FontSize',my_font.ylabel)
-        ylim([-20, 55])
-        xlim([0,6])
-        % title('Repetition Effect','FontSize',my_font.title)
-        fontname("Arial")
+        
+        % avg performance of chords for session 3 and 4:
+        row = data_chord.sess>=3;
+        avg_MD_ANA = get_sem(data_chord.MD(row), data_chord.sn(row), ones(sum(row),1), data_chord.chordID(row));
+        avg_RT_ANA = get_sem(data_chord.RT(row), data_chord.sn(row), ones(sum(row),1), data_chord.chordID(row));
+        
+        chordID = data.chordID;
+        
+        % getting the values of measure:
+        MD = data.MD;
+        MD(MD==-1) = NaN;
+        RT = data.RT;
+        RT(RT==-1) = NaN;
+        chordID(MD==-1) = NaN;
+        
+        % putting trials in rows:
+        n_fing = reshape(data.num_fingers,5,[]); 
+        sess = reshape(data.sess,5,[]); 
+        MD = reshape(MD,5,[]);
+        RT = reshape(RT,5,[]);
+        chordID = reshape(chordID,5,[]);
+        subj = reshape(data.sn,5,[]);
+        repetitions = 5;
 
-        % two-way rm_anova for (first repetition, session, num finger):
-        for i = 1:3
-            C = val_cell{i};
-            fprintf("rm_anova for (first repetition, session, num finger):\n")
-            stats = rm_anova2(C.value_subj(:,1),C.sn,C.sess,C.num_fingers,{'session','num_finger'})
-        end
-
-        % stats - ttest for benefit of repetition from sess1 to sess4:
-        stats_benefit = [];
+        % getting averages within each session and n_fing:
+        n_fing = n_fing(1,:);
+        n_fing_unique = unique(n_fing);
+        sess = sess(1,:);
+        subj = subj(1,:);
+        subj_unique = unique(subj);
+        chords = chordID(1,:);
+        chords_unique = unique(chords);
+        C = [];
+        % loop on n_fing:
         cnt = 1;
-        for i = 1:3
-            B = measure_cell{i};
+        for i = 1:length(chords_unique)
+            % loop on sess:
+            for j = 1:length(unique(sess))
+                for sn = 1:length(subj_unique)
+                    C.chordID(cnt,1) = chords_unique(i);
+                    C.finger_count(cnt,1) = get_num_active_fingers(chords_unique(i));
+                    C.sess(cnt,1) = j;
+                    C.sn(cnt,1) = subj_unique(sn);
+                    
+                    % selecting the data for each session, finger count and
+                    % subject:
+                    MD_tmp = MD(:, subj==subj_unique(sn) & chords==chords_unique(i) & sess==j);
+                    tmp = mean(MD_tmp,2,'omitmissing')';
+                    C.MD_subj_rep1(cnt,1) = tmp(1);
+                    C.MD_subj_rep2(cnt,1) = tmp(2);
+                    C.MD_subj_rep3(cnt,1) = tmp(3);
+                    C.MD_subj_rep4(cnt,1) = tmp(4);
+                    C.MD_subj_rep5(cnt,1) = tmp(5);
 
-            % ttest for each repetition from 0:
-            for j = 1:5
-                [t,p] = ttest(B.benefit(:,j),[],1,'onesample');
-                stats_benefit.measure(cnt,1) = i;
-                stats_benefit.rep(cnt,1) = j;
-                stats_benefit.t(cnt,1) = t;
-                stats_benefit.p(cnt,1) = p;
-                cnt = cnt+1;
+                    RT_tmp = RT(:, subj==subj_unique(sn) & chords==chords_unique(i) & sess==j);
+                    tmp = mean(RT_tmp,2,'omitmissing')';
+                    C.RT_subj_rep1(cnt,1) = tmp(1);
+                    C.RT_subj_rep2(cnt,1) = tmp(2);
+                    C.RT_subj_rep3(cnt,1) = tmp(3);
+                    C.RT_subj_rep4(cnt,1) = tmp(4);
+                    C.RT_subj_rep5(cnt,1) = tmp(5);
+                    
+                    cnt = cnt+1;
+                end
             end
         end
-        varargout{1} = stats_benefit;
 
+        chords = unique(C.chordID);
+        subj = unique(C.sn);
+        ANA = [];
+        % calculating improvements for each chord for each subject:
+        for i = 1:length(chords)
+            for j = 1:length(subj)
+                tmp = [];
+                tmp.chordID = chords(i);
+                tmp.finger_count = get_num_active_fingers(chords(i));
+                tmp.sn = subj(j);
+                tmp.MD = avg_MD_ANA.y(avg_MD_ANA.cond==chords(i));
+                tmp.RT = avg_RT_ANA.y(avg_RT_ANA.cond==chords(i));
+                
+                % imprv from day 1 to 4:
+                row = C.chordID==chords(i) & C.sn==subj(j);
+                tmp.MD_imprv_rep1 = C.MD_subj_rep1(row & C.sess==1) - C.MD_subj_rep1(row & C.sess==4);
+                tmp.MD_imprv_rep2 = C.MD_subj_rep2(row & C.sess==1) - C.MD_subj_rep2(row & C.sess==4);
+                tmp.MD_imprv_rep3 = C.MD_subj_rep3(row & C.sess==1) - C.MD_subj_rep3(row & C.sess==4);
+                tmp.MD_imprv_rep4 = C.MD_subj_rep4(row & C.sess==1) - C.MD_subj_rep4(row & C.sess==4);
+                tmp.MD_imprv_rep5 = C.MD_subj_rep5(row & C.sess==1) - C.MD_subj_rep5(row & C.sess==4);
+
+                tmp.RT_imprv_rep1 = C.RT_subj_rep1(row & C.sess==1) - C.RT_subj_rep1(row & C.sess==4);
+                tmp.RT_imprv_rep2 = C.RT_subj_rep2(row & C.sess==1) - C.RT_subj_rep2(row & C.sess==4);
+                tmp.RT_imprv_rep3 = C.RT_subj_rep3(row & C.sess==1) - C.RT_subj_rep3(row & C.sess==4);
+                tmp.RT_imprv_rep4 = C.RT_subj_rep4(row & C.sess==1) - C.RT_subj_rep4(row & C.sess==4);
+                tmp.RT_imprv_rep5 = C.RT_subj_rep5(row & C.sess==1) - C.RT_subj_rep5(row & C.sess==4);
+
+                ANA = addstruct(ANA,tmp,'row','force');
+            end
+        end
+
+        % check imprv of measures for easy and hard chords:
+        MD_rep_avg = mean([C.MD_subj_rep2,C.MD_subj_rep3,C.MD_subj_rep4,C.MD_subj_rep5],2,'omitmissing');
+        [~, X, Y, COND, SN] = get_sem(MD_rep_avg, ones(length(MD_rep_avg),1), C.sess, C.chordID);
+        MD_avg = mean([Y(X==3),Y(X==4)],2);
+        finger_count = get_num_active_fingers(COND(X==3));
         
-    
+        MD_imprv_avg = mean([ANA.MD_imprv_rep2,ANA.MD_imprv_rep3,ANA.MD_imprv_rep4,ANA.MD_imprv_rep5],2,'omitmissing');
+        [~, X, Y, COND, SN] = get_sem(MD_imprv_avg, ones(length(MD_imprv_avg),1), ones(length(MD_imprv_avg),1), ANA.chordID);
+        MD_imprv_avg = Y;
+        
+        for i = 1:5
+            figure;
+            % scatter(MD_avg(finger_count==i),MD_imprv_avg(finger_count==i),30,'filled')
+            hold on;
+            scatter_corr(MD_avg(finger_count==i), MD_imprv_avg(finger_count==i), colors_blue(i,:), 'o');
+            ylim([-0.2 1])
+            xlim([0.5 2.6])
+            xlabel('MD rep2-5 average day 3 and 4')
+            ylabel('MD_{day1} - MD_{day4} avaraged for rep2-5')
+            title('finger count',i)
+        end
+
+        dsave(fullfile(project_path,'analysis','training_rep_imprv.tsv'),ANA);
+        varargout{1} = ANA;
     
     case 'model_testing'
         % handling input arguments:
@@ -1225,7 +1264,7 @@ switch (what)
             % missed all 5 repetitions in one session:
             values(:,i) = mean([values_tmp(data.sess==sess(1) & data.sn==subj(i)),values_tmp(data.sess==sess(2) & data.sn==subj(i))],2,'omitmissing');
         end
-
+        
         % modelling the difficulty for all chords.
         C = [];
         % loop on subjects and regression with leave-one-out:
@@ -1287,47 +1326,13 @@ switch (what)
 
 
         % getting noise ceiling:
-        [~,corr_struct] = efc1_analyze('selected_chords_reliability','blocks',[(sess(1)-1)*12+1 sess(2)*12],'chords',chords,'plot_option',0);
-        if (strcmp(measure,'MD'))
-            noise_ceil = mean(corr_struct.MD);
-        elseif (strcmp(measure,'MT'))
-            noise_ceil = mean(corr_struct.MT);
-        else
-            noise_ceil = mean(corr_struct.RT);
-        end
+        [R,R2] = crossval_reliability(value);
 
         for i = 1:length(model_names)
             r = C.r(strcmp(C.model,model_names{i}));
             fprintf('ttest: model %s different from noise ceiling:\n',model_names{i})
-            ttest(r-noise_ceil,[],2,'onesample')
+            ttest(r,R,2,'onesample')
         end
-
-        % PLOT - regression results:
-        figure;
-        ax1 = axes('Units', 'centimeters', 'Position', [2 2 3.5 3],'Box','off');
-        for j = 1:length(model_names)
-            % getting cross validated r:
-            r = C.r(strcmp(C.model,model_names{j}));
-            
-            r_avg(j) = mean(r);
-            r_sem(j) = std(r)/sqrt(length(r));
-        end
-        drawline(noise_ceil,'dir','horz','color',[0.7 0.7 0.7],'lim',[0,length(model_names)+1],'linestyle',':'); hold on;
-        plot(1:length(model_names),r_avg,'LineWidth',2,'Color',[0.1 0.1 0.1,0.1]);
-        errorbar(1:length(model_names),r_avg,r_sem,'LineStyle','none','Color',[0.1 0.1 0.1],'CapSize',0)
-        scatter(1:length(model_names),r_avg,15,'filled','MarkerFaceColor',[0.1 0.1 0.1],'MarkerEdgeColor',[0.1 0.1 0.1]);
-        box off
-        h = gca;
-        h.YTick = 0:0.25:1;
-        h.XTick = 1:length(model_names);
-        h.XTickLabel = cellfun(@(x) replace(x,'_',' '),model_names,'uniformoutput',false);
-        h.XAxis.FontSize = my_font.tick_label;
-        h.YAxis.FontSize = my_font.tick_label;
-        ylabel('r','FontSize',my_font.ylabel)
-        ylim([0, 1.05])
-        xlim([0.5,length(model_names)+0.5])
-        fontname("Arial")
-
         varargout{1} = C;
         varargout{2} = stats;
 
