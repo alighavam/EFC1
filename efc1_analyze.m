@@ -1245,9 +1245,10 @@ switch (what)
         chords = generateAllChords;
         sess = [3,4];
         measure = 'MD';
-        model_names = {'n_fing','n_fing+additive','n_fing+force_avg','n_fing+2fing','n_fing+force_2fing','n_fing+additive+2fing','n_fing+force_avg+force_2fing'};
+        model_names = {'n_fing','n_fing+additive','n_fing+force_avg','n_fing+all_2fing','n_fing+force_2fing','n_fing+additive+all_2fing','n_fing+force_avg+force_2fing'};
         vararginoptions(varargin,{'chords','sess','measure','model_names'})
-        
+        base_models = {'n_fing','additive','all_2fing','force_avg','force_2fing'};
+
         % loading data:
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         data = getrow(data,ismember(data.chordID,chords));
@@ -1297,7 +1298,7 @@ switch (what)
                 r2 = 1 - SSR/SST;
 
                 % storing the results:
-                C_tmp.sn_out = sn;
+                C_tmp.sn_out = subj(sn);
                 C_tmp.model = model_names(i_mdl);
                 C_tmp.is_full_rank = is_full_rank;
                 C_tmp.B = {B};
@@ -1326,17 +1327,38 @@ switch (what)
 
 
         % getting noise ceiling:
-        [R,R2] = crossval_reliability(value);
+        [R,R2] = crossval_reliability(values);
+        C.R_ceil = repmat(R,length(model_names),1);
+        C.R2_ceil = repmat(R2,length(model_names),1);
 
         for i = 1:length(model_names)
-            r = C.r(strcmp(C.model,model_names{i}));
-            fprintf('ttest: model %s different from noise ceiling:\n',model_names{i})
-            ttest(r,R,2,'onesample')
+            r_model = C.r(strcmp(C.model,model_names{i}));
+            [t,p] = ttest(r_model,R,2,'paired');
         end
+
+        % analysis dataframe:
+        df = [];
+        df.sn_out = C.sn_out;
+        df.r = C.r;
+        df.r2 = C.r2;
+        df.r_ceil = C.R_ceil;
+        df.r2_ceil = C.R2_ceil;
+        % make flat strcture for models:
+        for i = 1:length(base_models)
+            df.(base_models{i}) = zeros(length(df.sn_out),1);
+        end
+        % fill the model name rows in the df:
+        for i = 1:length(model_names)
+            rows = strcmp(C.model,model_names{i});
+            split_model_names = strsplit(model_names{i},'+');
+            for j = 1:length(split_model_names)
+                df.(split_model_names{j})(rows) = 1;
+            end
+        end
+        dsave(fullfile(project_path,'analysis',['training_models_' measure '.tsv']),df);
         varargout{1} = C;
         varargout{2} = stats;
-
-
+        
     case 'model_testing_avg_values'
         % handling input args:
         blocks = [25,48];
