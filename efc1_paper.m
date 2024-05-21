@@ -487,7 +487,44 @@ switch (what)
         row = finger_count>1;
         T_RT_Imprv = anovaMixed(imprv(row),sn(row),'within',finger_count(row),{'finger count'});
         fprintf("\n")
+        
+    case 'training_model_finger_count'
+        C_MD = dload(fullfile(project_path,'analysis','training_models_MD.tsv'));
+        C_RT = dload(fullfile(project_path,'analysis','training_models_RT.tsv'));
+        MD_ceil = C_MD.r_ceil(1:14);
+        RT_ceil = C_RT.r_ceil(1:14);
+        
+        % get rows for the finger_count model:
+        model_table = struct2table(C_MD);
+        model_table = model_table(:,6:end);
+        rows = model_table.n_fing==1 & all(model_table{:,2:end}==0, 2);
 
+        % get fitted r for MD and RT:
+        r_MD = C_MD.r(rows);
+        r_RT = C_RT.r(rows);
+        
+        % barplot:
+        x = [ones(length(r_RT),1) ; 2*ones(length(r_MD),1)];
+        y = [r_RT ; r_MD];
+        split = [ones(length(r_RT),1) ; 2*ones(length(r_MD),1)];
+        figure('Units','centimeters', 'Position',[15 15 5 6]);
+        barwidth = 1;
+        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{colors_pastel(2,:),colors_pastel(1,:)},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        drawline(mean(MD_ceil),'dir','horz','lim',[x_coord(2)-barwidth/1.5 x_coord(2)+barwidth/1.5],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
+        drawline(mean(RT_ceil),'dir','horz','lim',[x_coord(1)-barwidth/1.5 x_coord(1)+barwidth/1.5],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
+        box off
+        h = gca;
+        h.XTick = [1 2.5];
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        h.LineWidth = paper.axis_width;
+        h.YTick = [0,0.5,1];
+        ylim([0 1])
+        xlim([x_coord(1)-barwidth,x_coord(2)+barwidth])
+        ylabel('R','FontSize',my_font.label)
+        xlabel('Finger Count','FontSize',my_font.label)
+        fontname("Arial")
+        
     otherwise
         error('The analysis %s you entered does not exist!',what)
 end
