@@ -2790,7 +2790,97 @@ switch (what)
         h.LineWidth = conf.axis_width;
         ylabel('$\mathbf{R}$','interpreter','LaTex','FontSize',my_font.conf_label)
         fontname("Arial")
+
+    case 'natural_log_reliability'
+        C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
+        
+        [~, ~, Y, COND, SN] = get_sem(C.log_slope_n, C.sn, ones(length(C.sn),1), C.chordID);
+        
+        finger_count = get_num_active_fingers(COND);
+        fc = unique(finger_count);
+        ANA = [];
+        for i = 1:length(fc)
+            rows = finger_count == fc(i);
+            [R,R2] = crossval_reliability(Y(rows),'split',SN(rows));
+            tmp.finger_count = fc(i)*ones(length(R),1);
+            tmp.R = R;
+            tmp.R2 = R2;
+            ANA = addstruct(ANA,tmp,'row','force');
+        end
+
+    case 'within_finger_count_modeling'
+        C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        chords_emg = C.chordID(C.sn==1 & C.sess==1);
+        data = getrow(data,ismember(data.chordID,chords_emg));
+        data = getrow(data,data.sess>=3);
+
+        [~, ~, MD, COND_MD, SN] = get_sem(data.MD, data.sn, ones(length(data.sn),1), data.chordID);
+        finger_count_MD = get_num_active_fingers(COND_MD);
+        fc = unique(finger_count_MD);
+        subj = unique(SN);
+        
+        % descriptive models:
+        % additive, 2fing, additive+2fing
+        
+
+        % inference models:
+        % log, mag, log+mag
+        [~, ~, log, COND_log, ~] = get_sem(C.log_slope, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
+        [~, ~, mag, COND_mag, ~] = get_sem(C.magnitude, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
+        finger_count_log = get_num_active_fingers(COND_log);
+
+        additive = make_design_matrix(COND_log,'additive');
+        fing2 = make_design_matrix(COND_log,'additive+all_2fing');
+        models = {log,mag,[log,mag],additive,fing2};
+        model_names = {'log','mag','log+mag','additive','fing2'};
+        
+        % modelling the difficulty for all chords.
+        ana = [];
+        % loop on subjects and regression with leave-one-out:
+        for i = 1:length(subj)
+            % loop on finger counts:
+            for j = 1:length(fc)
+                % MD of included subjects:
+                y_train = MD(SN ~= subj(i) & finger_count_MD==fc(j));
+                % get average of in subjects:
+                y_train = reshape(y_train,[],length(subj)-1);
+                y_train = mean(y_train,2);
+                y_train = y_train - mean(y_train);
+                
+                % out subject:
+                y_test = MD(SN == subj(i) & finger_count_MD==fc(j));
+                y_test = y_test - mean(y_test);
+
+                % loop on models:
+                for i_mdl = 1:length(models)
+                    % getting design matrix for model:
+                    X = models{i_mdl}(finger_count_log==fc(j),:);
+                    X = X - mean(X,1);
+
+                    % training the model:
+                    % [B,STATS] = linregress(y_train,X,'intercept',0);
+                    [B,STATS] = svd_linregress(y_train,X);
     
+                    % testing the model:
+                    X_test = X;
+                    y_pred = X_test * B;
+                    r = corr(y_pred,y_test);
+                    
+                    % storing the results:
+                    ana_tmp.sn_out = subj(i);
+                    ana_tmp.finger_count = fc(j);
+                    ana_tmp.model = model_names(i_mdl);
+                    ana_tmp.B = {B};
+                    ana_tmp.stats = {STATS};
+                    ana_tmp.r = r;
+    
+                    ana = addstruct(ana,ana_tmp,'row','force');
+                end
+            end
+        end
+        
+        varargout{1} = ana;
     otherwise
         error('The analysis you entered does not exist!')
 end
