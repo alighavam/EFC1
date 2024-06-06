@@ -16,14 +16,9 @@ dec_mat = [COND(X==1) , mean([Y(X==4),Y(X==3)],2)];
 
 dec_mat_sorted = dec_mat(I,:);
 
-% easy chords:
-easy_trained = [22229;11119;92222;91111];
-easy_untrained = [12229;21129;29222;21119];
-[t,p] = check_select_chords(data,easy_trained,easy_untrained);
-
 % hard chords:
-hard_trained = [12191;22191;19121;12192];
-hard_untrained = [12912;19122;11912;21912];
+hard_trained = [29212;92122;91211;22911];
+hard_untrained = [21291;12129;12291;19111];
 [t,p] = check_select_chords(data,hard_trained,hard_untrained);
 
 %%
