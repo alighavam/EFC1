@@ -126,10 +126,16 @@ tempDiff = zeros(size(forceSelceted,1),1);
 c = forceSelceted(end,:)-forceSelceted(1,:);
 
 % iterating on time points and calculating deviation at each time point:
-for t = 1:size(forceSelceted,1) 
-    projection = (c * forceSelceted(t,:)' / norm(c)^2)*c;
-    tempDiff(t) = norm(forceSelceted(t,:) - projection);
+% for t = 1:size(forceSelceted,1) 
+%     projection = (c * forceSelceted(t,:)' / norm(c)^2)*c;
+%     tempDiff(t) = norm(forceSelceted(t,:) - projection);
+% end
+
+for t = 2:size(forceSelceted,1) 
+    tmp_force = forceSelceted(t,:) - forceSelceted(1,:);
+    projection = (c * tmp_force' / norm(c)^2)*c;
+    tempDiff(t) = norm(tmp_force - projection);
 end
-mean_dev= sum(tempDiff) / size(forceSelceted,1);
+mean_dev= sum(tempDiff) / (size(forceSelceted,1)-1);
 
 
