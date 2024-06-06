@@ -53,12 +53,12 @@ switch (what)
         
         errorbar(C.sess,C.difficult,C.difficult_sem,'LineStyle','none','CapSize',0,'Color',colors_gray(5,:),'LineWidth',paper.err_width); 
         plot(C.sess,C.difficult,'Color',colors_gray(5,:),'LineWidth',paper.line_width)
-        scatter(C.sess,C.difficult,paper.marker_size,'MarkerFaceColor',colors_gray(5,:),'MarkerEdgeColor',colors_gray(5,:));
+        % scatter(C.sess,C.difficult,paper.marker_size,'MarkerFaceColor',colors_gray(5,:),'MarkerEdgeColor',colors_gray(5,:));
         
         errorbar(C.sess,C.all_chords,C.all_chords_sem,'LineStyle','none','CapSize',0,'Color',colors_gray(2,:),'LineWidth',paper.err_width); 
         plot(C.sess,C.all_chords,'Color',[colors_gray(2,:), 0.6],'LineWidth',paper.line_width)
         
-        lgd = legend({'','',['Most Challenging' newline 'Chord per Subject'],'','','All 242 Chords'});
+        lgd = legend({'','',['Most Challenging' newline 'Chord per Subject'],'','All 242 Chords'});
         legend boxoff
         fontsize(lgd,my_font.legend,'points')
         
@@ -83,11 +83,11 @@ switch (what)
         % single-finger chords as baseline:
         lineplot(C.sess(C.finger_count==1),C.MD(C.finger_count==1),'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_gray(2,:),'markercolor',colors_gray(2,:),'linecolor',colors_gray(2,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(2,:),'errorcap',0); hold on;
         % multi-finger chords:
-        [~, X, Y, COND, SN] = get_sem(C.MD(C.finger_count>1), C.sn(C.finger_count>1), C.sess(C.finger_count>1), ones(sum(C.finger_count>1),1));
+        [~, X, Y, COND, SN] = get_sem(C.MD, C.sn, C.sess, ones(size(C.MD)));
         lineplot(X,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_blue(5,:),'errorcap',0);
         h = gca;
-        ylim([0.5 2])
-        h.YTick = [0.5 1.3 2];
+        ylim([0 1.2])
+        h.YTick = [0 0.6 1.2];
         xlim([0.5 4.5])
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
@@ -96,38 +96,15 @@ switch (what)
         h.LineWidth = paper.axis_width;
         fontname("arial")
 
-        % average multi-finger chord MD imprv from day 1 to 4:
-        day1 = Y(X==1);
-        day4 = Y(X==4);
-        % per subject improvements:
-        imprv = (day1-day4) ./ day1;
-        fprintf('\nMD Imprv day 1 to 4: AVG = %.4f%% , SEM = %.4f%%\n',mean(imprv)*100,std(imprv)/sqrt(length(day1))*100)
-
-        % difference scale between chords and single-finger on day 1 to 4:
-        day1_difference = (day1./C.MD(C.finger_count==1 & C.sess==1));
-        day4_difference = (day4./C.MD(C.finger_count==1 & C.sess==4));
-        fprintf('\nMD scale difference between chord and single-finger:\n')
-        fprintf('day 1: %.2f , day 4: %.2f\n',mean(day1_difference),mean(day4_difference))
-
         % stats
-        fprintf("\n======= Chord MD Improvement =======\n")
+        fprintf("\n======= MD Improvement =======\n")
         T_MD_Imprv = anovaMixed(Y,SN,'within',X,{'days'});
-        fprintf("\n")
-
-        fprintf("\n======= Single-Finger MD Improvement =======\n")
-        T_MD_1f_Imprv = anovaMixed(C.MD(C.finger_count==1),C.sn(C.finger_count==1),'within',C.sess(C.finger_count==1),{'days'});
-        fprintf("\n")
-
-        fprintf("\n======= Single-Finger MD Improvement =======\n")
-        T_MD_1f_Imprv = anovaMixed(C.MD(C.finger_count==1),C.sn(C.finger_count==1),'within',C.sess(C.finger_count==1),{'days'});
         fprintf("\n")
 
         % ======== RT ========
         fig_RT = figure('Units','centimeters', 'Position',[15 15 4.2 6]);
-        % single-finger chords as baseline:
-        lineplot(C.sess(C.finger_count==1),C.RT(C.finger_count==1),'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_gray(2,:),'markercolor',colors_gray(2,:),'linecolor',colors_gray(2,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(2,:),'errorcap',0); hold on;
         % multi-finger chords:
-        [~, X, Y, COND, SN] = get_sem(C.RT(C.finger_count>1), C.sn(C.finger_count>1), C.sess(C.finger_count>1), ones(sum(C.finger_count>1),1));
+        [~, X, Y, COND, SN] = get_sem(C.RT, C.sn, C.sess, ones(size(C.RT)));
         lineplot(X,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_blue(5,:),'markercolor',colors_blue(5,:),'linecolor',colors_blue(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_blue(5,:),'errorcap',0);
         h = gca;
         ylim([170, 400])
@@ -136,35 +113,14 @@ switch (what)
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
         xlabel('days','FontSize',my_font.label)
-        ylabel('RT','FontSize',my_font.label)
+        ylabel('response time','FontSize',my_font.label)
         h.LineWidth = paper.axis_width;
         fontname("arial")
 
-        % average multi-finger chord RT imprv from day 1 to 4:
-        day1 = Y(X==1);
-        day4 = Y(X==4);
-        % per subject improvements:
-        imprv = (day1-day4) ./ day1;
-        fprintf('\nRT Imprv day 1 to 4: AVG = %.4f%% , SEM = %.4f%%\n',mean(imprv)*100,std(imprv)/sqrt(length(day1))*100)
-
-        % difference scale between chords and single-finger on day 1 to 4:
-        day1_difference = (day1./C.RT(C.finger_count==1 & C.sess==1));
-        day4_difference = (day4./C.RT(C.finger_count==1 & C.sess==4));
-        fprintf('\nRT scale difference between chord and single-finger:\n')
-        fprintf('day 1: %.2f , day 4: %.2f\n',mean(day1_difference),mean(day4_difference))
-
         % stats
-        fprintf("\n======= Chord RT Improvement =======\n")
+        fprintf("\n======= RT Improvement =======\n")
         T_RT_Imprv = anovaMixed(Y,SN,'within',X,{'days'});
         fprintf("\n")
-
-        fprintf("\n======= Single-Finger RT Improvement =======\n")
-        T_RT_1f_Imprv = anovaMixed(C.RT(C.finger_count==1),C.sn(C.finger_count==1),'within',C.sess(C.finger_count==1),{'days'});
-        fprintf("\n")
-
-        fprintf("\n======= RT: multi-finger vs single-finger on day 4 =======\n")
-        [t,p] = ttest(day4,C.RT(C.finger_count==1 & C.sess==4),1,'paired');
-        fprintf("t = %.4f , p = %.4f\n",t,p)
 
     case 'measure_reliability'
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
@@ -181,15 +137,16 @@ switch (what)
             row = finger_count==fc(i);
             r = [r ; crossval_reliability(Y(row),'split',SN(row))];
         end
+        r = [r ; crossval_reliability(Y,'split',SN)];
         
         % barplot:
-        x = repelem(fc,length(unique(SN)),1);
+        X = [repelem(fc,length(unique(SN)),1) ; 6*ones(14,1)];
         y = r;
-        split = repelem(fc,length(unique(SN)),1);
+        split = [repelem(fc,length(unique(SN)),1) ; 6*ones(14,1)];
         figure('Units','centimeters', 'Position',[15 15 5 6]);
         barwidth = 1;
-        bar_colors = {colors_blue(1,:),colors_blue(2,:),colors_blue(3,:),colors_blue(4,:),colors_blue(5,:)};
-        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',bar_colors,'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        bar_colors = {colors_blue(1,:),colors_blue(2,:),colors_blue(3,:),colors_blue(4,:),colors_blue(5,:),colors_gray(1,:)};
+        [x_coord,PLOT,ERROR] = barplot(X,y,'split',split,'facecolor',bar_colors,'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
         box off
         h = gca;
         h.XAxis.FontSize = my_font.tick_label;
@@ -197,10 +154,17 @@ switch (what)
         h.LineWidth = paper.axis_width;
         h.YTick = 0:0.2:1;
         ylim([0 1])
-        xlim([0 8])
+        xlim([0 9.5])
         ylabel('MD group correlation (cross-validated)','FontSize',my_font.label)
         xlabel('Finger Count','FontSize',my_font.label)
         fontname("Arial")
+
+        fprintf('\nNoise Ceiling:\n')
+        fprintf(['   1-f: r=%.4f (%.4f,%.4f)\n   2-f: r=%.4f (%.4f,%.4f)\n   3-f: r=%.4f (%.4f,%.4f)\n   4-f: r=%.4f (%.4f,%.4f)\n' ...
+            '   5-f: r=%.4f (%.4f,%.4f)\n   all: r=%.4f (%.4f,%.4f)\n'],mean(r(X==1)),min(r(X==1)),max(r(X==1)) ...
+            ,mean(r(X==2)),min(r(X==2)),max(r(X==2)),mean(r(X==3)),min(r(X==3)),max(r(X==3)) ...
+            ,mean(r(X==4)),min(r(X==4)),max(r(X==4)),mean(r(X==5)),min(r(X==5)),max(r(X==5)) ...
+            ,mean(r(X==6)),min(r(X==6)),max(r(X==6)))
         
         disp('gooz')
 
@@ -211,10 +175,10 @@ switch (what)
         % ======== MD ========
         fig_MD = figure('Units','centimeters', 'Position',[15 15 4.5 6]);
         [~, X, Y, COND, SN] = get_sem(C.MD, C.sn, ones(size(C.sn)), C.finger_count);
-        lineplot(COND,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_pastel(1,:),'markercolor',colors_pastel(1,:),'linecolor',colors_pastel(1,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_pastel(1,:),'errorcap',0);
+        lineplot(COND,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_gray(5,:),'markercolor',colors_gray(5,:),'linecolor',colors_gray(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(5,:),'errorcap',0);
         h = gca;
-        ylim([0 2.4])
-        h.YTick = [0 1.2 2.4];
+        ylim([0 1.8])
+        h.YTick = [0 0.9 1.8];
         xlim([0.5 5.5])
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
@@ -229,24 +193,24 @@ switch (what)
         fprintf("\n")
 
         % ======== RT ========
-        fig_RT = figure('Units','centimeters', 'Position',[15 15 4.5 6]);
-        [~, X, Y, COND] = get_sem(C.RT, C.sn, ones(size(C.sn)), C.finger_count);
-        lineplot(COND,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_pastel(2,:),'markercolor',colors_pastel(2,:),'linecolor',colors_pastel(2,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_pastel(2,:),'errorcap',0);
-        h = gca;
-        ylim([200 500])
-        h.YTick = [200 350 500];
-        xlim([0.5 5.5])
-        h.XAxis.FontSize = my_font.tick_label;
-        h.YAxis.FontSize = my_font.tick_label;
-        xlabel('Finger Count','FontSize',my_font.label)
-        ylabel('RT','FontSize',my_font.label)
-        h.LineWidth = paper.axis_width;
-        fontname("arial")
+        % fig_RT = figure('Units','centimeters', 'Position',[15 15 4.5 6]);
+        % [~, X, Y, COND] = get_sem(C.RT, C.sn, ones(size(C.sn)), C.finger_count);
+        % lineplot(COND,Y,'markertype','o','markersize',paper.lineplot_marker_size,'markerfill',colors_pastel(2,:),'markercolor',colors_pastel(2,:),'linecolor',colors_pastel(2,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_pastel(2,:),'errorcap',0);
+        % h = gca;
+        % ylim([200 500])
+        % h.YTick = [200 350 500];
+        % xlim([0.5 5.5])
+        % h.XAxis.FontSize = my_font.tick_label;
+        % h.YAxis.FontSize = my_font.tick_label;
+        % xlabel('Finger Count','FontSize',my_font.label)
+        % ylabel('RT','FontSize',my_font.label)
+        % h.LineWidth = paper.axis_width;
+        % fontname("arial")
 
         % stats
-        fprintf("\nRT finger-count effect:\n")
-        T_RT = anovaMixed(Y,SN,'within',COND,{'finger count'});
-        fprintf("\n")
+        % fprintf("\nRT finger-count effect:\n")
+        % T_RT = anovaMixed(Y,SN,'within',COND,{'finger count'});
+        % fprintf("\n")
 
     case 'training_repetition'
         C = dload(fullfile(project_path,'analysis','training_repetition.tsv'));
@@ -291,7 +255,7 @@ switch (what)
         h.YAxis.FontSize = my_font.tick_label;
         h.LineWidth = paper.axis_width;
         h.YTick = [1.2,1.8,2.4];
-        ylim([1.2 2.4])
+        ylim([0 2.4])
         xlim([0,21])
         xlabel('days','FontSize',my_font.label)
         ylabel('MD','FontSize',my_font.label)
@@ -554,14 +518,14 @@ switch (what)
         r_RT = C_RT.r(rows);
         
         % barplot:
-        x = [ones(length(r_RT),1) ; 2*ones(length(r_MD),1)];
-        y = [r_RT ; r_MD];
-        split = [ones(length(r_RT),1) ; 2*ones(length(r_MD),1)];
-        figure('Units','centimeters', 'Position',[15 15 5 6]);
+        x = [ones(length(r_MD),1)];
+        y = [r_MD];
+        split = [ones(length(r_MD),1)];
+        figure('Units','centimeters', 'Position',[15 15 4 6]);
         barwidth = 1;
-        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{colors_pastel(2,:),colors_pastel(1,:)},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
-        drawline(mean(MD_ceil),'dir','horz','lim',[x_coord(2)-barwidth/1.5 x_coord(2)+barwidth/1.5],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
-        drawline(mean(RT_ceil),'dir','horz','lim',[x_coord(1)-barwidth/1.5 x_coord(1)+barwidth/1.5],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
+        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{colors_gray(1,:)},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        drawline(mean(MD_ceil),'dir','horz','lim',[x_coord(1)-barwidth,x_coord(1)+barwidth],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
+        % drawline(mean(RT_ceil),'dir','horz','lim',[x_coord(1)-barwidth/1.5 x_coord(1)+barwidth/1.5],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
         box off
         h = gca;
         h.XTick = [1 2.5];
@@ -570,8 +534,8 @@ switch (what)
         h.LineWidth = paper.axis_width;
         h.YTick = [0,0.5,1];
         ylim([0 1])
-        xlim([x_coord(1)-barwidth,x_coord(2)+barwidth])
-        ylabel('R','FontSize',my_font.label)
+        xlim([x_coord(1)-barwidth,x_coord(1)+barwidth])
+        ylabel('model fit (Pearson''s r)','FontSize',my_font.label)
         xlabel('Finger Count','FontSize',my_font.label)
         fontname("Arial")
 
@@ -579,8 +543,8 @@ switch (what)
         [t_md,p_md] = ttest(r_MD,MD_ceil,2,'paired');
         [t_rt,p_rt] = ttest(r_RT,RT_ceil,2,'paired');
         fprintf('\nFinger Count Model:\n')
-        fprintf('MD explained vs noise-ceiling: (%.4f,%.4f)\n',t_md,p_md)
-        fprintf('RT explained vs noise-ceiling: (%.4f,%.4f)\n',t_rt,p_rt)
+        fprintf('MD explained vs noise-ceiling: (%.6f,%.6f)\n',t_md,p_md)
+        fprintf('RT explained vs noise-ceiling: (%.6f,%.6f)\n',t_rt,p_rt)
         
     case 'emg_vs_force'
         C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
@@ -648,7 +612,7 @@ switch (what)
         fc = unique(finger_count);
         model_corr = zeros(length(fc),1);
         p_val = zeros(length(fc),1);
-        ylims = [[0.5 1] ; [0.8 2.2] ; [1 3]];
+        ylims = [[0 0.3] ; [0.1 1.5] ; [0.3 2.1]];
         xlims = [[7 19] ; [8.2 12.8] ; [8.7 12.8]];
         for i = 1:length(fc)
             x = log_avg(finger_count==fc(i));
@@ -678,7 +642,7 @@ switch (what)
             ylim(ylims(i,:))
             xlim([xlims(i,1)-0.5 xlims(i,2)+0.5])
             ylabel('mean deviation','FontSize',my_font.label)
-            xlabel('$log(\frac{n}{d})$, similarity to natural','interpreter','LaTex','FontSize',my_font.label)
+            xlabel('$log(\frac{n}{d})$, distance from natural','interpreter','LaTex','FontSize',my_font.label)
             fontname("Arial")
         end
         fprintf('corr: %.6f, %.6f, %.6f\n',model_corr(1),model_corr(2),model_corr(3))
@@ -696,7 +660,7 @@ switch (what)
         
         finger_count = get_num_active_fingers(COND);
         fc = unique(finger_count);
-        ylims = [[0.5 1] ; [0.8 2.2] ; [1 3]];
+        ylims = [[0 0.3] ; [0.1 1.5] ; [0.3 2.1]];
         xlims = [[0.1 0.35] ; [0.2 0.5] ; [0.25 0.6]];
         p_val = zeros(length(fc),1);
         model_corr = zeros(length(fc),1);
@@ -705,7 +669,7 @@ switch (what)
             y = MD_avg(finger_count==fc(i));
             chords = COND(finger_count==fc(i));
             [~,sort_idx] = sort(x);
-            fprintf('%d-finger chords ascending naturality:\n',fc(i))
+            fprintf('%d-finger chords ascending magnitude (first and last 3 chords):\n',fc(i))
             disp(chords(sort_idx([1:3 , end-2:end])))
             md = fitlm(x, y);
             p_val(i) = md.Coefficients.pValue(2);
@@ -776,12 +740,14 @@ switch (what)
         ceil3 = mean(ana.ceil(ana.finger_count==3));
         ceil5 = mean(ana.ceil(ana.finger_count==5));
         x = [ana.finger_count ; ana.finger_count];
-        y = [ana.corr_log ; ana.corr_mag] ./ [repelem([ceil1;ceil3;ceil5],length(SN_unique),1) ; repelem([ceil1;ceil3;ceil5],length(SN_unique),1)];
+        y = [ana.corr_mag ; ana.corr_log] ./ [repelem([ceil1;ceil3;ceil5],length(SN_unique),1) ; repelem([ceil1;ceil3;ceil5],length(SN_unique),1)];
         split = [ones(length(ana.finger_count),1) ; 2*ones(length(ana.finger_count),1)];
         figure('Units','centimeters', 'Position',[15 15 6 6]);
         barwidth = 1;
-        bar_colors = {colors_green(1,:),colors_red(2,:)};
+        bar_colors = {colors_pastel(1,:),colors_blue(3,:)};
         [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',bar_colors,'barwidth',barwidth,'gapwidth',[1 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        hold on;
+        drawline(1,'dir','horz','lim',[0 9],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
         box off
         h = gca;
         % h.XTick = [1 2.5];
@@ -794,6 +760,40 @@ switch (what)
         ylabel('normalized correlation (Pearson''s)','FontSize',my_font.label)
         xlabel('Finger Count','FontSize',my_font.label)
         fontname("Arial")
+        
+        % model correlations:
+        fprintf('\nnSphere Corrs:\n')
+        fprintf('   1-f: %.4f (%.4f-%.4f)\n',mean(ana.corr_log(ana.finger_count==1)),min(ana.corr_log(ana.finger_count==1)),max(ana.corr_log(ana.finger_count==1)));
+        fprintf('   3-f: %.4f (%.4f-%.4f)\n',mean(ana.corr_log(ana.finger_count==3)),min(ana.corr_log(ana.finger_count==3)),max(ana.corr_log(ana.finger_count==3)));
+        fprintf('   5-f: %.4f (%.4f-%.4f)\n',mean(ana.corr_log(ana.finger_count==5)),min(ana.corr_log(ana.finger_count==5)),max(ana.corr_log(ana.finger_count==5)));
+        
+        fprintf('\nMagnitude Corrs:\n')
+        fprintf('   1-f: %.4f (%.4f-%.4f)\n',mean(ana.corr_mag(ana.finger_count==1)),min(ana.corr_mag(ana.finger_count==1)),max(ana.corr_mag(ana.finger_count==1)));
+        fprintf('   3-f: %.4f (%.4f-%.4f)\n',mean(ana.corr_mag(ana.finger_count==3)),min(ana.corr_mag(ana.finger_count==3)),max(ana.corr_mag(ana.finger_count==3)));
+        fprintf('   5-f: %.4f (%.4f-%.4f)\n',mean(ana.corr_mag(ana.finger_count==5)),min(ana.corr_mag(ana.finger_count==5)),max(ana.corr_mag(ana.finger_count==5)));
+        
+        % stats:
+        [t,p] = ttest(ana.corr_log(ana.finger_count==1),ana.corr_mag(ana.finger_count==1),1,'paired');
+        fprintf('\n1-f nSphere > mag: (%.6f,%.6f)\n',t,p)
+
+        [t,p] = ttest(ana.corr_mag(ana.finger_count==3),ana.corr_log(ana.finger_count==3),1,'paired');
+        fprintf('\n3-f mag > nSphere: (%.6f,%.6f)\n',t,p)
+
+        [t,p] = ttest(ana.corr_log(ana.finger_count==5),ana.corr_mag(ana.finger_count==5),1,'paired');
+        fprintf('\n5-f nSphere > mag: (%.6f,%.6f)\n',t,p)
+
+        % stats compared to 0 corr:
+        [t1,p1] = ttest(ana.corr_mag(ana.finger_count==1),[],1,'onesample');
+        [t3,p3] = ttest(ana.corr_mag(ana.finger_count==3),[],1,'onesample');
+        [t5,p5] = ttest(ana.corr_mag(ana.finger_count==5),[],1,'onesample');
+        fprintf('\nMagnitude:');
+        fprintf('\n     1-f: (%.6f,%.6f)\n     3-f: (%.6f,%.6f)\n     5-f: (%.6f,%.6f)\n',t1,p1,t3,p3,t5,p5)
+
+        [t1,p1] = ttest(ana.corr_log(ana.finger_count==1),[],1,'onesample');
+        [t3,p3] = ttest(ana.corr_log(ana.finger_count==3),[],1,'onesample');
+        [t5,p5] = ttest(ana.corr_log(ana.finger_count==5),[],1,'onesample');
+        fprintf('\nnSphere:');
+        fprintf('\n     1-f: (%.6f,%.6f)\n     3-f: (%.6f,%.6f)\n     5-f: (%.6f,%.6f)\n',t1,p1,t3,p3,t5,p5)
 
     case 'across_subj_model'
         C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
@@ -804,12 +804,12 @@ switch (what)
         model_table = model_table(:,6:end);
         rows_nfing = model_table.n_fing==1 & all(model_table{:,2:end}==0, 2);
         
-        % get rows for the force_avg model:
+        % get rows for the magnitude model:
         model_table = struct2table(C);
         model_table = model_table(:,6:end);
         rows_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & all(model_table{:,[2:8]}==0, 2);
 
-        % get rows for the emg model:
+        % get rows for the natural+magnitude model:
         model_table = struct2table(C);
         model_table = model_table(:,6:end);
         rows_nSphere_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:7]}==0, 2);
@@ -825,7 +825,7 @@ switch (what)
         split = [ones(length(r_mag),1) ; 2*ones(length(r_nSphere_mag),1)];
         figure('Units','centimeters', 'Position',[15 15 5 6]);
         barwidth = 1;
-        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{colors_red(2,:),hex2rgb('#FEDD9E')},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{colors_pastel(1,:),hex2rgb('#A4CCFF')},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
         drawline(mean(ceil),'dir','horz','lim',[x_coord(1)-barwidth x_coord(2)+barwidth],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
         box off
         h = gca;
@@ -844,8 +844,11 @@ switch (what)
         [t,p] = ttest(r_nSphere_mag,r_mag,1,'paired');
         fprintf('\nttest nSphere+mag > mag: (%.6f,%.6f)\n',t,p)
 
+        [t,p] = ttest(r_mag,r_nfing,1,'paired');
+        fprintf('\nttest mag > finger-count: (%.6f,%.6f)\n',t,p)
+        
         [t,p] = ttest(ceil,r_nSphere_mag,2,'paired');
-        fprintf('\nttest ceiling > emg: (%.6f,%.6f)\n',t,p)
+        fprintf('\nttest ceiling > nSpehre+mag: (%.6f,%.6f)\n',t,p)
 
     case 'explained_var_by_natural'
         C = dload(fullfile(project_path,'analysis','natChord_pca.tsv'));
@@ -931,10 +934,41 @@ switch (what)
         xlabel('Impaired Models','FontSize',my_font.label)
         fontname("Arial")
 
+    case 'single_PC_impaired_model'
+        C = dload(fullfile(project_path,'analysis','natChord_single_pc_impared.tsv'));
+        halves = unique(C.half);
+        
+        r2_force_by_nat = 0;
+        r2_force_by_chord = 0;
+        for i = 1:length(halves)
+            row = C.half == halves(i);
+            [~, ~, r2_force1_tmp, COND, SN] = get_sem(C.r2_force_by_nat(row), C.sn(row), ones(sum(row),1), C.dim(row));
+            [~, ~, r2_force2_tmp, COND, SN] = get_sem(C.r2_force_by_chord(row), C.sn(row), ones(sum(row),1), C.dim(row));
+            
+            r2_force_by_nat = r2_force_by_nat + r2_force1_tmp/length(halves);
+            r2_force_by_chord = r2_force_by_chord + r2_force2_tmp/length(halves);
+        end
+
+        % barplot:
+        figure('Units','centimeters', 'Position',[15 15 6.5 4]);
+        lineplot(COND,r2_force_by_nat,'markertype','o','markersize',paper.lineplot_marker_size-1,'markerfill',colors_gray(5,:),'markercolor',colors_gray(5,:),'linecolor',colors_gray(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(5,:),'errorcap',0);
+        box off
+        h = gca;
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        h.LineWidth = paper.axis_width;
+        h.YTick = [0,0.1,0.2];
+        h.XTick = 1:10;
+        ylim([0 0.2])
+        xlim([0,11])
+        ylabel('force pattern explained (R-squared)','FontSize',my_font.label)
+        xlabel('Natural PCs','FontSize',my_font.label)
+        fontname("Arial")
+
     case 'PCA_impaired_model_crossval'
         C = dload(fullfile(project_path,'analysis','natChord_impaired_model_crossval.tsv'));
         halves = unique(C.half);
-
+        
         r2_force1 = 0;
         r2_force2 = 0;
         var_nat1 = 0;
@@ -951,30 +985,56 @@ switch (what)
             var_nat1 = var_nat1 + var_nat1_tmp/length(halves);
             var_nat2 = var_nat2 + var_nat2_tmp/length(halves);
         end
-
         % barplot:
-        row = COND>=4 & COND<=5;
+        row = COND==5;
         x = [COND(row) ; COND(row)];
         y = [r2_force1(row) ; r2_force2(row)];
         split = [ones(length(r2_force1(row)),1) ; 2*ones(length(r2_force2(row)),1)];
-        figure('Units','centimeters', 'Position',[15 15 7 6]);
+        figure('Units','centimeters', 'Position',[15 15 3.5 3.5]);
         barwidth = 1;
         [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{colors_gray(4,:),[1,1,1]},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
-        drawline(mean(r2_force1(COND==10)),'dir','horz','lim',[0,5.5],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
+        drawline(1,'dir','horz','lim',[0,3],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
         box off
         h = gca;
-        XTickLabels = {[num2str(mean(var_nat1(COND==4)),4),'%'], [num2str(mean(var_nat2(COND==4)),4),'%'], [num2str(mean(var_nat1(COND==5)),4),'%'], [num2str(mean(var_nat2(COND==5)),4),'%']};
-        h.XTickLabel = XTickLabels;
+        % XTickLabels = {[num2str(mean(var_nat1(COND==4)),4),'%'], [num2str(mean(var_nat2(COND==4)),4),'%'], [num2str(mean(var_nat1(COND==5)),4),'%'], [num2str(mean(var_nat2(COND==5)),4),'%']};
+        % h.XTickLabel = XTickLabels;
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
         h.LineWidth = paper.axis_width;
         h.YTick = [0:0.25:1];
         ylim([0 1])
-        xlim([0,5.5])
+        xlim([0,3])
         ylabel('force pattern explained (R-squared)','FontSize',my_font.label)
         xlabel('Impaired Models','FontSize',my_font.label)
         fontname("Arial")
 
+    case 'PCA_accumulative'
+        C = dload(fullfile(project_path,'analysis','natChord_impaired_model_crossval.tsv'));
+        halves = unique(C.half);
+        
+        r2_force = 0;
+        for i = 1:length(halves)
+            row = C.half == halves(i);
+            [~, ~, r2_force1_tmp, COND, SN] = get_sem(C.r2_force1(row), C.sn(row), ones(sum(row),1), C.dim1(row));
+            r2_force = r2_force + r2_force1_tmp/length(halves);
+        end
+
+        % plot:
+        figure('Units','centimeters', 'Position',[15 15 6.5 4]);
+        lineplot(COND,r2_force,'markertype','o','markersize',paper.lineplot_marker_size-1,'markerfill',colors_gray(5,:),'markercolor',colors_gray(5,:),'linecolor',colors_gray(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(5,:),'errorcap',0);
+        drawline(1,'dir','horz','lim',[0,11],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
+        box off
+        h = gca;
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        h.LineWidth = paper.axis_width;
+        h.YTick = [0:0.25:1];
+        h.XTick = 1:10;
+        xlim([0,11])
+        ylim([0 1])
+        ylabel('force pattern explained (R-squared)','FontSize',my_font.label)
+        xlabel('natural PCs accumulative models','FontSize',my_font.label)
+        fontname("Arial")
 
     otherwise
         error('The analysis %s you entered does not exist!',what)
