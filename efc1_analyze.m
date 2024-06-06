@@ -313,7 +313,7 @@ switch (what)
             acc_tmp = zeros(size(chords));
             for j = 1:length(chords)
                 % accuracy of chords:
-                acc_tmp(j) = mean(data.accuracy(data.sn==subjects(i) & data.chordID==chords(j)));
+                acc_tmp(j) = mean(data.accuracy(data.sn==subjects(i) & data.chordID==chords(j) & data.sess<=4));
             end
 
             % The most undoable chords of subject in the first 
