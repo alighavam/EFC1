@@ -224,6 +224,7 @@ switch (what)
         end
         % adding number of active fingers:
         ANA.num_fingers = get_num_active_fingers(ANA.chordID);
+        ANA.ET = ANA.RT + ANA.MT;
 
         dsave(fullfile(usr_path,'Desktop','Projects','EFC1','analysis','efc1_all.tsv'),ANA);
     
@@ -274,9 +275,11 @@ switch (what)
                     tmp.MD(cnt,1) = mean(data.MD(row));
                     tmp.MT(cnt,1) = mean(data.MT(row));
                     tmp.RT(cnt,1) = mean(data.RT(row));
+                    tmp.ET(cnt,1) = mean(data.ET(row));
                     tmp.MD_std(cnt,1) = std(data.MD(row));
                     tmp.MT_std(cnt,1) = std(data.MT(row));
                     tmp.RT_std(cnt,1) = std(data.RT(row));
+                    tmp.ET_std(cnt,1) = std(data.ET(row));
 
                     tmp.diff_force_f1(cnt,1) = mean(data.diff_force_f1(row));
                     tmp.diff_force_f2(cnt,1) = mean(data.diff_force_f2(row));
@@ -305,52 +308,78 @@ switch (what)
     case 'success_rate'        
         chords = generateAllChords;
         data = dload(fullfile(project_path, 'analysis', 'efc1_chord.tsv'));
-        subjects = unique(data.sn);
         
-        C = [];
+        % avg success rate of chords from day 1 to 4:
+        [~, ~, succ, chords, sn] = get_sem(data.accuracy,data.sn,ones(size(data.sn)),data.chordID);
+        [~,I] = sort(succ);
+        succ = succ(I);
+        chords = chords(I);
+        sn = sn(I);
+        
+        subjects = unique(sn);
+        n_chords = 2;
+        day = [];
+        success_rate = [];
         for i = 1:length(subjects)
-            % loop on chords:
-            acc_tmp = zeros(size(chords));
-            for j = 1:length(chords)
-                % accuracy of chords:
-                acc_tmp(j) = mean(data.accuracy(data.sn==subjects(i) & data.chordID==chords(j) & data.sess<=4));
-            end
-
-            % The most undoable chords of subject in the first 
-            % two sessions: 
-            [acc,idx] = sort(acc_tmp);
-
-            % the most undoable chord:
-            hard_chord = chords(idx(1));
-            
-            C.sn(i,1) = subjects(i);
-            C.chordID(i,1) = hard_chord;
-            % Accuracies:
-            C.acc_diff_s01(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==1 & data.chordID==hard_chord);
-            C.acc_diff_s02(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==2 & data.chordID==hard_chord);
-            C.acc_diff_s03(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==3 & data.chordID==hard_chord);
-            C.acc_diff_s04(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==4 & data.chordID==hard_chord);
-            C.acc_avg_s01(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==1));
-            C.acc_avg_s02(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==2));
-            C.acc_avg_s03(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==3));
-            C.acc_avg_s04(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==4));
+            tmp_chords = chords(sn==subjects(i));
+            tmp_chords = tmp_chords(1:n_chords)
+            row = data.sn==subjects(i) & ismember(data.chordID,tmp_chords);
+            [~,X,Y,~,~] = get_sem(data.accuracy(row),data.sn(row),data.sess(row),ones(sum(row),1));
+            day = [day ; X];    
+            success_rate = [success_rate ; Y];
         end
+        figure;
+        lineplot(day,success_rate);
+        ylim([0,1.05])
+
+        % C = [];
+        % for i = 1:length(subjects)
+        %     % loop on chords:
+        %     acc_tmp = zeros(size(chords));
+        %     for j = 1:length(chords)
+        %         % accuracy of chords:
+        %         acc_tmp(j) = mean(data.accuracy(data.sn==subjects(i) & data.chordID==chords(j) & data.sess<=4));
+        %     end
+        % 
+        %     % The most undoable chords of subject in the first 
+        %     % two sessions: 
+        %     [acc,idx] = sort(acc_tmp);
+        % 
+        %     % the most undoable chord:
+        %     hard_chord = chords(idx(1));
+        % 
+        %     C.sn(i,1) = subjects(i);
+        %     C.chordID(i,1) = hard_chord;
+        %     % Accuracies:
+        %     C.acc_diff_s01(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==1 & data.chordID==hard_chord);
+        %     C.acc_diff_s02(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==2 & data.chordID==hard_chord);
+        %     C.acc_diff_s03(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==3 & data.chordID==hard_chord);
+        %     C.acc_diff_s04(i,1) = data.accuracy(data.sn==subjects(i) & data.sess==4 & data.chordID==hard_chord);
+        %     C.acc_avg_s01(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==1));
+        %     C.acc_avg_s02(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==2));
+        %     C.acc_avg_s03(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==3));
+        %     C.acc_avg_s04(i,1) = mean(data.accuracy(data.sn==subjects(i) & data.sess==4));
+        % end
 
         % plot:
-        avg_diff = [mean(C.acc_diff_s01) ; mean(C.acc_diff_s02) ; mean(C.acc_diff_s03) ; mean(C.acc_diff_s04)];
-        sem_diff = [std(C.acc_diff_s01) ; std(C.acc_diff_s02) ; std(C.acc_diff_s03) ; std(C.acc_diff_s04)]/sqrt(length(C.sn));
-        avg_all = [mean(C.acc_avg_s01) ; mean(C.acc_avg_s02) ; mean(C.acc_avg_s03) ; mean(C.acc_avg_s04)];
-        sem_all = [std(C.acc_avg_s01) ; std(C.acc_avg_s02) ; std(C.acc_avg_s03) ; std(C.acc_avg_s04)]/sqrt(length(C.sn));
-
-        fig_dataframe = [];
-        fig_dataframe.sess = (1:4)';
-        fig_dataframe.difficult = avg_diff;
-        fig_dataframe.difficult_sem = sem_diff;
-        fig_dataframe.all_chords = avg_all;
-        fig_dataframe.all_chords_sem = sem_all;
-        
-        dsave(fullfile(project_path,'analysis','success_rate.tsv'),fig_dataframe);
-        varargout{1} = C;
+        % avg_diff = [mean(C.acc_diff_s01) ; mean(C.acc_diff_s02) ; mean(C.acc_diff_s03) ; mean(C.acc_diff_s04)];
+        % sem_diff = [std(C.acc_diff_s01) ; std(C.acc_diff_s02) ; std(C.acc_diff_s03) ; std(C.acc_diff_s04)]/sqrt(length(C.sn));
+        % avg_all = [mean(C.acc_avg_s01) ; mean(C.acc_avg_s02) ; mean(C.acc_avg_s03) ; mean(C.acc_avg_s04)];
+        % sem_all = [std(C.acc_avg_s01) ; std(C.acc_avg_s02) ; std(C.acc_avg_s03) ; std(C.acc_avg_s04)]/sqrt(length(C.sn));
+        % 
+        % fig_dataframe = [];
+        % fig_dataframe.sess = (1:4)';
+        % fig_dataframe.difficult = avg_diff;
+        % fig_dataframe.difficult_sem = sem_diff;
+        % fig_dataframe.all_chords = avg_all;
+        % fig_dataframe.all_chords_sem = sem_all;
+        % 
+        % figure;
+        % lineplot(fig_dataframe.sess,fig_dataframe.difficult);
+        % ylim([0,1.05])
+        % 
+        % dsave(fullfile(project_path,'analysis','success_rate.tsv'),fig_dataframe);
+        % varargout{1} = C;
         
 
     case 'corr_reliability_nfingers'
@@ -420,6 +449,9 @@ switch (what)
 
         [sem_subj, X, Y, cond, SN] = get_sem(data.RT, data.sn, data.sess, data.num_fingers);
         ANA.RT = Y;
+
+        [sem_subj, X, Y, cond, SN] = get_sem(data.RT+data.MT, data.sn, data.sess, data.num_fingers);
+        ANA.ET = Y;
 
         dsave(fullfile(project_path,'analysis','training_performance.tsv'),ANA);
         
@@ -2881,6 +2913,59 @@ switch (what)
         end
         
         varargout{1} = ana;
+
+    case 'chord_force_examples'
+        chordID = generateAllChords;
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        subj_unique = unique(data.sn);
+        % choosing a random chord and subject:
+        chord = chordID(randi(length(chordID)));
+        sn = subj_unique(randi(length(subj_unique)));
+        vararginoptions(varargin,{'chord','sn'})
+
+        % load dat:
+        all_dat = dload(fullfile(project_path,'analysis','efc1_all.tsv'));
+        dat = dload(fullfile(project_path,'analysis',['efc1_subj',num2str(sn,'%02d'),'_raw.tsv']));
+        % load mov file:
+        mov = load(fullfile(project_path,'analysis',['efc1_subj',num2str(sn,'%02d'),'_mov.mat']));
+        mov = mov.MOV_struct;
+        
+        blocks = [[1,12];[13,24];[25,36];[37,48]];
+        % loop on days:
+        for i = 1:3:4
+            idx = find(dat.BN >= blocks(i,1) & dat.BN <= blocks(i,2) & dat.trialCorr==1 & dat.chordID==chord);
+            if (isempty(idx))
+                continue
+            end
+            MD = all_dat.MD(all_dat.sn==sn & all_dat.sess==i & all_dat.trialCorr==1 & all_dat.chordID==chord);
+            RT = all_dat.RT(all_dat.sn==sn & all_dat.sess==i & all_dat.trialCorr==1 & all_dat.chordID==chord);
+            ET = all_dat.ET(all_dat.sn==sn & all_dat.sess==i & all_dat.trialCorr==1 & all_dat.chordID==chord);
+            for j = 1:length(idx)
+                table = mov{idx(j)};
+                % trial states:
+                states = table(:,1);
+                % trial timing:
+                time = table(:,3);
+                % differential forces, d1 to d5:
+                f = table(:,end-4:end);
+                f = movmean(f,50,1) .* [ones(size(f,1),3),1.5*ones(size(f,1),2)];
+
+                go_cue = time(find(states==3,1));
+                t = time - go_cue;
+                figure;
+                plot(t,f,'LineWidth',2); hold on;
+                xline(0,'--')
+                xline(0+RT(j),'-')
+                xline(0+ET(j),':')
+                xlim([-100,ET(j)+400]);
+                xlabel('time (ms)')
+                ylabel('force (N)')
+                title(sprintf('%s, chord %d, day %d, TN %d, MD=%.2f, ET=%d',['subj',num2str(sn,'%02d')],chord,i,j,MD(j),ET(j)))
+                legend({'d1','d2','d3','d4','d5','go-cue','reaction time','forming chord'})
+            end
+        end
+
+
     otherwise
         error('The analysis you entered does not exist!')
 end

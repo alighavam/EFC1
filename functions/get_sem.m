@@ -1,4 +1,4 @@
-function [C, X, Y, COND, SN] = get_sem(y, subj_vec, part_vec, cond_vec)
+function [C, X, Y, COND, SN] = get_sem(y, subj_vec, part_vec, cond_vec, varargin)
 % alighavam79@gmail.com - Diedrichsen and Pruszynski lab 2024.
 % Description:
 %       Estimates the sem across subjects for each condition in the
@@ -39,6 +39,9 @@ function [C, X, Y, COND, SN] = get_sem(y, subj_vec, part_vec, cond_vec)
 %
 %       SN: subject vector corresponding to Y.
 
+func = 'mean';
+vararginoptions(varargin,{'func'})
+
 subjects = unique(subj_vec);
 partitions = unique(part_vec);
 conds = unique(cond_vec);
@@ -50,9 +53,9 @@ COND = [];
 SN = [];
 
 cnt = 1;
-% loop on each partition. In EFC project, loop on sessions:
+% loop on each partition.
 for i = 1:length(partitions)
-    % loop on conditions. In EFC project, loop on num_fingers:
+    % loop on conditions.
     for j = 1:length(conds)
         val = zeros(length(subjects),1);
         for k = 1:length(subjects)

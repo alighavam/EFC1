@@ -103,7 +103,7 @@ idxStart = find(tVec==tGoCue)+sortIdx(1)-1;
 
 % select the force from movement initiation until the correct state is
 % formed:
-forceSelceted = [];
+forceSelected = [];
 
 % Time from t=0 until reaching the holding state:
 durAfterActive = completion_time-600;    
@@ -115,27 +115,27 @@ durAfterActive = completion_time-600;
 % getting the force from idxStart to idxStart+durAfterActive
 for j = 1:5     
     % durAfterActive is in ms. 500Hz is the fs.
-    forceSelceted = [forceSelceted fGainVec(j)*mov(idxStart:find(tVec==tGoCue)+round(durAfterActive/1000*500),13+j)];
+    forceSelected = [forceSelected fGainVec(j)*mov(idxStart:find(tVec==tGoCue)+round(durAfterActive/1000*500),13+j)];
 end
 
 % the container for temporal difference needed to calculate Mean Deviation:
-tempDiff = zeros(size(forceSelceted,1),1);
+tempDiff = zeros(size(forceSelected,1),1);
+% 
+% % normalizing the forces:
+% for j = 1:5
+%     tmp = forceSelected(:,j);
+% 
+% end
 
 % The ideal trajectory. A straight line from the initial finger positions
 % to the position right at the time when they reach the holding state:
-c = forceSelceted(end,:)-forceSelceted(1,:);
+c = forceSelected(end,:)-forceSelected(1,:);
 
 % iterating on time points and calculating deviation at each time point:
-% for t = 1:size(forceSelceted,1) 
-%     projection = (c * forceSelceted(t,:)' / norm(c)^2)*c;
-%     tempDiff(t) = norm(forceSelceted(t,:) - projection);
-% end
-
-for t = 2:size(forceSelceted,1) 
-    tmp_force = forceSelceted(t,:) - forceSelceted(1,:);
+for t = 2:size(forceSelected,1) 
+    tmp_force = forceSelected(t,:) - forceSelected(1,:);
     projection = (c * tmp_force' / norm(c)^2)*c;
     tempDiff(t) = norm(tmp_force - projection);
 end
-mean_dev= sum(tempDiff) / (size(forceSelceted,1)-1);
-
+mean_dev= sum(tempDiff) / (size(forceSelected,1)-1);
 
