@@ -186,6 +186,23 @@ switch (what)
         T_ET_Imprv = anovaMixed(C.MD,C.sn,'within',[C.sess,C.finger_count],{'days','finger count'});
         fprintf("\n")
 
+        fprintf("\nMD t-test, days 1 vs 4:\n")
+        [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==5),C.MD(C.sess==4  & C.finger_count==5),1,'paired');
+        fprintf("     n=5: (%.2f,%.6f)\n",t,p)
+
+        [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==4),C.MD(C.sess==4 & C.finger_count==4),1,'paired');
+        fprintf("     n=4: (%.2f,%.6f)\n",t,p)
+
+        [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==3),C.MD(C.sess==4 & C.finger_count==3),1,'paired');
+        fprintf("     n=3: (%.2f,%.6f)\n",t,p)
+
+        [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==2),C.MD(C.sess==4 & C.finger_count==2),1,'paired');
+        fprintf("     n=2: (%.2f,%.6f)\n",t,p)
+
+        [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==1),C.MD(C.sess==4 & C.finger_count==1),1,'paired');
+        fprintf("     n=1: (%.2f,%.6f)\n",t,p)
+
+
         % ======== ET Separate ========
         fig_ET = figure('Units','centimeters', 'Position',[15 15 4.6 6]);
         % single-finger chords:
