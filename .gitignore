@@ -6,3 +6,6 @@
 *.dat
 *.tsv
 *.tgt
+*.pdf
+/figures
+*.csv

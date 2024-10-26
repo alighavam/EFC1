@@ -127,7 +127,7 @@ switch (what)
         h.md(2).YData(1)
         h.md(3).YData(1)
         h.md(4).YData(1)
-        ylim([0,1.1]*100)
+        ylim([0,1]*100)
         xlim([0.5,4.5])
         h = gca;
         h.YAxis.TickValues = (0:0.5:1)*100;
@@ -176,31 +176,31 @@ switch (what)
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
         xlabel('days','FontSize',my_font.label)
-        ylabel('mean deviation','FontSize',my_font.label)
+        ylabel('mean deviation [N]','FontSize',my_font.label)
         h.LineWidth = paper.axis_width;
         fontname("arial")
-
+        
         fprintf("\nMD Improvement:\n")
         [~, X, Y, COND, SN] = get_sem(C.MD, C.sn, C.sess, ones(size(C.MD)));
         fprintf('2-way ANOVA, MD:\n')
         T_ET_Imprv = anovaMixed(C.MD,C.sn,'within',[C.sess,C.finger_count],{'days','finger count'});
         fprintf("\n")
-
+        
         fprintf("\nMD t-test, days 1 vs 4:\n")
         [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==5),C.MD(C.sess==4  & C.finger_count==5),1,'paired');
-        fprintf("     n=5: (%.2f,%.6f)\n",t,p)
+        fprintf("     n=5: (%.3f,%16e)\n",t,p)
 
         [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==4),C.MD(C.sess==4 & C.finger_count==4),1,'paired');
-        fprintf("     n=4: (%.2f,%.6f)\n",t,p)
+        fprintf("     n=4: (%.3f,%16e)\n",t,p)
 
         [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==3),C.MD(C.sess==4 & C.finger_count==3),1,'paired');
-        fprintf("     n=3: (%.2f,%.6f)\n",t,p)
+        fprintf("     n=3: (%.3f,%16e)\n",t,p)
 
         [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==2),C.MD(C.sess==4 & C.finger_count==2),1,'paired');
-        fprintf("     n=2: (%.2f,%.6f)\n",t,p)
+        fprintf("     n=2: (%.3f,%16e)\n",t,p)
 
         [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==1),C.MD(C.sess==4 & C.finger_count==1),1,'paired');
-        fprintf("     n=1: (%.2f,%.6f)\n",t,p)
+        fprintf("     n=1: (%.3f,%16e)\n",t,p)
 
 
         % ======== ET Separate ========
@@ -214,11 +214,12 @@ switch (what)
         h = gca;
         ylim([0 3200])
         h.YTick = [0 1600 3200];
+        h.YTickLabels = {'0', '1.6', '3.2'};
         xlim([0.5 4.5])
         h.XAxis.FontSize = my_font.tick_label;
         h.YAxis.FontSize = my_font.tick_label;
         xlabel('days','FontSize',my_font.label)
-        ylabel('execution time','FontSize',my_font.label)
+        ylabel('execution time [s]','FontSize',my_font.label)
         h.LineWidth = paper.axis_width;
         fontname("arial")
 
@@ -228,9 +229,68 @@ switch (what)
         fprintf('2-way ANOVA, ET:\n')
         T_ET_Imprv = anovaMixed(C.ET,C.sn,'within',[C.sess,C.finger_count],{'days','finger count'});
         fprintf("\n")
-        fprintf('single-finger:\n')
-        T_ET_Imprv1 = anovaMixed(C.ET(C.finger_count==1),C.sn(C.finger_count==1),'within',C.sess(C.finger_count==1),{'days'});
-        fprintf("\n")
+        
+        fprintf("\nET t-test, days 1 vs 4:\n")
+        [t,p] = ttest(C.ET(C.sess==1 & C.finger_count==5),C.ET(C.sess==4  & C.finger_count==5),1,'paired');
+        fprintf("     n=5: (%.3f,%16e)\n",t,p)
+
+        [t,p] = ttest(C.ET(C.sess==1 & C.finger_count==4),C.ET(C.sess==4 & C.finger_count==4),1,'paired');
+        fprintf("     n=4: (%.3f,%16e)\n",t,p)
+
+        [t,p] = ttest(C.ET(C.sess==1 & C.finger_count==3),C.ET(C.sess==4 & C.finger_count==3),1,'paired');
+        fprintf("     n=3: (%.3f,%16e)\n",t,p)
+
+        [t,p] = ttest(C.ET(C.sess==1 & C.finger_count==2),C.ET(C.sess==4 & C.finger_count==2),1,'paired');
+        fprintf("     n=2: (%.3f,%16e)\n",t,p)
+
+        [t,p] = ttest(C.ET(C.sess==1 & C.finger_count==1),C.ET(C.sess==4 & C.finger_count==1),1,'paired');
+        fprintf("     n=1: (%.3f,%16e)\n",t,p)
+
+    case 'trial_by_trial_corr_ET_MD'
+        C = dload(fullfile('analysis','efc1_all.tsv'));
+        C = getrow(C, C.trialCorr==1);
+        % chords = unique(C.chordID);
+        days = unique(C.sess);
+        sn = unique(C.sn);
+        num_fingers = unique(C.num_fingers);
+        chords = unique(C.chordID);
+        
+        ana = [];
+        % for i = 1:length(sn)
+        %     for day = 1:length(days)
+        %         for n = 1:length(num_fingers)
+        %             ET = C.ET(C.sn==sn(i) & C.sess==days(day) & C.num_fingers==n);
+        %             MD = C.MD(C.sn==sn(i) & C.sess==days(day) & C.num_fingers==n);
+        %             if length(MD) < 2
+        %                 continue
+        %             end
+        %             tmp.sn = sn(i);
+        %             tmp.day = days(day);
+        %             % tmp.chord = chords(chord);
+        %             tmp.num_fingers = n;
+        %             tmp.corr = corr(ET,MD);
+        %             ana = addstruct(ana, tmp, 'row', 'force');
+        %         end
+        %     end
+        % end
+        for i = 1:length(chords)
+            ET = C.ET(C.chordID==chords(i));
+            MD = C.MD(C.chordID==chords(i));
+            if length(MD) < 2
+                continue
+            end
+            % tmp.day = days(day);
+            tmp.chord = chords(i);
+            % tmp.num_fingers = n;
+            tmp.corr = corr(ET,MD);
+            ana = addstruct(ana, tmp, 'row', 'force');
+        end
+        varargout{1} = ana;
+
+        fprintf('corr ET with MD:\n')
+        fprintf('rho = %.4f', mean(ana.corr))
+        [t,p] = ttest(ana.corr,[],1,'onesample');
+        fprintf(', t(%d)= %.3f, p=%.6f\n',length(ana.corr)-1, t, p)
 
     case 'measure_reliability'
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
@@ -276,7 +336,11 @@ switch (what)
             ,mean(r(X==4)),min(r(X==4)),max(r(X==4)),mean(r(X==5)),min(r(X==5)),max(r(X==5)) ...
             ,mean(r(X==6)),min(r(X==6)),max(r(X==6)))
         
-        disp('gooz')
+        fprintf('\nttest:\n')
+        for i = 1:5
+            [t,p] = ttest(r(X==i),[],1,'onesample');
+            fprintf('   t(%d)=%.3f, p=%.6f\n', length(r(X==i))-1, t, p)
+        end
 
 
     case 'training_finger_count'
@@ -687,7 +751,9 @@ switch (what)
     case 'model_comparison'
         C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
         ceil = C.r_ceil(1:14);
-
+        ceil_mean = mean(ceil);
+        ceil_sem = std(ceil)/sqrt(length(ceil));
+        
         % get rows for the finger_count model:
         model_table = struct2table(C);
         model_table = model_table(:,6:end);
@@ -715,6 +781,8 @@ switch (what)
         figure('Units','centimeters', 'Position',[15 15 5 6]);
         barwidth = 1;
         [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{colors_gray(4,:),colors_gray(2,:),[1,1,1]},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        % Draw a gray rectangle
+        % rectangle('Position', [x_coord(1)-barwidth, ceil_mean-ceil_sem/2, x_coord(end)-x_coord(1)+2*barwidth, ceil_sem], 'FaceColor', [0.9 0.9 0.9], 'EdgeColor', 'none');
         drawline(mean(ceil),'dir','horz','lim',[x_coord(1)-barwidth x_coord(end)+barwidth],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
         box off
         h = gca;
@@ -732,19 +800,26 @@ switch (what)
         fprintf("\nnumber of fingers prediction of MD: r = %.2f\n",mean(r_nfing))
         fprintf("MD noise ceil = %.2f\n",mean(ceil))
 
+        fprintf("\nPrediction correlations:\n")
+        fprintf('   Muslce: %.4f +- %.4f\n',mean(r_emg),std(r_emg)/sqrt(length(r_emg)));
+        fprintf('   Force: %.4f +- %.4f\n',mean(r_force),std(r_force)/sqrt(length(r_force)));
+        fprintf('   Complexity: %.4f +- %.4f\n',mean(r_trans),std(r_trans)/sqrt(length(r_trans)));
+
         % stats:
         [t,p] = ttest(r_trans,r_force,1,'paired');
-        fprintf('\nttest transition > force: (%.6f,%.6f)\n',t,p)
+        fprintf('\nttest transition > force: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(r_emg,r_trans,1,'paired');
-        fprintf('\nttest emg > transition: (%.6f,%.6f)\n',t,p)
-
+        fprintf('\nttest emg > transition: (%.6f,%.16e)\n',t,p)
+        
         [t,p] = ttest(r_emg,r_force,1,'paired');
-        fprintf('\nttest emg > force: (%.6f,%.6f)\n',t,p)
+        fprintf('\nttest emg > force: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(ceil,r_emg,2,'paired');
-        fprintf('\nttest ceiling > emg: (%.6f,%.6f)\n',t,p)
+        fprintf('\nttest ceiling > emg: (%.6f,%.16e)\n',t,p)
     
+    
+
     case 'nSphere_correlation'
         C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
@@ -802,7 +877,7 @@ switch (what)
         chords_emg = C.chordID(C.sn==1 & C.sess==1);
         data = getrow(data,ismember(data.chordID,chords_emg));
         data = getrow(data,data.sess>=3);
-
+        
         [~, ~, MD_avg, COND, ~] = get_sem(data.MD, ones(length(data.sn),1), ones(length(data.sn),1), data.chordID);
         [~, ~, magnitude_avg, COND, ~] = get_sem(C.magnitude, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
         
@@ -846,7 +921,56 @@ switch (what)
         end
         fprintf('corr: %.6f, %.6f, %.6f\n',model_corr(1),model_corr(2),model_corr(3))
         fprintf('corr significance: %.6f, %.6f, %.6f\n',p_val(1),p_val(2),p_val(3))
+    case 'coact_correlation'
+        C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
+        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        chords_emg = C.chordID(C.sn==1 & C.sess==1);
+        data = getrow(data,ismember(data.chordID,chords_emg));
+        data = getrow(data,data.sess>=3);
+
+        [~, ~, MD_avg, COND, ~] = get_sem(data.MD, ones(length(data.sn),1), ones(length(data.sn),1), data.chordID);
+        [~, ~, coact_avg, COND, ~] = get_sem(C.coact, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
         
+        finger_count = get_num_active_fingers(COND);
+        fc = unique(finger_count);
+        ylims = [[0 0.3] ; [0.1 1.5] ; [0.3 2.1]];
+        % ylims = [[300 480] ; [500 2200] ; [900 2200]]; % for ET
+        xlims = [[0.1 0.35] ; [0.2 0.5] ; [0.25 0.6]];
+        p_val = zeros(length(fc),1);
+        model_corr = zeros(length(fc),1);
+        for i = 1:length(fc)
+            x = coact_avg(finger_count==fc(i));
+            y = MD_avg(finger_count==fc(i));
+            chords = COND(finger_count==fc(i));
+            
+            [~,sort_idx] = sort(x);
+            fprintf('%d-finger chords ascending coact (first and last 3 chords):\n',fc(i))
+            disp(chords(sort_idx([1:3 , end-2:end])))
+            md = fitlm(x, y);
+            p_val(i) = md.Coefficients.pValue(2);
+            coefs = md.Coefficients.Estimate;
+            model_corr(i) = corr(x,y);
+            num_sample_plot = 1000;
+            x_plot = linspace(min(x),max(x), num_sample_plot)';
+            y_plot = [ones(num_sample_plot,1), x_plot]*coefs;
+            figure('Units','centimeters', 'Position',[15 15 5 5]);
+            plot(x_plot, y_plot, 'Color', colors_gray(5,:), 'LineWidth',1); hold on;
+            scatter(x, y, 15, "filled", "MarkerFaceColor", colors_gray(1,:), 'MarkerEdgeColor', colors_gray(5,:), 'LineWidth', 0.7); 
+            box off
+            h = gca;
+            h.XTick = [xlims(i,1), round((xlims(i,1)+xlims(i,2))/2,2), xlims(i,2)];
+            h.XAxis.FontSize = my_font.tick_label;
+            h.YAxis.FontSize = my_font.tick_label;
+            h.LineWidth = paper.axis_width;
+            h.YTick = [ylims(i,1), round((ylims(i,1)+ylims(i,2))/2,2), ylims(i,2)];
+            % ylim(ylims(i,:))
+            % xlim([xlims(i,1)-0.05 xlims(i,2)+0.05])
+            ylabel('mean deviation','FontSize',my_font.label)
+            xlabel('$$\| \vec{m}_i \|_{2}$$, muscle coact','interpreter','LaTex','FontSize',my_font.label)
+            fontname("Arial")
+        end
+        fprintf('corr: %.6f, %.6f, %.6f\n',model_corr(1),model_corr(2),model_corr(3))
+        fprintf('corr significance: %.6f, %.6f, %.6f\n',p_val(1),p_val(2),p_val(3))
     case 'within_finger_model'
         C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
@@ -857,11 +981,12 @@ switch (what)
         [~, ~, MD_avg, COND_MD, SN] = get_sem(data.MD, data.sn, ones(length(data.sn),1), data.chordID);
         [~, ~, log_avg, COND_log, ~] = get_sem(C.log_slope, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
         [~, ~, mag_avg, COND_mag, ~] = get_sem(C.magnitude, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
-
+        [~, ~, coact_avg, COND_coact, ~] = get_sem(C.coact, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
+        
         SN_unique = unique(SN);
         finger_count_MD = get_num_active_fingers(COND_MD);
         finger_count_log = get_num_active_fingers(COND_log);
-
+        
         fc = unique(finger_count_MD);
         ana = [];
         % loop on finger count:
@@ -873,28 +998,30 @@ switch (what)
                 x = MD_avg(SN==SN_unique(i) & finger_count_MD==fc(j));
                 y_log = log_avg(finger_count_log==fc(j));
                 y_mag = mag_avg(finger_count_log==fc(j));
+                y_coact = coact_avg(finger_count_log==fc(j));
                 
                 ana_tmp.sn = SN_unique(i);
                 ana_tmp.finger_count = fc(j);
                 ana_tmp.corr_log = -corr(x,y_log);
                 ana_tmp.corr_mag = corr(x,y_mag);
+                ana_tmp.corr_coact = corr(x,y_coact);
                 ana_tmp.ceil = ceil(i);
                 ana = addstruct(ana,ana_tmp,'row','force');
             end
         end
         varargout{1} = ana;
-
+        
         % barplot:
         ceil1 = mean(ana.ceil(ana.finger_count==1));
         ceil3 = mean(ana.ceil(ana.finger_count==3));
         ceil5 = mean(ana.ceil(ana.finger_count==5));
-        x = [ana.finger_count ; ana.finger_count];
-        y = [ana.corr_mag ; ana.corr_log] ./ [repelem([ceil1;ceil3;ceil5],length(SN_unique),1) ; repelem([ceil1;ceil3;ceil5],length(SN_unique),1)];
-        split = [ones(length(ana.finger_count),1) ; 2*ones(length(ana.finger_count),1)];
+        x = [ana.finger_count ; ana.finger_count ; ana.finger_count];
+        y = [ana.corr_mag ; ana.corr_log ; ana.corr_coact] ./ [repelem([ceil1;ceil3;ceil5],length(SN_unique),1) ; repelem([ceil1;ceil3;ceil5],length(SN_unique),1) ; repelem([ceil1;ceil3;ceil5],length(SN_unique),1)];
+        split = [ones(length(ana.finger_count),1) ; 2*ones(length(ana.finger_count),1) ; 3*ones(length(ana.finger_count),1)];
         figure('Units','centimeters', 'Position',[15 15 6 6]);
         barwidth = 1;
-        bar_colors = {colors_pastel(1,:),colors_blue(3,:)};
-        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',bar_colors,'barwidth',barwidth,'gapwidth',[1 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        bar_colors = {colors_pastel(1,:),colors_blue(3,:),colors_blue(2,:)};
+        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',bar_colors,'barwidth',barwidth,'gapwidth',[1 0 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
         hold on;
         drawline(1,'dir','horz','lim',[0 9],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
         box off
@@ -905,45 +1032,46 @@ switch (what)
         h.LineWidth = paper.axis_width;
         % h.YTick = [0,0.5,1];
         ylim([0 1])
-        xlim([0,9])
+        xlim([0,12])
         ylabel('normalized correlation (Pearson''s)','FontSize',my_font.label)
         xlabel('Finger Count','FontSize',my_font.label)
         fontname("Arial")
         
         % model correlations:
         fprintf('\nnSphere Corrs:\n')
-        fprintf('   1-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_log(ana.finger_count==1))/ceil1,min(ana.corr_log(ana.finger_count==1))/ceil1,max(ana.corr_log(ana.finger_count==1))/ceil1);
-        fprintf('   3-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_log(ana.finger_count==3))/ceil3,min(ana.corr_log(ana.finger_count==3))/ceil3,max(ana.corr_log(ana.finger_count==3))/ceil3);
-        fprintf('   5-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_log(ana.finger_count==5))/ceil5,min(ana.corr_log(ana.finger_count==5))/ceil5,max(ana.corr_log(ana.finger_count==5))/ceil5);
+        fprintf('   1-f: %.3f +- %.3f\n',mean(ana.corr_log(ana.finger_count==1)),std(ana.corr_log(ana.finger_count==1))/sqrt(14));
+        fprintf('   3-f: %.3f +- %.3f\n',mean(ana.corr_log(ana.finger_count==3)),std(ana.corr_log(ana.finger_count==3))/sqrt(14));
+        fprintf('   5-f: %.3f +- %.3f\n',mean(ana.corr_log(ana.finger_count==5)),std(ana.corr_log(ana.finger_count==5))/sqrt(14));
         
         fprintf('\nMagnitude Corrs:\n')
-        fprintf('   1-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_mag(ana.finger_count==1))/ceil1,min(ana.corr_mag(ana.finger_count==1))/ceil1,max(ana.corr_mag(ana.finger_count==1))/ceil1);
-        fprintf('   3-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_mag(ana.finger_count==3))/ceil3,min(ana.corr_mag(ana.finger_count==3))/ceil3,max(ana.corr_mag(ana.finger_count==3))/ceil3);
-        fprintf('   5-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_mag(ana.finger_count==5))/ceil5,min(ana.corr_mag(ana.finger_count==5))/ceil5,max(ana.corr_mag(ana.finger_count==5))/ceil5);
+        fprintf('   1-f: %.3f +- %.3f\n',mean(ana.corr_mag(ana.finger_count==1)),std(ana.corr_mag(ana.finger_count==1))/sqrt(14));
+        fprintf('   1-f: %.3f +- %.3f\n',mean(ana.corr_mag(ana.finger_count==3)),std(ana.corr_mag(ana.finger_count==3))/sqrt(14));
+        fprintf('   1-f: %.3f +- %.3f\n',mean(ana.corr_mag(ana.finger_count==5)),std(ana.corr_mag(ana.finger_count==5))/sqrt(14));
+        % 
+        % fprintf('\nCoact Corrs:\n')
+        % fprintf('   1-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_coact(ana.finger_count==1))/ceil1,min(ana.corr_coact(ana.finger_count==1))/ceil1,max(ana.corr_coact(ana.finger_count==1))/ceil1);
+        % fprintf('   3-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_coact(ana.finger_count==3))/ceil3,min(ana.corr_coact(ana.finger_count==3))/ceil3,max(ana.corr_coact(ana.finger_count==3))/ceil3);
+        % fprintf('   5-f: %.2f (%.2f-%.2f)\n',mean(ana.corr_coact(ana.finger_count==5))/ceil5,min(ana.corr_coact(ana.finger_count==5))/ceil5,max(ana.corr_coact(ana.finger_count==5))/ceil5);
         
-        % stats:
-        [t,p] = ttest(ana.corr_log(ana.finger_count==1),ana.corr_mag(ana.finger_count==1),1,'paired');
-        fprintf('\n1-f nSphere > mag: (%.6f,%.6f)\n',t,p)
-
-        [t,p] = ttest(ana.corr_mag(ana.finger_count==3),ana.corr_log(ana.finger_count==3),1,'paired');
-        fprintf('\n3-f mag > nSphere: (%.6f,%.6f)\n',t,p)
-
-        [t,p] = ttest(ana.corr_log(ana.finger_count==5),ana.corr_mag(ana.finger_count==5),1,'paired');
-        fprintf('\n5-f nSphere > mag: (%.6f,%.6f)\n',t,p)
-
         % stats compared to 0 corr:
         [t1,p1] = ttest(ana.corr_mag(ana.finger_count==1),[],1,'onesample');
         [t3,p3] = ttest(ana.corr_mag(ana.finger_count==3),[],1,'onesample');
         [t5,p5] = ttest(ana.corr_mag(ana.finger_count==5),[],1,'onesample');
         fprintf('\nMagnitude:');
-        fprintf('\n     1-f: (%.6f,%.6f)\n     3-f: (%.6f,%.6f)\n     5-f: (%.6f,%.6f)\n',t1,p1,t3,p3,t5,p5)
-
+        fprintf('\n     1-f: (%.6f,%.16e)\n     3-f: (%.6f,%.16e)\n     5-f: (%.6f,%.16e)\n',t1,p1,t3,p3,t5,p5)
+        
         [t1,p1] = ttest(ana.corr_log(ana.finger_count==1),[],1,'onesample');
         [t3,p3] = ttest(ana.corr_log(ana.finger_count==3),[],1,'onesample');
         [t5,p5] = ttest(ana.corr_log(ana.finger_count==5),[],1,'onesample');
         fprintf('\nnSphere:');
-        fprintf('\n     1-f: (%.6f,%.6f)\n     3-f: (%.6f,%.6f)\n     5-f: (%.6f,%.6f)\n',t1,p1,t3,p3,t5,p5)
-
+        fprintf('\n     1-f: (%.6f,%.16e)\n     3-f: (%.6f,%.16e)\n     5-f: (%.6f,%.16e)\n',t1,p1,t3,p3,t5,p5)
+        
+        [t1,p1] = ttest(ana.corr_coact(ana.finger_count==1),[],1,'onesample');
+        [t3,p3] = ttest(ana.corr_coact(ana.finger_count==3),[],1,'onesample');
+        [t5,p5] = ttest(ana.corr_coact(ana.finger_count==5),[],1,'onesample');
+        fprintf('\nCoact:');
+        fprintf('\n     1-f: (%.6f,%.16e)\n     3-f: (%.6f,%.16e)\n     5-f: (%.6f,%.16e)\n',t1,p1,t3,p3,t5,p5)
+        
     case 'across_subj_model'
         C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
         ceil = C.r_ceil(1:14);
@@ -954,10 +1082,10 @@ switch (what)
         rows_nfing = model_table.n_fing==1 & all(model_table{:,2:end}==0, 2);
         
         % get rows for the magnitude model:
-        rows_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & all(model_table{:,[2:9]}==0, 2);
+        rows_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & all(model_table{:,[2:9,11]}==0, 2);
 
         % get rows for the natural+magnitude model:
-        rows_nSphere_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8]}==0, 2);
+        rows_nSphere_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8,11]}==0, 2);
 
         % get rows for the emg model:
         rows_emg = model_table.n_fing==1 & model_table.emg_additive_avg==1 & all(model_table{:,[2:6,8:end]}==0, 2);
@@ -988,40 +1116,119 @@ switch (what)
         xlabel('place holder','FontSize',my_font.label)
         fontname("Arial")
 
+        % model correlations:
+        fprintf('\nPrediction corrs:\n')
+        fprintf('   mag: %.3f +- %.3f\n',mean(r_mag),std(r_mag)/sqrt(14));
+        fprintf('   nat+mag: %.3f +- %.3f\n',mean(r_nSphere_mag),std(r_nSphere_mag)/sqrt(14));
+
+        % stats:
+        [t,p] = ttest(r_mag,r_nfing,1,'paired');
+        fprintf('\nttest mag > baseline: (%.6f,%.16e)\n',t,p)
+
+        [t,p] = ttest(r_nSphere_mag,r_nfing,1,'paired');
+        fprintf('ttest nSphere+mag > baseline: (%.6f,%.16e)\n',t,p)
+        
+        [t,p] = ttest(r_nSphere_mag,r_mag,1,'paired');
+        fprintf('ttest nSphere+mag > mag: (%.6f,%.16e)\n',t,p)
+        
+        [t,p] = ttest(ceil,r_nSphere_mag,1,'paired');
+        fprintf('ttest ceiling > nSpehre+mag: (%.6f,%.16e)\n',t,p)
+        
+        [t,p] = ttest(r_emg,r_nSphere_mag,1,'paired');
+        fprintf('ttest muscle model > nSpehre+mag: (%.6f,%.16e)\n',t,p)
+    
+    case 'across_subj_model_coact'
+        C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
+        ceil = C.r_ceil(1:14);
+        
+        % get rows for the finger_count model:
+        model_table = struct2table(C);
+        model_table = model_table(:,6:end);
+        rows_nfing = model_table.n_fing==1 & all(model_table{:,2:end}==0, 2);
+        
+        % get rows for the magnitude model:
+        rows_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & all(model_table{:,[2:9,11]}==0, 2);
+
+        rows_mag_coact = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.coact_avg==1 & all(model_table{:,[2:9]}==0, 2);
+
+        % get rows for the natural+magnitude model:
+        % rows_nSphere_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8]}==0, 2);
+            
+        rows_nSphere_mag_coact = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.coact_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8]}==0, 2);
+        
+        % get rows for the emg model:
+        rows_emg = model_table.n_fing==1 & model_table.emg_additive_avg==1 & all(model_table{:,[2:6,8:end]}==0, 2);
+
+        % get fitted r for models
+        r_nfing = C.r(rows_nfing);
+        r_mag = C.r(rows_mag);
+        r_mag_coact = C.r(rows_mag_coact);
+        r_nSphere_mag_coact = C.r(rows_nSphere_mag_coact);
+        r_emg = C.r(rows_emg);
+        
+        % barplot:
+        x = [ones(length(r_mag),1) ; 2*ones(length(r_mag_coact),1) ; 3*ones(length(r_nSphere_mag_coact),1) ; 4*ones(length(r_emg),1)];
+        y = [r_mag ; r_mag_coact ; r_nSphere_mag_coact ; r_emg];
+        split = [ones(length(r_mag),1) ; 2*ones(length(r_mag_coact),1); 3*ones(length(r_nSphere_mag_coact),1) ; 4*ones(length(r_emg),1)];
+        figure('Units','centimeters', 'Position',[15 15 5 6]);
+        barwidth = 1;
+        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{hex2rgb('#C4B7C8'),hex2rgb('#FF8A80'),[1,1,1]},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
+        drawline(mean(ceil),'dir','horz','lim',[x_coord(1)-barwidth x_coord(end)+barwidth],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
+        box off
+        h = gca;
+        h.XAxis.FontSize = my_font.tick_label;
+        h.YAxis.FontSize = my_font.tick_label;
+        h.LineWidth = paper.axis_width;
+        h.YTick = [round(mean(r_nfing),2),round(mean(ceil),2),1];
+        ylim([round(mean(r_nfing),2) 1])
+        xlim([x_coord(1)-barwidth,x_coord(end)+barwidth])
+        ylabel('model fit (Pearson''s r)','FontSize',my_font.label)
+        xlabel('place holder','FontSize',my_font.label)
+        fontname("Arial")
+
         % stats:
         [t,p] = ttest(r_mag,r_nfing,2,'paired');
         fprintf('\nttest mag != baseline: (%.6f,%.6f)\n',t,p)
 
-        [t,p] = ttest(r_nSphere_mag,r_nfing,2,'paired');
-        fprintf('ttest nSphere+mag != baseline: (%.6f,%.6f)\n',t,p)
+        [t,p] = ttest(r_mag_coact,r_mag,1,'paired');
+        fprintf('ttest mag+coact > mag: (%.6f,%.6f)\n',t,p)
         
-        [t,p] = ttest(r_nSphere_mag,r_mag,2,'paired');
-        fprintf('ttest nSphere+mag != mag: (%.6f,%.6f)\n',t,p)
+        [t,p] = ttest(r_nSphere_mag_coact,r_mag_coact,1,'paired');
+        fprintf('ttest nSphere+mag+coact > mag+coact: (%.6f,%.6f)\n',t,p)
         
-        [t,p] = ttest(ceil,r_nSphere_mag,1,'paired');
-        fprintf('ttest ceiling > nSpehre+mag: (%.6f,%.6f)\n',t,p)
+        [t,p] = ttest(ceil,r_nSphere_mag_coact,1,'paired');
+        fprintf('ttest ceiling > nSpehre+mag+coact: (%.6f,%.6f)\n',t,p)
         
-        [t,p] = ttest(r_emg,r_nSphere_mag,1,'paired');
-        fprintf('ttest muscle model > nSpehre+mag: (%.6f,%.6f)\n',t,p)
-
+        [t,p] = ttest(r_emg,r_nSphere_mag_coact,1,'paired');
+        fprintf('ttest muscle model > nSpehre+mag+coact: (%.6f,%.6f)\n',t,p)
     case 'explained_var_by_natural'
         C = dload(fullfile(project_path,'analysis','natChord_pca.tsv'));
         halves = unique(C.half);
-
+        PCs = C.PC(1:100);
         avg_nat = 0;
         avg_chord = 0;
+        % avg across halves:
         for i = 1:length(halves)
-            row = C.half == halves(i);
-            [~, X_nat, Y_nat, COND, SN] = get_sem(C.nat_explained(row), C.sn(row), ones(sum(row),1), C.PC(row));
-            [~, X_chord, Y_chord, COND, SN] = get_sem(C.chord_explained(row), C.sn(row), ones(sum(row),1), C.PC(row));
-            avg_nat = avg_nat + Y_nat/length(halves);
-            avg_chord = avg_chord + Y_chord/length(halves);
+            row = C.half==halves(i);
+            avg_nat = avg_nat + C.nat_explained(row)/length(halves);
+            avg_chord = avg_chord + C.chord_explained(row)/length(halves);
         end
+        nat_mean = mean(reshape(avg_nat,[length(unique(PCs)),length(unique(C.sn))]),2);
+        chord_mean = mean(reshape(avg_chord,[length(unique(PCs)),length(unique(C.sn))]),2);
+        nat_sem = std(reshape(avg_nat,[length(unique(PCs)),length(unique(C.sn))]),0,2) / sqrt(length(unique(C.sn)));
+        chord_sem = std(reshape(avg_chord,[length(unique(PCs)),length(unique(C.sn))]),0,2) / sqrt(length(unique(C.sn)));
+        x = (1:length(unique(PCs)))';
+
         figure('Units','centimeters', 'Position',[15 15 7 7]);
         hold on;
         drawline(0,'dir','horz','linestyle',':','linewidth',paper.horz_line_width,'color',[0.8 0.8 0.8],'lim',[0 11])
-        [~,PLOT,~] = lineplot(COND,avg_nat,'markertype','o','markersize',paper.lineplot_marker_size-2,'markerfill',colors_gray(2,:),'markercolor',colors_gray(2,:),'linecolor',colors_gray(2,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_gray(2,:),'errorcap',0);
-        [~,PLOT_chord,~] = lineplot(COND,avg_chord,'markertype','o','markersize',paper.lineplot_marker_size-2,'markerfill',colors_cyan(5,:),'markercolor',colors_cyan(5,:),'linecolor',colors_cyan(5,:),'linewidth',paper.lineplot_line_width,'errorcolor',colors_cyan(5,:),'errorcap',0);
+        patch([x ; flipud(x)], [nat_mean + nat_sem ; flipud(nat_mean - nat_sem)], colors_gray(2,:),...
+              'FaceAlpha', 0.3, 'EdgeColor', 'none'); % SEM patch for nat
+        patch([x ; flipud(x)], [chord_mean + chord_sem ;flipud(chord_mean - chord_sem)], colors_cyan(5,:), ...
+              'FaceAlpha', 0.2, 'EdgeColor', 'none'); % SEM patch for var2
+        [~,PLOT,~] = lineplot(PCs,avg_nat,'markertype','o','markersize',paper.lineplot_marker_size-2.5,'markerfill',colors_gray(2,:),'markercolor',colors_gray(2,:),'linecolor',colors_gray(2,:),'linewidth',paper.lineplot_line_width*0.7,'errorcolor','none','errorcap',0);
+        [~,PLOT_chord,~] = lineplot(PCs,avg_chord,'markertype','o','markersize',paper.lineplot_marker_size-2.5,'markerfill',colors_cyan(5,:),'markercolor',colors_cyan(5,:),'linecolor',colors_cyan(5,:),'linewidth',paper.lineplot_line_width*0.7,'errorcolor','none','errorcap',0);
+        
         legend({'','natural EMG','','','','','','','','','','','chord EMG'},'FontSize',my_font.legend);
         legend('boxoff')
         box off
@@ -1036,16 +1243,16 @@ switch (what)
         ylabel('Variance Explained by Component','FontSize',my_font.label)
         xlabel('Natural PCs','FontSize',my_font.label)
         fontname("Arial")
-
+        
         fprintf('\nnatural PC1 to PC5 explains: %.2f\n',sum(PLOT(1:5)))
 
         fprintf('projection of chord onto PC1 to PC5 explains: %.2f\n\n',sum(PLOT_chord(1:5)))
         
         % stats:
-        n_pc = length(unique(COND));
+        n_pc = length(unique(PCs));
         for i = 1:n_pc
-            [t,p] = ttest(Y_chord(COND==i),Y_nat(COND==i),2,'paired');
-            fprintf('PC %d: (%.6f,%.6f)\n',i,t,p)
+            [t,p] = ttest(avg_chord(PCs==i),avg_nat(PCs==i),2,'paired');
+            fprintf('PC %d: (%.6f,%.16e)\n',i,t,p)
         end
         
     case 'single_PC_impaired_model'
@@ -1302,6 +1509,7 @@ switch (what)
                 % legend({'d1','d2','d3','d4','d5','go-cue','reaction time','forming chord'})
             end
         end
+
     otherwise
         error('The analysis %s you entered does not exist!',what)
 end

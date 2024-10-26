@@ -55,7 +55,7 @@ paper.bar_width = 1;
 
 
 switch (what)
-    case 'subject_routine'
+    case 'subjeGct_routine'
         % handling input arguments:
         subject_name = 'subj01';
         smoothing_win_length = 30;
