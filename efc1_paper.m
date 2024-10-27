@@ -801,13 +801,21 @@ switch (what)
         fprintf("MD noise ceil = %.2f\n",mean(ceil))
 
         fprintf("\nPrediction correlations:\n")
+        fprintf('   baseline: %.4f +- %.4f\n',mean(r_nfing),std(r_nfing)/sqrt(length(r_nfing)));
+        fprintf('   noise ceiling: %.4f +- %.4f\n',mean(ceil),std(ceil)/sqrt(length(ceil)));
         fprintf('   Muslce: %.4f +- %.4f\n',mean(r_emg),std(r_emg)/sqrt(length(r_emg)));
         fprintf('   Force: %.4f +- %.4f\n',mean(r_force),std(r_force)/sqrt(length(r_force)));
         fprintf('   Complexity: %.4f +- %.4f\n',mean(r_trans),std(r_trans)/sqrt(length(r_trans)));
 
         % stats:
+        [t,p] = ttest(ceil,r_nfing,1,'paired');
+        fprintf('\nttest ceiling > nfing: (%.6f,%.16e)\n',t,p)
+
         [t,p] = ttest(r_trans,r_force,1,'paired');
         fprintf('\nttest transition > force: (%.6f,%.16e)\n',t,p)
+
+        [t,p] = ttest(r_emg,r_nfing,1,'paired');
+        fprintf('\nttest emg > nfing: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(r_emg,r_trans,1,'paired');
         fprintf('\nttest emg > transition: (%.6f,%.16e)\n',t,p)
