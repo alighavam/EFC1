@@ -1518,6 +1518,40 @@ switch (what)
             end
         end
 
+    case 'cognitive_hypothesis'
+        df = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
+        df = getrow(df,df.sess>=3); % data from days 3 and 4.
+        [~, ~, MD, chord, SN] = get_sem(df.MD, df.sn, ones(size(df.sn)), df.chordID);
+        n = length(unique(SN));
+        symm = get_chord_symmetry(unique(chord),'all');
+        
+        % loop on symmetry groups:
+        ana = [];
+        for i = 1:length(symm.chord)
+            % Some chords are symmetric horizontally. This accounts for that:
+            tmp_chords = unique([symm.chord(i),symm.chord_vs(i),symm.chord_hs(i),symm.chord_vhs(i)]);
+            for j = 1:length(tmp_chords)
+                tmp.group = i*ones(n,1);
+                tmp.sn = SN(chord==tmp_chords(j));
+                tmp.category = j*ones(n,1);
+                tmp.chord = tmp_chords(j)*ones(n,1);
+                tmp.MD = MD(chord==tmp_chords(j));
+                ana = addstruct(ana,tmp,'row',1);
+            end
+        end
+
+        % doing rmANOVA on each group:
+        STATS_table = zeros(length(unique(ana.group)),5);
+        for i = 1:length(unique(ana.group))
+            row = ana.group==i;
+            ANOVA_table = anovaMixed(ana.MD(row),ana.sn(row),'within',[ana.category(row)],{'category'});
+            STATS_table(i,1) = ANOVA_table.eff.p;
+            chords = unique(ana.chord(row));
+            STATS_table(i,2:1+length(chords)) = chords';
+        end
+        varargout{1} = ana;
+        varargout{2} = STATS_table;
+        
     otherwise
         error('The analysis %s you entered does not exist!',what)
 end
