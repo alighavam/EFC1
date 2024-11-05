@@ -53,7 +53,6 @@ paper.axis_width = 1;
 paper.bar_line_width = 1.5;
 paper.bar_width = 1;
 
-
 switch (what)
     case 'subjeGct_routine'
         % handling input arguments:
@@ -2969,6 +2968,5 @@ switch (what)
     otherwise
         error('The analysis you entered does not exist!')
 end
-
 
 

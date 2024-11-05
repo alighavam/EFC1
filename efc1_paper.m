@@ -24,7 +24,6 @@ colors_gray = hex2rgb(colors_gray);
 colors_random = hex2rgb(colors_random);
 colors_pastel = hex2rgb(colors_pastel);
 colors_colorblind = hex2rgb(colors_colorblind);
-
 colors_measures = [colors_red(3,:) ; colors_cyan(3,:) ; colors_blue(5,:)];
 
 % figure properties:
@@ -115,8 +114,18 @@ switch (what)
 
         % distribution plot:
         fig = figure('Units','centimeters', 'Position',[15 15 5 6]);
-        [~, day, succ, ~, ~] = get_sem(data.accuracy,ones(size(data.sn)),data.sess,data.chordID);
+        [~, day, succ, chord, ~] = get_sem(data.accuracy,ones(size(data.sn)),data.sess,data.chordID);
         Y = reshape(succ,[],4);
+        chord = chord(1:242);
+        [a,b] = sort(Y(:,1));
+        fprintf('day 1: \n')
+        fprintf('   %d\n',chord(b(1:5)))
+
+        [a,b] = sort(Y(:,2));
+        fprintf('\nday 2: \n')
+        fprintf('   %d\n',chord(b(1:5)))
+        
+
         c =  [0.45, 0.80, 0.69;...
               0.98, 0.40, 0.35;...
               0.55, 0.60, 0.79;...
@@ -1551,6 +1560,8 @@ switch (what)
         end
         varargout{1} = ana;
         varargout{2} = STATS_table;
+
+        fprintf('\nNumber of significant F tests: %d/%d\n',sum(STATS_table(:,1)<0.05),size(STATS_table,1))
         
     otherwise
         error('The analysis %s you entered does not exist!',what)
