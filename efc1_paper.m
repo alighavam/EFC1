@@ -211,7 +211,6 @@ switch (what)
         [t,p] = ttest(C.MD(C.sess==1 & C.finger_count==1),C.MD(C.sess==4 & C.finger_count==1),1,'paired');
         fprintf("     n=1: (%.3f,%16e)\n",t,p)
 
-
         % ======== ET Separate ========
         fig_ET = figure('Units','centimeters', 'Position',[15 15 4.6 6]);
         % single-finger chords:
@@ -231,7 +230,7 @@ switch (what)
         ylabel('execution time [s]','FontSize',my_font.label)
         h.LineWidth = paper.axis_width;
         fontname("arial")
-
+        
         % stats
         fprintf("\nET Improvement:\n")
         [~, X, Y, COND, SN] = get_sem(C.ET, C.sn, C.sess, ones(size(C.ET)));
@@ -1225,7 +1224,7 @@ switch (what)
         avg_nat = 0;
         avg_chord = 0;
         % avg across halves:
-        for i = 1:length(halves)
+        for i = 1:2
             row = C.half==halves(i);
             avg_nat = avg_nat + C.nat_explained(row)/length(halves);
             avg_chord = avg_chord + C.chord_explained(row)/length(halves);
@@ -1234,8 +1233,32 @@ switch (what)
         chord_mean = mean(reshape(avg_chord,[length(unique(PCs)),length(unique(C.sn))]),2);
         nat_sem = std(reshape(avg_nat,[length(unique(PCs)),length(unique(C.sn))]),0,2) / sqrt(length(unique(C.sn)));
         chord_sem = std(reshape(avg_chord,[length(unique(PCs)),length(unique(C.sn))]),0,2) / sqrt(length(unique(C.sn)));
-        x = (1:length(unique(PCs)))';
+        
+        % sorting PCs based on the variance they explain in natural:
+        [~,PC_order] = sort(nat_mean,'descend');
+        nat_mean = nat_mean(PC_order);
+        chord_mean = chord_mean(PC_order);
+        nat_sem = nat_sem(PC_order);
+        chord_sem = chord_sem(PC_order);
 
+        sorted_indices = [];
+        for i = 1:length(PCs)/length(PC_order)
+            segment_start = (i - 1) * length(PC_order) + 1;
+            segment_end = segment_start + length(PC_order) - 1;
+            
+            % Get the indices for each segment in the custom order
+            [~, idx] = ismember(PCs(segment_start:segment_end), PC_order);
+            
+            % Append the indices in the custom order
+            sorted_indices = [sorted_indices; segment_start - 1 + idx];
+        end
+        
+        % sorted_indices now contains the indices to reorder PCs
+        % PCs = PCs(sorted_indices);
+        avg_nat = avg_nat(sorted_indices);
+        avg_chord = avg_chord(sorted_indices);
+        x = (1:length(unique(PCs)))';
+        
         figure('Units','centimeters', 'Position',[15 15 7 7]);
         hold on;
         drawline(0,'dir','horz','linestyle',':','linewidth',paper.horz_line_width,'color',[0.8 0.8 0.8],'lim',[0 11])
@@ -1265,12 +1288,17 @@ switch (what)
 
         fprintf('projection of chord onto PC1 to PC5 explains: %.2f\n\n',sum(PLOT_chord(1:5)))
         
-        % stats:
+        % STATS:
         n_pc = length(unique(PCs));
         for i = 1:n_pc
             [t,p] = ttest(avg_chord(PCs==i),avg_nat(PCs==i),2,'paired');
             fprintf('PC %d: (%.6f,%.16e)\n',i,t,p)
         end
+        
+        fprintf('2-way ANOVA:\n')
+        SN = repelem([1:10]',10);
+        table = anovaMixed([avg_nat;avg_chord],[SN;SN],'within',[[PCs;PCs],[ones(length(PCs),1);2*ones(length(PCs),1)]],{'PCs','natural/chord'});
+        fprintf("\n")
         
     case 'single_PC_impaired_model'
         C = dload(fullfile(project_path,'analysis','natChord_single_pc_impared.tsv'));
