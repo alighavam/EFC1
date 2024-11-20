@@ -816,23 +816,27 @@ switch (what)
         fprintf('   Complexity: %.4f +- %.4f\n',mean(r_trans),std(r_trans)/sqrt(length(r_trans)));
 
         % stats:
+        fprintf('\nttest:\n')
         [t,p] = ttest(ceil,r_nfing,1,'paired');
-        fprintf('\nttest ceiling > nfing: (%.6f,%.16e)\n',t,p)
+        fprintf('   ceiling > nfing: (%.6f,%.16e)\n',t,p)
+
+        [t,p] = ttest(r_trans,r_nfing,1,'paired');
+        fprintf('   transition > nfing: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(r_trans,r_force,1,'paired');
-        fprintf('\nttest transition > force: (%.6f,%.16e)\n',t,p)
+        fprintf('   transition > force: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(r_emg,r_nfing,1,'paired');
-        fprintf('\nttest emg > nfing: (%.6f,%.16e)\n',t,p)
+        fprintf('   emg > nfing: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(r_emg,r_trans,1,'paired');
-        fprintf('\nttest emg > transition: (%.6f,%.16e)\n',t,p)
+        fprintf('   emg > transition: (%.6f,%.16e)\n',t,p)
         
         [t,p] = ttest(r_emg,r_force,1,'paired');
-        fprintf('\nttest emg > force: (%.6f,%.16e)\n',t,p)
+        fprintf('   emg > force: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(ceil,r_emg,2,'paired');
-        fprintf('\nttest ceiling > emg: (%.6f,%.16e)\n',t,p)
+        fprintf('   ceiling > emg: (%.6f,%.16e)\n',t,p)
     
     
 
