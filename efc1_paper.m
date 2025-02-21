@@ -130,8 +130,8 @@ switch (what)
               0.98, 0.40, 0.35;...
               0.55, 0.60, 0.79;...
               0.90, 0.70, 0.30];  
-        h = daboxplot(Y*100,'colors',c,'whiskers',0,'scatter',2,'scattersize',10,'scatteralpha',1,...
-                      'boxspacing',0.8,'outliers',0,'scattercolors',{'k','w'},'linkline',0,'fill',1); 
+        h = daboxplot(Y*100,'colors',c,'whiskers',0,'scatter',2,'scattersize',3,'scatteralpha',0.5,...
+                      'boxspacing',0.8,'outliers',0,'scattercolors',{'k','w'},'linkline',0,'fill',0,'boxwidth',2); 
         h.md(1).YData(1)
         h.md(2).YData(1)
         h.md(3).YData(1)
@@ -148,6 +148,16 @@ switch (what)
         ylabel('success rate','FontSize',my_font.label)
         box off
         set(gca, 'FontName', 'arial');
+        
+        % get the mean +- sem of the least successful chord on day 1:
+        chord = chord(1:242);
+        [a,b] = sort(Y(:,1));
+        chord(b(1))
+        row = data.chordID==chord(b(1)) & data.sess==1;
+        hard_chord_success = data.accuracy(row);
+        mean_succ = mean(hard_chord_success);
+        sem_succ = std(hard_chord_success)/sqrt(length(hard_chord_success));
+        fprintf('chord %d success rate, day 1 =  %.2f, %.2f\n',chord(b(1)),mean_succ*100,sem_succ*100);
         
     case 'training_performance'
         C = dload(fullfile(project_path,'analysis','training_performance.tsv'));
@@ -819,6 +829,9 @@ switch (what)
         fprintf('\nttest:\n')
         [t,p] = ttest(ceil,r_nfing,1,'paired');
         fprintf('   ceiling > nfing: (%.6f,%.16e)\n',t,p)
+
+        [t,p] = ttest(r_force,r_nfing,2,'paired');
+        fprintf('   force > nfing: (%.6f,%.16e)\n',t,p)
 
         [t,p] = ttest(r_trans,r_nfing,1,'paired');
         fprintf('   transition > nfing: (%.6f,%.16e)\n',t,p)
