@@ -767,7 +767,9 @@ switch (what)
         fprintf('ET explained vs noise-ceiling: (%.6f,%.6f)\n',t_rt,p_rt)
         
     case 'model_comparison'
-        C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
+        measure = 'MD';
+        vararginoptions(varargin,{'measure'})
+        C = dload(fullfile(project_path,'analysis',sprintf('emg_models_%s.tsv',measure)));
         ceil = C.r_ceil(1:14);
         ceil_mean = mean(ceil);
         ceil_sem = std(ceil)/sqrt(length(ceil));
@@ -785,7 +787,7 @@ switch (what)
 
         % get rows for the emg model:
         rows_emg = model_table.n_fing==1 & model_table.emg_additive_avg==1 & all(model_table{:,[2:6,8:end]}==0, 2);
-
+        
         % get fitted r for models
         r_nfing = C.r(rows_nfing);
         r_force = C.r(rows_force);
@@ -815,8 +817,8 @@ switch (what)
         xlabel('Finger Count','FontSize',my_font.label)
         fontname("Arial")
 
-        fprintf("\nnumber of fingers prediction of MD: r = %.2f\n",mean(r_nfing))
-        fprintf("MD noise ceil = %.2f\n",mean(ceil))
+        fprintf("\nnumber of fingers prediction of %s: r = %.2f\n",measure,mean(r_nfing))
+        fprintf("%s noise ceil = %.2f\n",measure,mean(ceil))
 
         fprintf("\nPrediction correlations:\n")
         fprintf('   baseline: %.4f +- %.4f\n',mean(r_nfing),std(r_nfing)/sqrt(length(r_nfing)));
@@ -850,8 +852,6 @@ switch (what)
 
         [t,p] = ttest(ceil,r_emg,2,'paired');
         fprintf('   ceiling > emg: (%.6f,%.16e)\n',t,p)
-    
-    
 
     case 'nSphere_correlation'
         C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
@@ -954,63 +954,15 @@ switch (what)
         end
         fprintf('corr: %.6f, %.6f, %.6f\n',model_corr(1),model_corr(2),model_corr(3))
         fprintf('corr significance: %.6f, %.6f, %.6f\n',p_val(1),p_val(2),p_val(3))
-    case 'coact_correlation'
-        C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
-        data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
-        chords_emg = C.chordID(C.sn==1 & C.sess==1);
-        data = getrow(data,ismember(data.chordID,chords_emg));
-        data = getrow(data,data.sess>=3);
-
-        [~, ~, MD_avg, COND, ~] = get_sem(data.MD, ones(length(data.sn),1), ones(length(data.sn),1), data.chordID);
-        [~, ~, coact_avg, COND, ~] = get_sem(C.coact, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
         
-        finger_count = get_num_active_fingers(COND);
-        fc = unique(finger_count);
-        ylims = [[0 0.3] ; [0.1 1.5] ; [0.3 2.1]];
-        % ylims = [[300 480] ; [500 2200] ; [900 2200]]; % for ET
-        xlims = [[0.1 0.35] ; [0.2 0.5] ; [0.25 0.6]];
-        p_val = zeros(length(fc),1);
-        model_corr = zeros(length(fc),1);
-        for i = 1:length(fc)
-            x = coact_avg(finger_count==fc(i));
-            y = MD_avg(finger_count==fc(i));
-            chords = COND(finger_count==fc(i));
-            
-            [~,sort_idx] = sort(x);
-            fprintf('%d-finger chords ascending coact (first and last 3 chords):\n',fc(i))
-            disp(chords(sort_idx([1:3 , end-2:end])))
-            md = fitlm(x, y);
-            p_val(i) = md.Coefficients.pValue(2);
-            coefs = md.Coefficients.Estimate;
-            model_corr(i) = corr(x,y);
-            num_sample_plot = 1000;
-            x_plot = linspace(min(x),max(x), num_sample_plot)';
-            y_plot = [ones(num_sample_plot,1), x_plot]*coefs;
-            figure('Units','centimeters', 'Position',[15 15 5 5]);
-            plot(x_plot, y_plot, 'Color', colors_gray(5,:), 'LineWidth',1); hold on;
-            scatter(x, y, 15, "filled", "MarkerFaceColor", colors_gray(1,:), 'MarkerEdgeColor', colors_gray(5,:), 'LineWidth', 0.7); 
-            box off
-            h = gca;
-            h.XTick = [xlims(i,1), round((xlims(i,1)+xlims(i,2))/2,2), xlims(i,2)];
-            h.XAxis.FontSize = my_font.tick_label;
-            h.YAxis.FontSize = my_font.tick_label;
-            h.LineWidth = paper.axis_width;
-            h.YTick = [ylims(i,1), round((ylims(i,1)+ylims(i,2))/2,2), ylims(i,2)];
-            % ylim(ylims(i,:))
-            % xlim([xlims(i,1)-0.05 xlims(i,2)+0.05])
-            ylabel('mean deviation','FontSize',my_font.label)
-            xlabel('$$\| \vec{m}_i \|_{2}$$, muscle coact','interpreter','LaTex','FontSize',my_font.label)
-            fontname("Arial")
-        end
-        fprintf('corr: %.6f, %.6f, %.6f\n',model_corr(1),model_corr(2),model_corr(3))
-        fprintf('corr significance: %.6f, %.6f, %.6f\n',p_val(1),p_val(2),p_val(3))
+
     case 'within_finger_model'
         C = dload(fullfile(project_path,'analysis','natChord_analysis.tsv'));
         data = dload(fullfile(project_path,'analysis','efc1_chord.tsv'));
         chords_emg = C.chordID(C.sn==1 & C.sess==1);
         data = getrow(data,ismember(data.chordID,chords_emg));
         data = getrow(data,data.sess>=3);
-
+        
         [~, ~, MD_avg, COND_MD, SN] = get_sem(data.MD, data.sn, ones(length(data.sn),1), data.chordID);
         [~, ~, log_avg, COND_log, ~] = get_sem(C.log_slope, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
         [~, ~, mag_avg, COND_mag, ~] = get_sem(C.magnitude, ones(length(C.sn),1), ones(length(C.sn),1), C.chordID);
@@ -1106,7 +1058,9 @@ switch (what)
         fprintf('\n     1-f: (%.6f,%.16e)\n     3-f: (%.6f,%.16e)\n     5-f: (%.6f,%.16e)\n',t1,p1,t3,p3,t5,p5)
         
     case 'across_subj_model'
-        C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
+        measure = 'MD';
+        vararginoptions(varargin,{'measure'})
+        C = dload(fullfile(project_path,'analysis',sprintf('emg_models_%s.tsv',measure)));
         ceil = C.r_ceil(1:14);
         
         % get rows for the finger_count model:
@@ -1115,10 +1069,10 @@ switch (what)
         rows_nfing = model_table.n_fing==1 & all(model_table{:,2:end}==0, 2);
         
         % get rows for the magnitude model:
-        rows_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & all(model_table{:,[2:9,11]}==0, 2);
+        rows_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & all(model_table{:,[2:9]}==0, 2);
 
         % get rows for the natural+magnitude model:
-        rows_nSphere_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8,11]}==0, 2);
+        rows_nSphere_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8]}==0, 2);
 
         % get rows for the emg model:
         rows_emg = model_table.n_fing==1 & model_table.emg_additive_avg==1 & all(model_table{:,[2:6,8:end]}==0, 2);
@@ -1170,70 +1124,6 @@ switch (what)
         [t,p] = ttest(r_emg,r_nSphere_mag,1,'paired');
         fprintf('ttest muscle model > nSpehre+mag: (%.6f,%.16e)\n',t,p)
     
-    case 'across_subj_model_coact'
-        C = dload(fullfile(project_path,'analysis','emg_models_MD.tsv'));
-        ceil = C.r_ceil(1:14);
-        
-        % get rows for the finger_count model:
-        model_table = struct2table(C);
-        model_table = model_table(:,6:end);
-        rows_nfing = model_table.n_fing==1 & all(model_table{:,2:end}==0, 2);
-        
-        % get rows for the magnitude model:
-        rows_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & all(model_table{:,[2:9,11]}==0, 2);
-
-        rows_mag_coact = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.coact_avg==1 & all(model_table{:,[2:9]}==0, 2);
-
-        % get rows for the natural+magnitude model:
-        % rows_nSphere_mag = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8]}==0, 2);
-            
-        rows_nSphere_mag_coact = model_table.n_fing==1 & model_table.magnitude_avg==1 & model_table.coact_avg==1 & model_table.nSphere_avg==1 & all(model_table{:,[2:8]}==0, 2);
-        
-        % get rows for the emg model:
-        rows_emg = model_table.n_fing==1 & model_table.emg_additive_avg==1 & all(model_table{:,[2:6,8:end]}==0, 2);
-
-        % get fitted r for models
-        r_nfing = C.r(rows_nfing);
-        r_mag = C.r(rows_mag);
-        r_mag_coact = C.r(rows_mag_coact);
-        r_nSphere_mag_coact = C.r(rows_nSphere_mag_coact);
-        r_emg = C.r(rows_emg);
-        
-        % barplot:
-        x = [ones(length(r_mag),1) ; 2*ones(length(r_mag_coact),1) ; 3*ones(length(r_nSphere_mag_coact),1) ; 4*ones(length(r_emg),1)];
-        y = [r_mag ; r_mag_coact ; r_nSphere_mag_coact ; r_emg];
-        split = [ones(length(r_mag),1) ; 2*ones(length(r_mag_coact),1); 3*ones(length(r_nSphere_mag_coact),1) ; 4*ones(length(r_emg),1)];
-        figure('Units','centimeters', 'Position',[15 15 5 6]);
-        barwidth = 1;
-        [x_coord,PLOT,ERROR] = barplot(x,y,'split',split,'facecolor',{hex2rgb('#C4B7C8'),hex2rgb('#FF8A80'),[1,1,1]},'barwidth',barwidth,'gapwidth',[0.5 0 0],'errorwidth',paper.err_width,'linewidth',1,'capwidth',0); hold on;
-        drawline(mean(ceil),'dir','horz','lim',[x_coord(1)-barwidth x_coord(end)+barwidth],'color',[0.8 0.8 0.8],'linewidth',paper.horz_line_width,'linestyle',':')
-        box off
-        h = gca;
-        h.XAxis.FontSize = my_font.tick_label;
-        h.YAxis.FontSize = my_font.tick_label;
-        h.LineWidth = paper.axis_width;
-        h.YTick = [round(mean(r_nfing),2),round(mean(ceil),2),1];
-        ylim([round(mean(r_nfing),2) 1])
-        xlim([x_coord(1)-barwidth,x_coord(end)+barwidth])
-        ylabel('model fit (Pearson''s r)','FontSize',my_font.label)
-        xlabel('place holder','FontSize',my_font.label)
-        fontname("Arial")
-
-        % stats:
-        [t,p] = ttest(r_mag,r_nfing,2,'paired');
-        fprintf('\nttest mag != baseline: (%.6f,%.6f)\n',t,p)
-
-        [t,p] = ttest(r_mag_coact,r_mag,1,'paired');
-        fprintf('ttest mag+coact > mag: (%.6f,%.6f)\n',t,p)
-        
-        [t,p] = ttest(r_nSphere_mag_coact,r_mag_coact,1,'paired');
-        fprintf('ttest nSphere+mag+coact > mag+coact: (%.6f,%.6f)\n',t,p)
-        
-        [t,p] = ttest(ceil,r_nSphere_mag_coact,1,'paired');
-        fprintf('ttest ceiling > nSpehre+mag+coact: (%.6f,%.6f)\n',t,p)
-        
-        [t,p] = ttest(r_emg,r_nSphere_mag_coact,1,'paired');
-        fprintf('ttest muscle model > nSpehre+mag+coact: (%.6f,%.6f)\n',t,p)
     case 'explained_var_by_natural'
         C = dload(fullfile(project_path,'analysis','natChord_pca.tsv'));
         halves = unique(C.half);
